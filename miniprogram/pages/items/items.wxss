@@ -1,0 +1,86 @@
+/* 物品页样式 */
+
+/* ====== 搜索框 ====== */
+.search-wrap { padding: 24rpx 40rpx 8rpx; }
+.search-box {
+  display: flex;
+  align-items: center;
+  height: 88rpx;
+  padding: 0 28rpx;
+  background: var(--c-card);
+  border: 1rpx solid var(--c-line);
+  border-radius: 999rpx;
+  box-shadow: var(--c-shadow);
+}
+/* CSS 绘制的放大镜 */
+.search-icon {
+  width: 26rpx;
+  height: 26rpx;
+  border: 4rpx solid var(--c-faint);
+  border-radius: 50%;
+  box-sizing: border-box;
+  position: relative;
+  margin-right: 20rpx;
+  flex-shrink: 0;
+}
+.search-clear {
+  width: 56rpx;
+  height: 56rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--c-faint);
+  font-size: 36rpx;
+  flex-shrink: 0;
+}
+.clear-hover { opacity: 0.6; }
+.search-input { flex: 1; font-size: 28rpx; height: 88rpx; }
+
+/* ====== 筛选行 ====== */
+.chip-row {
+  white-space: nowrap;
+  padding: 16rpx 40rpx 0;
+}
+.chip-divider {
+  display: inline-block;
+  width: 1rpx;
+  height: 36rpx;
+  background: var(--c-line);
+  margin: 0 20rpx;
+  vertical-align: middle;
+}
+
+/* ====== 加载骨架 ====== */
+.skeleton-list { padding: 24rpx 40rpx; }
+.skeleton-card {
+  display: flex;
+  align-items: center;
+  background: var(--c-card);
+  border-radius: 24rpx;
+  border: 1rpx solid var(--c-line);
+  padding: 24rpx;
+  margin-bottom: 20rpx;
+}
+.sk-cover {
+  width: 132rpx;
+  height: 132rpx;
+  border-radius: 18rpx;
+  background: var(--c-card-2);
+  flex-shrink: 0;
+}
+.sk-lines { flex: 1; margin-left: 20rpx; }
+.sk-line {
+  height: 26rpx;
+  border-radius: 999rpx;
+  background: var(--c-card-2);
+  margin-bottom: 18rpx;
+}
+.sk-line.w1 { width: 55%; }
+.sk-line.w2 { width: 80%; margin-bottom: 0; }
+
+/* ====== 列表 ====== */
+.list { padding: 8rpx 40rpx 80rpx; }
+.list-count { padding: 16rpx 4rpx; font-size: 24rpx; color: var(--c-faint); }
+
+.empty-action { display: flex; justify-content: center; padding: 0 96rpx; }
+.empty-btn { width: 100%; }

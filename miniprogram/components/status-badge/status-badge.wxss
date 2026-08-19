@@ -1,0 +1,27 @@
+/* 状态徽章：低饱和语义色胶囊 + 状态圆点 */
+.badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 6rpx 18rpx;
+  border-radius: 999rpx;
+  font-size: 22rpx;
+  line-height: 1.4;
+  white-space: nowrap;
+}
+.badge-sm { padding: 4rpx 14rpx; font-size: 20rpx; }
+.dot {
+  width: 10rpx;
+  height: 10rpx;
+  border-radius: 50%;
+  margin-right: 8rpx;
+  flex-shrink: 0;
+}
+
+.lv-expired { color: var(--c-danger); background: var(--c-danger-bg); }
+.lv-expired .dot { background: var(--c-danger); }
+
+.lv-warning { color: var(--c-warn); background: var(--c-warn-bg); }
+.lv-warning .dot { background: var(--c-warn); }
+
+.lv-safe { color: var(--c-safe); background: var(--c-safe-bg); }
+.lv-safe .dot { background: var(--c-safe); }

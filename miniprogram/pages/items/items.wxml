@@ -1,0 +1,89 @@
+<view class="page-root {{dark ? 'theme-dark' : ''}}">
+
+  <!-- 搜索框 -->
+  <view class="search-wrap">
+    <view class="search-box">
+      <view class="search-icon"></view>
+      <input
+        class="search-input"
+        value="{{keyword}}"
+        placeholder="搜索名称、分类或备注"
+        placeholder-class="ph-text"
+        confirm-type="search"
+        bindinput="onKeywordInput"
+      />
+      <view wx:if="{{keyword}}" class="search-clear" hover-class="clear-hover" bindtap="onKeywordClear">×</view>
+    </view>
+  </view>
+
+  <!-- 分类筛选 -->
+  <scroll-view class="chip-row" scroll-x="true" enhanced="true" show-scrollbar="false">
+    <view
+      wx:for="{{categoryOptions}}"
+      wx:key="key"
+      class="chip {{category === item.key ? 'chip-on' : ''}}"
+      data-key="{{item.key}}"
+      bindtap="onCategoryTap"
+    >{{item.label}}</view>
+  </scroll-view>
+
+  <!-- 状态筛选 + 排序 -->
+  <scroll-view class="chip-row" scroll-x="true" enhanced="true" show-scrollbar="false">
+    <view
+      wx:for="{{statusOptions}}"
+      wx:key="key"
+      class="chip {{status === item.key ? 'chip-on' : ''}}"
+      data-key="{{item.key}}"
+      bindtap="onStatusTap"
+    >{{item.label}}</view>
+    <view class="chip-divider"></view>
+    <view
+      wx:for="{{sortOptions}}"
+      wx:key="key"
+      class="chip chip-sort {{sort === item.key ? 'chip-on' : ''}}"
+      data-key="{{item.key}}"
+      bindtap="onSortTap"
+    >{{item.label}}</view>
+  </scroll-view>
+
+  <!-- 加载骨架 -->
+  <view wx:if="{{loading}}" class="skeleton-list">
+    <view class="skeleton-card" wx:for="{{[1,2,3]}}" wx:key="*this">
+      <view class="sk-cover"></view>
+      <view class="sk-lines">
+        <view class="sk-line w1"></view>
+        <view class="sk-line w2"></view>
+      </view>
+    </view>
+  </view>
+
+  <block wx:else>
+    <!-- 完全没有记录 -->
+    <empty-state
+      wx:if="{{!hasAny}}"
+      type="box"
+      title="还没有任何物品"
+      desc="添加第一件开封物品，开始你的保质期看板。"
+    />
+    <view wx:if="{{!hasAny}}" class="empty-action">
+      <view class="btn btn-primary empty-btn" hover-class="btn-hover" bindtap="goAdd">＋ 添加物品</view>
+    </view>
+
+    <!-- 有记录但筛选无结果 -->
+    <empty-state
+      wx:elif="{{!list.length}}"
+      type="search"
+      title="没有找到匹配的物品"
+      desc="试试更换关键词，或放宽分类与状态筛选。"
+    />
+
+    <!-- 结果列表 -->
+    <view wx:else class="list">
+      <view class="list-count">共 {{list.length}} 件{{filtered ? '（已筛选）' : ''}}</view>
+      <block wx:for="{{list}}" wx:key="id">
+        <item-card item="{{item}}" dark="{{dark}}" bind:tapitem="onCardTap" />
+      </block>
+    </view>
+  </block>
+
+</view>

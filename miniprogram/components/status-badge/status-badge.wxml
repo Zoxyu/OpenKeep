@@ -1,0 +1,4 @@
+<view class="badge lv-{{level}} {{size === 'small' ? 'badge-sm' : ''}}">
+  <view class="dot"></view>
+  <text>{{text}}</text>
+</view>

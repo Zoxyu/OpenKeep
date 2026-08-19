@@ -1,0 +1,94 @@
+<view class="page-root {{dark ? 'theme-dark' : ''}}">
+
+  <!-- 品牌头部 -->
+  <view class="pf-hero">
+    <view class="pf-logo">守</view>
+    <view class="pf-info">
+      <view class="pf-name">开封守护</view>
+      <view class="pf-sub">OpenKeep · Keep track of what you open.</view>
+    </view>
+  </view>
+
+  <!-- 数据统计 -->
+  <view class="pf-stats card">
+    <view class="pf-stat">
+      <view class="pf-num">{{stats.total}}</view>
+      <view class="pf-label">总记录</view>
+    </view>
+    <view class="pf-stat">
+      <view class="pf-num lv-text-expired">{{stats.expired}}</view>
+      <view class="pf-label">已过期</view>
+    </view>
+    <view class="pf-stat">
+      <view class="pf-num lv-text-warning">{{stats.warning}}</view>
+      <view class="pf-label">临期</view>
+    </view>
+    <view class="pf-stat">
+      <view class="pf-num lv-text-safe">{{stats.safe}}</view>
+      <view class="pf-label">安全</view>
+    </view>
+  </view>
+
+  <!-- 临期阈值 -->
+  <view class="pf-block">
+    <view class="pf-block-title">临期阈值</view>
+    <view class="pf-block-desc">剩余天数小于等于阈值时，物品会显示为黄色「临期」。默认 7 天。</view>
+    <view class="seg-row">
+      <view
+        wx:for="{{warnOptions}}"
+        wx:key="v"
+        class="seg-item {{warningDays === item.v ? 'seg-on' : ''}}"
+        data-v="{{item.v}}"
+        hover-class="seg-hover"
+        bindtap="onWarnTap"
+      >{{item.label}}</view>
+    </view>
+  </view>
+
+  <!-- 外观 -->
+  <view class="pf-block">
+    <view class="pf-block-title">外观</view>
+    <view class="seg-row">
+      <view
+        wx:for="{{themeOptions}}"
+        wx:key="v"
+        class="seg-item {{themePref === item.v ? 'seg-on' : ''}}"
+        data-v="{{item.v}}"
+        hover-class="seg-hover"
+        bindtap="onThemeTap"
+      >{{item.label}}</view>
+    </view>
+  </view>
+
+  <!-- 功能入口 -->
+  <view class="pf-card card">
+    <view class="cell" hover-class="cell-hover" bindtap="goCalendarImport">
+      <view>
+        <view class="cell-title">批量导入日历</view>
+        <view class="cell-sub">把临期提醒一次性写入手机日历</view>
+      </view>
+      <view class="cell-arrow">›</view>
+    </view>
+    <view class="cell" hover-class="cell-hover" bindtap="onDataInfo">
+      <view>
+        <view class="cell-title">本地数据说明</view>
+        <view class="cell-sub">数据只存在你的手机本地</view>
+      </view>
+      <view class="cell-arrow">›</view>
+    </view>
+  </view>
+
+  <!-- 危险操作 -->
+  <view class="pf-card card danger-card">
+    <view class="cell" hover-class="cell-hover" bindtap="onClearAll">
+      <view>
+        <view class="cell-title danger-text">清空全部本地数据</view>
+        <view class="cell-sub">删除所有记录、照片与设置，不可恢复</view>
+      </view>
+      <view class="cell-arrow">›</view>
+    </view>
+  </view>
+
+  <view class="pf-footer">开封守护 OpenKeep · v1.0.0 · 纯本地数据，不联网</view>
+
+</view>

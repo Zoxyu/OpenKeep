@@ -1,0 +1,10 @@
+{
+  "navigationBarTitleText": "开封守护",
+  "enablePullDownRefresh": true,
+  "backgroundTextStyle": "dark",
+  "usingComponents": {
+    "item-card": "/components/item-card/item-card",
+    "empty-state": "/components/empty-state/empty-state",
+    "filter-bar": "/components/filter-bar/filter-bar"
+  }
+}

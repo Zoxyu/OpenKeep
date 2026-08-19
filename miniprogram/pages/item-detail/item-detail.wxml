@@ -1,0 +1,96 @@
+<view class="page-root {{dark ? 'theme-dark' : ''}}">
+
+  <!-- 记录不存在（已被删除等边界情况） -->
+  <view wx:if="{{missing}}" class="missing">
+    <view class="missing-title">记录不存在</view>
+    <view class="missing-desc">这条物品可能已被删除。</view>
+    <view class="btn btn-primary missing-btn" hover-class="btn-hover" bindtap="goBack">返回</view>
+  </view>
+
+  <block wx:elif="{{record}}">
+    <!-- 照片 / 分类占位 -->
+    <view class="hero-photo">
+      <image wx:if="{{photoOk && record.photoPath}}" class="hero-img" src="{{record.photoPath}}" mode="aspectFill" />
+      <view
+        wx:else
+        class="hero-ph"
+        style="background:{{dark ? cat.toneDarkAlpha : cat.toneAlpha}};color:{{dark ? cat.toneDark : cat.tone}};"
+      >{{cat.char}}</view>
+    </view>
+
+    <!-- 名称与状态 -->
+    <view class="head-card card">
+      <view class="head-row">
+        <view class="head-name">{{record.name}}</view>
+        <status-badge level="{{status.level}}" text="{{status.levelText}}" />
+      </view>
+      <view class="head-label lv-text-{{status.level}}">{{status.label}}</view>
+      <view class="bar head-bar">
+        <view class="bar-inner lv-{{status.level}}" style="width:{{status.progress}}%;"></view>
+      </view>
+      <view class="head-sub">保质期已消耗 {{status.progress}}%</view>
+    </view>
+
+    <!-- 基本信息 -->
+    <view class="info-card card">
+      <view class="cell">
+        <view class="cell-title">分类</view>
+        <view class="cell-value">{{cat.label}}</view>
+      </view>
+      <view class="cell">
+        <view class="cell-title">开封日期</view>
+        <view class="cell-value">{{record.openedAt}}</view>
+      </view>
+      <view class="cell">
+        <view class="cell-title">已开封</view>
+        <view class="cell-value">{{status.daysOpened > 0 ? status.daysOpened + ' 天' : '今天刚开封'}}</view>
+      </view>
+      <view class="cell">
+        <view class="cell-title">开封后可保存</view>
+        <view class="cell-value">{{record.shelfLifeDays}} 天</view>
+      </view>
+      <view class="cell">
+        <view class="cell-title">到期日期</view>
+        <view class="cell-value">{{status.dueDate}}</view>
+      </view>
+    </view>
+
+    <!-- 备注 -->
+    <view wx:if="{{record.notes}}" class="notes-card card">
+      <view class="notes-title">备注</view>
+      <view class="notes-body">{{record.notes}}</view>
+    </view>
+
+    <!-- 日历提醒 -->
+    <view class="cal-card card">
+      <view class="cal-head">
+        <view class="cal-title">到期提醒 · 手机日历</view>
+        <view wx:if="{{record.calendarImported}}" class="cal-done">已写入日历</view>
+      </view>
+      <view wx:if="{{!calSupported}}" class="cal-note">当前微信版本或设备不支持写入系统日历，物品管理功能不受影响。</view>
+      <block wx:else>
+        <view class="cal-desc">将在到期日上午 9:00 创建日程，并按所选时间提前提醒。</view>
+        <picker mode="selector" range="{{reminderOptions}}" value="{{reminderIndex}}" bindchange="onReminderChange">
+          <view class="cal-picker">
+            <text>{{reminderOptions[reminderIndex]}}</text>
+            <text class="picker-arrow">›</text>
+          </view>
+        </picker>
+        <view
+          class="btn {{record.calendarImported ? 'btn-plain' : 'btn-safe'}} {{writing ? 'btn-disabled' : ''}} cal-btn"
+          hover-class="btn-hover"
+          bindtap="onAddCalendar"
+        >{{writing ? '写入中…' : (record.calendarImported ? '重新导入日历' : '添加到手机日历')}}</view>
+        <view wx:if="{{record.calendarImported}}" class="cal-note">重新导入可能产生重复日程。微信不提供日程事件 ID，已添加的日程请在系统日历中管理，本应用无法删除或修改它们。</view>
+        <view wx:else class="cal-note">只写入你主动选择的提醒，不会读取你的已有日程。</view>
+      </block>
+    </view>
+
+    <!-- 操作 -->
+    <view class="actions">
+      <view class="btn btn-primary" hover-class="btn-hover" bindtap="onEdit">编辑物品</view>
+      <view class="btn btn-danger-ghost del-btn" hover-class="btn-hover" bindtap="onDelete">删除这条记录</view>
+    </view>
+  </block>
+
+</view>

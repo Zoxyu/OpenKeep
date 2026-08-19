@@ -1,0 +1,112 @@
+<view class="page-root {{dark ? 'theme-dark' : ''}}">
+
+  <!-- 不支持时的降级提示 -->
+  <view wx:if="{{!supported}}" class="warn-banner">当前微信版本或设备不支持写入系统日历。你仍可正常使用物品看板。</view>
+
+  <view class="intro">
+    <view class="intro-title">选择要提醒的物品</view>
+    <view class="intro-desc">已过期与未来 90 天内到期的物品会显示在这里。导入后，将在到期日上午 9:00 创建系统日历日程。</view>
+  </view>
+
+  <!-- 选项区 -->
+  <view class="opt-card card" wx:if="{{hasCandidates}}">
+    <view class="cell">
+      <view>
+        <view class="cell-title">统一提醒时间</view>
+        <view class="cell-sub">对所有选中物品生效</view>
+      </view>
+      <picker class="opt-picker" mode="selector" range="{{reminderOptions}}" value="{{reminderIndex}}" bindchange="onReminderChange">
+        <view class="cell-value">{{reminderOptions[reminderIndex]}} <text class="picker-arrow">›</text></view>
+      </picker>
+    </view>
+    <view class="cell">
+      <view>
+        <view class="cell-title">跳过已导入记录</view>
+        <view class="cell-sub">避免在系统日历中产生重复日程</view>
+      </view>
+      <switch checked="{{skipImported}}" color="#3E8F72" disabled="{{importing}}" bindchange="onSkipChange" />
+    </view>
+    <view class="cell">
+      <view class="cell-title">全选可选记录</view>
+      <view class="select-all" hover-class="sa-hover" bindtap="onToggleAll">
+        <view class="checkbox {{checkedCount > 0 ? 'on' : ''}}"><view wx:if="{{checkedCount > 0}}" class="tick"></view></view>
+        <text class="sa-text">全选 / 取消全选</text>
+      </view>
+    </view>
+  </view>
+
+  <!-- 候选列表 -->
+  <view wx:if="{{hasCandidates}}" class="ci-list">
+    <view
+      wx:for="{{items}}"
+      wx:key="record.id"
+      class="ci-item {{item.disabled ? 'ci-disabled' : ''}}"
+      data-index="{{index}}"
+      hover-class="{{item.disabled || importing ? '' : 'ci-hover'}}"
+      bindtap="onToggle"
+    >
+      <view class="checkbox {{item.checked ? 'on' : ''}} {{item.disabled ? 'disabled' : ''}}">
+        <view wx:if="{{item.checked}}" class="tick"></view>
+      </view>
+      <view class="ci-body">
+        <view class="ci-name">{{item.record.name}}</view>
+        <view class="ci-meta">{{item.record.categoryLabel}} · 到期 {{item.record.status.dueDate}}</view>
+      </view>
+      <view class="ci-right">
+        <status-badge level="{{item.record.status.level}}" text="{{item.record.status.levelText}}" size="small" />
+        <view wx:if="{{item.record.calendarImported}}" class="ci-imported">已导入</view>
+        <view wx:else class="ci-left lv-text-{{item.record.status.level}}">{{item.record.status.label}}</view>
+      </view>
+    </view>
+  </view>
+  <empty-state
+    wx:else
+    type="calendar"
+    title="暂无需要提醒的物品"
+    desc="已过期与未来 90 天内到期的物品会自动出现在这里。"
+  />
+
+  <!-- 底部操作区 -->
+  <view class="bottom-bar">
+    <block wx:if="{{!importing}}">
+      <view class="bb-count">已选 {{checkedCount}} 条</view>
+      <view
+        class="btn btn-primary bb-btn {{checkedCount === 0 || !supported ? 'btn-disabled' : ''}}"
+        hover-class="btn-hover"
+        bindtap="onImport"
+      >导入 {{checkedCount}} 条到手机日历</view>
+    </block>
+    <block wx:else>
+      <view class="bb-progress">
+        <view class="bb-progress-text">{{progressText}}</view>
+        <view class="bar bb-bar">
+          <view class="bar-inner lv-safe" style="width:{{progressPct}}%;"></view>
+        </view>
+      </view>
+      <view class="btn btn-plain bb-cancel" hover-class="btn-hover" bindtap="onCancelImport">取消</view>
+    </block>
+  </view>
+
+  <!-- 结果面板 -->
+  <view wx:if="{{showResult}}" class="result-mask">
+    <view class="result-card">
+      <view class="result-title">{{resultCancelled ? '已停止导入' : '导入完成'}}</view>
+      <view class="result-summary">
+        <text class="r-ok">成功 {{resultSuccess}} 条</text>
+        <text wx:if="{{resultFail > 0}}" class="r-fail">失败 {{resultFail}} 条</text>
+      </view>
+      <view wx:if="{{failList.length}}" class="result-fails">
+        <view class="rf-title">失败原因</view>
+        <scroll-view class="rf-list" scroll-y="true">
+          <view wx:for="{{failList}}" wx:key="index" class="rf-item">
+            <view class="rf-name">{{item.name}}</view>
+            <view class="rf-reason">{{item.reason}}</view>
+          </view>
+        </scroll-view>
+      </view>
+      <view class="result-note">已成功写入的日程请在系统日历中管理。重复导入会产生重复日程。</view>
+      <view class="btn btn-primary result-btn" hover-class="btn-hover" bindtap="onCloseResult">完成</view>
+    </view>
+  </view>
+
+</view>

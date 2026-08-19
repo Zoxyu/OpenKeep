@@ -1,0 +1,7 @@
+{
+  "navigationBarTitleText": "批量导入日历",
+  "usingComponents": {
+    "status-badge": "/components/status-badge/status-badge",
+    "empty-state": "/components/empty-state/empty-state"
+  }
+}

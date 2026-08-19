@@ -1,0 +1,69 @@
+/* 空状态：纯 CSS 绘制的盒子和辅助图形，不使用任何外部图片 */
+.empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 96rpx 48rpx;
+}
+.empty-icon {
+  width: 148rpx;
+  height: 148rpx;
+  position: relative;
+  margin-bottom: 32rpx;
+}
+
+/* 盒子主体 */
+.e-box {
+  position: absolute;
+  left: 24rpx;
+  bottom: 16rpx;
+  width: 100rpx;
+  height: 74rpx;
+  border: 4rpx solid var(--c-faint);
+  border-radius: 14rpx;
+  box-sizing: border-box;
+}
+/* 盒盖 */
+.e-lid {
+  position: absolute;
+  left: 12rpx;
+  bottom: 84rpx;
+  width: 124rpx;
+  height: 26rpx;
+  border: 4rpx solid var(--c-faint);
+  border-radius: 10rpx;
+  box-sizing: border-box;
+}
+
+/* 搜索型：放大镜 */
+.e-glass {
+  position: absolute;
+  right: 4rpx;
+  top: 4rpx;
+  width: 44rpx;
+  height: 44rpx;
+  border: 5rpx solid var(--c-sub);
+  border-radius: 50%;
+  box-sizing: border-box;
+}
+
+/* 日历型：小日历角标 */
+.e-cal {
+  position: absolute;
+  right: 0;
+  top: 0;
+  width: 52rpx;
+  height: 48rpx;
+  border: 4rpx solid var(--c-sub);
+  border-radius: 10rpx;
+  box-sizing: border-box;
+}
+
+.empty-title { font-size: 30rpx; font-weight: 600; color: var(--c-text); }
+.empty-desc {
+  margin-top: 12rpx;
+  font-size: 25rpx;
+  color: var(--c-sub);
+  text-align: center;
+  max-width: 520rpx;
+}

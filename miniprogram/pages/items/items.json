@@ -1,0 +1,7 @@
+{
+  "navigationBarTitleText": "全部物品",
+  "usingComponents": {
+    "item-card": "/components/item-card/item-card",
+    "empty-state": "/components/empty-state/empty-state"
+  }
+}

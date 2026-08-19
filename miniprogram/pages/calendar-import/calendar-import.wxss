@@ -1,0 +1,108 @@
+/* 批量导入日历页样式 */
+
+.warn-banner {
+  margin: 24rpx 40rpx 0;
+  padding: 20rpx 24rpx;
+  border-radius: 18rpx;
+  background: var(--c-warn-bg);
+  color: var(--c-warn);
+  font-size: 25rpx;
+  line-height: 1.6;
+}
+
+.intro { padding: 36rpx 40rpx 8rpx; }
+.intro-title { font-size: 36rpx; font-weight: 700; letter-spacing: 1rpx; }
+.intro-desc { margin-top: 10rpx; font-size: 25rpx; color: var(--c-sub); line-height: 1.7; }
+
+/* ====== 选项卡 ====== */
+.opt-card { margin: 24rpx 40rpx 0; padding: 0 8rpx; }
+.opt-picker { max-width: 360rpx; }
+.picker-arrow { color: var(--c-faint); margin-left: 6rpx; }
+.select-all { display: flex; align-items: center; }
+.sa-hover { opacity: 0.8; }
+.sa-text { margin-left: 14rpx; font-size: 26rpx; color: var(--c-sub); }
+
+/* ====== 候选列表 ====== */
+.ci-list { padding: 24rpx 40rpx 220rpx; }
+.ci-item {
+  display: flex;
+  align-items: center;
+  background: var(--c-card);
+  border: 1rpx solid var(--c-line);
+  border-radius: 22rpx;
+  box-shadow: var(--c-shadow);
+  padding: 24rpx;
+  margin-bottom: 18rpx;
+}
+.ci-hover { opacity: 0.9; }
+.ci-disabled { opacity: 0.55; }
+.ci-body { flex: 1; min-width: 0; margin: 0 20rpx; }
+.ci-name {
+  font-size: 30rpx;
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.ci-meta { margin-top: 6rpx; font-size: 23rpx; color: var(--c-sub); }
+.ci-right { display: flex; flex-direction: column; align-items: flex-end; gap: 8rpx; flex-shrink: 0; }
+.ci-imported { font-size: 21rpx; color: var(--c-sub); border: 1rpx solid var(--c-line); border-radius: 999rpx; padding: 2rpx 14rpx; }
+.ci-left { font-size: 24rpx; font-weight: 600; }
+
+/* ====== 底部操作区 ====== */
+.bottom-bar {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  display: flex;
+  align-items: center;
+  padding: 20rpx 40rpx calc(24rpx + env(safe-area-inset-bottom));
+  background: var(--c-card);
+  border-top: 1rpx solid var(--c-line);
+  z-index: 60;
+}
+.bb-count { font-size: 26rpx; color: var(--c-sub); margin-right: 24rpx; white-space: nowrap; }
+.bb-btn { flex: 1; }
+.bb-progress { flex: 1; margin-right: 24rpx; }
+.bb-progress-text { font-size: 25rpx; color: var(--c-sub); margin-bottom: 10rpx; }
+.bb-bar { height: 10rpx; }
+.bb-cancel { min-height: 80rpx; padding: 0 36rpx; flex-shrink: 0; }
+
+/* ====== 结果面板 ====== */
+.result-mask {
+  position: fixed;
+  left: 0;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(20, 22, 25, 0.5);
+  z-index: 999;
+}
+.result-card {
+  position: absolute;
+  left: 56rpx;
+  right: 56rpx;
+  top: 50%;
+  transform: translateY(-50%);
+  background: var(--c-card);
+  border-radius: 28rpx;
+  padding: 48rpx 40rpx;
+}
+.result-title { font-size: 34rpx; font-weight: 700; text-align: center; }
+.result-summary { margin-top: 20rpx; text-align: center; font-size: 28rpx; }
+.r-ok { color: var(--c-safe); font-weight: 600; }
+.r-fail { color: var(--c-danger); font-weight: 600; margin-left: 24rpx; }
+.result-fails { margin-top: 28rpx; }
+.rf-title { font-size: 24rpx; color: var(--c-sub); margin-bottom: 10rpx; }
+.rf-list { max-height: 280rpx; }
+.rf-item {
+  background: var(--c-card-2);
+  border-radius: 14rpx;
+  padding: 14rpx 20rpx;
+  margin-bottom: 12rpx;
+}
+.rf-name { font-size: 26rpx; font-weight: 500; }
+.rf-reason { margin-top: 4rpx; font-size: 22rpx; color: var(--c-danger); word-break: break-all; }
+.result-note { margin-top: 24rpx; font-size: 22rpx; color: var(--c-faint); line-height: 1.6; }
+.result-btn { margin-top: 32rpx; }

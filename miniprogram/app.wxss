@@ -1,0 +1,183 @@
+/**
+ * 开封守护 OpenKeep · 全局样式
+ * 设计语言：克制、温暖、轻奢。暖白底 + 墨黑文字 + 低饱和红黄绿语义色。
+ * 深浅色主题通过 CSS 变量切换：页面根节点挂 .page-root（深色再挂 .theme-dark）。
+ * 自定义属性可穿透组件边界向下继承，组件内部直接使用 var(--c-xxx) 即可。
+ */
+
+page {
+  background-color: #F7F7F4;
+  color: #202421;
+  font-size: 28rpx;
+  line-height: 1.6;
+  font-family: -apple-system, BlinkMacSystemFont, "Helvetica Neue", "PingFang SC", "Microsoft YaHei", sans-serif;
+}
+
+/* ====== 页面根容器：承载主题变量 ====== */
+.page-root {
+  --c-bg: #F7F7F4;
+  --c-card: #FFFFFF;
+  --c-card-2: #F1F2EE;
+  --c-text: #202421;
+  --c-sub: #858C86;
+  --c-faint: #B6BCB5;
+  --c-line: rgba(32, 36, 33, 0.08);
+  --c-safe: #3E8F72;
+  --c-warn: #D79A27;
+  --c-danger: #C65B55;
+  --c-safe-bg: rgba(62, 143, 114, 0.10);
+  --c-warn-bg: rgba(215, 154, 39, 0.12);
+  --c-danger-bg: rgba(198, 91, 85, 0.10);
+  --c-hover: rgba(32, 36, 33, 0.04);
+  --c-shadow: 0 8rpx 28rpx rgba(32, 36, 33, 0.06);
+  min-height: 100vh;
+  background: var(--c-bg);
+  color: var(--c-text);
+  box-sizing: border-box;
+}
+
+.page-root.theme-dark {
+  --c-bg: #141619;
+  --c-card: #1E2125;
+  --c-card-2: #262A2F;
+  --c-text: #E8EAE6;
+  --c-sub: #98A09A;
+  --c-faint: #6C736E;
+  --c-line: rgba(255, 255, 255, 0.08);
+  --c-safe: #66BD9C;
+  --c-warn: #E3B45C;
+  --c-danger: #E08A82;
+  --c-safe-bg: rgba(102, 189, 156, 0.14);
+  --c-warn-bg: rgba(227, 180, 92, 0.14);
+  --c-danger-bg: rgba(224, 138, 130, 0.14);
+  --c-hover: rgba(255, 255, 255, 0.06);
+  --c-shadow: 0 8rpx 28rpx rgba(0, 0, 0, 0.35);
+}
+
+/* ====== 通用按钮（使用 view + hover-class，避免原生 button 默认样式） ====== */
+.btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 92rpx;
+  padding: 0 40rpx;
+  border-radius: 22rpx;
+  font-size: 30rpx;
+  font-weight: 500;
+  letter-spacing: 1rpx;
+  box-sizing: border-box;
+}
+.btn-hover { opacity: 0.85; transform: translateY(1rpx); }
+.btn-primary { background: var(--c-text); color: var(--c-bg); }
+.btn-plain { background: var(--c-card-2); color: var(--c-text); border: 1rpx solid var(--c-line); }
+.btn-safe { background: var(--c-safe); color: #FFFFFF; }
+.btn-danger { background: var(--c-danger); color: #FFFFFF; }
+.btn-danger-ghost { background: var(--c-danger-bg); color: var(--c-danger); }
+.btn-disabled { opacity: 0.45; }
+
+/* ====== 通用卡片与分区 ====== */
+.card {
+  background: var(--c-card);
+  border-radius: 24rpx;
+  border: 1rpx solid var(--c-line);
+  box-shadow: var(--c-shadow);
+}
+.card-hover { opacity: 0.92; transform: translateY(1rpx); }
+.section-title {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  padding: 40rpx 40rpx 20rpx;
+}
+.section-title .t { font-size: 30rpx; font-weight: 600; letter-spacing: 1rpx; }
+.section-title .s { font-size: 24rpx; color: var(--c-faint); }
+
+/* ====== 表单 ====== */
+.field { padding: 24rpx 32rpx; }
+.field-label { font-size: 26rpx; color: var(--c-sub); margin-bottom: 14rpx; }
+.field-label .req { color: var(--c-danger); margin-right: 4rpx; }
+.input-base {
+  width: 100%;
+  min-height: 88rpx;
+  padding: 0 24rpx;
+  box-sizing: border-box;
+  background: var(--c-card-2);
+  border: 1rpx solid var(--c-line);
+  border-radius: 18rpx;
+  font-size: 30rpx;
+  color: var(--c-text);
+}
+.ph-text { color: var(--c-faint); }
+.err-text { margin-top: 10rpx; font-size: 24rpx; color: var(--c-danger); }
+.hint-text { margin-top: 10rpx; font-size: 24rpx; color: var(--c-safe); }
+
+/* ====== 通用 chip（筛选胶囊） ====== */
+.chip {
+  display: inline-flex;
+  align-items: center;
+  min-height: 64rpx;
+  padding: 0 28rpx;
+  margin-right: 16rpx;
+  border-radius: 999rpx;
+  background: var(--c-card);
+  border: 1rpx solid var(--c-line);
+  color: var(--c-sub);
+  font-size: 26rpx;
+  white-space: nowrap;
+}
+.chip-on {
+  background: var(--c-text);
+  border-color: var(--c-text);
+  color: var(--c-bg);
+  font-weight: 500;
+}
+.chip-count { margin-left: 8rpx; font-size: 22rpx; opacity: 0.7; }
+
+/* ====== 语义状态文字色 ====== */
+.lv-text-expired { color: var(--c-danger); }
+.lv-text-warning { color: var(--c-warn); }
+.lv-text-safe { color: var(--c-safe); }
+
+/* ====== 列表行 ====== */
+.cell {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  min-height: 100rpx;
+  padding: 20rpx 32rpx;
+  box-sizing: border-box;
+}
+.cell + .cell { border-top: 1rpx solid var(--c-line); }
+.cell-title { font-size: 29rpx; }
+.cell-sub { font-size: 23rpx; color: var(--c-faint); margin-top: 4rpx; }
+.cell-value { font-size: 27rpx; color: var(--c-sub); display: flex; align-items: center; }
+
+/* ====== 进度条 ====== */
+.bar { height: 8rpx; border-radius: 999rpx; background: var(--c-card-2); overflow: hidden; }
+.bar-inner { height: 100%; border-radius: 999rpx; }
+.bar-inner.lv-expired, .lv-bar-expired { background: var(--c-danger); }
+.bar-inner.lv-warning, .lv-bar-warning { background: var(--c-warn); }
+.bar-inner.lv-safe, .lv-bar-safe { background: var(--c-safe); }
+
+/* ====== 自定义复选框 ====== */
+.checkbox {
+  width: 44rpx;
+  height: 44rpx;
+  border-radius: 12rpx;
+  border: 3rpx solid var(--c-faint);
+  box-sizing: border-box;
+  position: relative;
+  flex-shrink: 0;
+}
+.checkbox.on { background: var(--c-safe); border-color: var(--c-safe); }
+.checkbox.on .tick {
+  position: absolute;
+  left: 12rpx;
+  top: 5rpx;
+  width: 12rpx;
+  height: 22rpx;
+  border-right: 4rpx solid #FFFFFF;
+  border-bottom: 4rpx solid #FFFFFF;
+  transform: rotate(45deg);
+}
+.checkbox.disabled { opacity: 0.35; }

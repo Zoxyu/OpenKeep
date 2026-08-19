@@ -1,0 +1,115 @@
+<view class="page-root {{dark ? 'theme-dark' : ''}}">
+
+  <!-- 封面照片 -->
+  <view class="photo-area" hover-class="photo-hover" bindtap="onPhotoTap">
+    <block wx:if="{{tempPhoto || photoPath}}">
+      <image class="photo-img" src="{{tempPhoto || photoPath}}" mode="aspectFill" />
+      <view class="photo-tip">点击可更换或移除照片</view>
+    </block>
+    <view wx:else class="photo-empty">
+      <view class="photo-plus"></view>
+      <view class="photo-empty-text">添加封面照片（可选）</view>
+      <view class="photo-empty-sub">拍照或从相册选择，仅作封面展示</view>
+    </view>
+  </view>
+
+  <view class="form-card card">
+    <!-- 名称 -->
+    <view class="field">
+      <view class="field-label"><text class="req">*</text>物品名称（最多 30 字）</view>
+      <input
+        class="input-base"
+        value="{{name}}"
+        maxlength="30"
+        placeholder="例如：鲜牛奶、眼药水"
+        placeholder-class="ph-text"
+        bindinput="onNameInput"
+      />
+      <view wx:if="{{errors.name}}" class="err-text">{{errors.name}}</view>
+    </view>
+
+    <!-- 分类 -->
+    <view class="field">
+      <view class="field-label"><text class="req">*</text>分类</view>
+      <view class="cat-row">
+        <view
+          wx:for="{{categoryOptions}}"
+          wx:key="key"
+          class="cat-item {{category === item.key ? 'cat-on' : ''}}"
+          data-key="{{item.key}}"
+          hover-class="cat-hover"
+          bindtap="onCategoryTap"
+        >
+          <view class="cat-char">{{item.char}}</view>
+          <view class="cat-label">{{item.label}}</view>
+        </view>
+      </view>
+    </view>
+
+    <!-- 开封日期 -->
+    <view class="field">
+      <view class="field-label"><text class="req">*</text>开封日期</view>
+      <picker mode="date" value="{{openedAt}}" bindchange="onDateChange">
+        <view class="input-base picker-row">
+          <text>{{openedAt}}</text>
+          <text class="picker-arrow">›</text>
+        </view>
+      </picker>
+      <view wx:if="{{errors.openedAt}}" class="err-text">{{errors.openedAt}}</view>
+    </view>
+
+    <!-- 已开封 X 天 快捷输入 -->
+    <view class="field">
+      <view class="field-label">快捷输入 · 已开封 X 天（可选）</view>
+      <input
+        class="input-base"
+        type="number"
+        value="{{openedDaysInput}}"
+        placeholder="输入天数，自动反推开封日期"
+        placeholder-class="ph-text"
+        bindinput="onOpenedDaysInput"
+      />
+      <view wx:if="{{quickHint && quickOk}}" class="hint-text">{{quickHint}}</view>
+      <view wx:elif="{{quickHint}}" class="err-text">{{quickHint}}</view>
+      <view class="field-sub">仅凭已开封天数无法推算到期日，仍需填写下方「开封后可保存天数」。</view>
+    </view>
+
+    <!-- 开封后可保存天数 -->
+    <view class="field">
+      <view class="field-label"><text class="req">*</text>开封后可保存天数（1–3650）</view>
+      <input
+        class="input-base"
+        type="number"
+        value="{{shelfLifeDays}}"
+        placeholder="例如：30"
+        placeholder-class="ph-text"
+        bindinput="onShelfInput"
+      />
+      <view wx:if="{{errors.shelfLifeDays}}" class="err-text">{{errors.shelfLifeDays}}</view>
+    </view>
+
+    <!-- 备注 -->
+    <view class="field">
+      <view class="field-label">备注（可选，最多 100 字）</view>
+      <textarea
+        class="input-base notes-input"
+        value="{{notes}}"
+        maxlength="100"
+        placeholder="例如：开封后需冷藏"
+        placeholder-class="ph-text"
+        bindinput="onNotesInput"
+      />
+      <view class="notes-count">{{notes.length}} / 100</view>
+      <view wx:if="{{errors.notes}}" class="err-text">{{errors.notes}}</view>
+    </view>
+  </view>
+
+  <!-- 操作按钮 -->
+  <view class="actions">
+    <view class="btn btn-primary {{saving ? 'btn-disabled' : ''}}" hover-class="btn-hover" bindtap="onSave">
+      {{saving ? '保存中…' : (isEdit ? '保存修改' : '保存物品')}}
+    </view>
+    <view wx:if="{{isEdit}}" class="btn btn-danger-ghost del-btn" hover-class="btn-hover" bindtap="onDelete">删除这条记录</view>
+  </view>
+
+</view>

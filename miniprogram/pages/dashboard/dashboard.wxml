@@ -1,0 +1,87 @@
+<view class="page-root {{dark ? 'theme-dark' : ''}}">
+
+  <!-- 首次启动引导：用户主动选择，不擅自写入演示数据 -->
+  <view wx:if="{{showOnboarding}}" class="onboard-mask">
+    <view class="onboard-card">
+      <view class="onboard-logo">守</view>
+      <view class="onboard-name">开封守护</view>
+      <view class="onboard-sub">OpenKeep · 家庭开封保质期看板</view>
+      <view class="onboard-desc">记录每一次开封，红黄绿看板一眼看清临期与过期。所有数据仅保存在你的手机本地，不上传、不联网。</view>
+      <view class="btn btn-primary onboard-btn" hover-class="btn-hover" bindtap="onUseDemo">体验示例数据</view>
+      <view class="btn btn-plain onboard-btn" hover-class="btn-hover" bindtap="onStartBlank">从空白开始</view>
+    </view>
+  </view>
+
+  <!-- 顶部问候 -->
+  <view class="hero">
+    <view class="hero-date">{{todayText}}</view>
+    <view class="hero-greet">今天，值得被记住。</view>
+    <view class="hero-brand">开封守护</view>
+    <view class="hero-sub">Keep track of what you open.</view>
+  </view>
+
+  <!-- 三色统计卡 -->
+  <view class="stats">
+    <view class="stat" hover-class="stat-hover" bindtap="onStatTap" data-level="expired">
+      <view class="stat-num lv-text-expired">{{stats.expired}}</view>
+      <view class="stat-label">已过期</view>
+    </view>
+    <view class="stat" hover-class="stat-hover" bindtap="onStatTap" data-level="warning">
+      <view class="stat-num lv-text-warning">{{stats.warning}}</view>
+      <view class="stat-label">临期</view>
+    </view>
+    <view class="stat" hover-class="stat-hover" bindtap="onStatTap" data-level="safe">
+      <view class="stat-num lv-text-safe">{{stats.safe}}</view>
+      <view class="stat-label">安心保存</view>
+    </view>
+  </view>
+
+  <!-- 主提醒卡：最紧急的一件 -->
+  <view wx:if="{{urgent}}" class="urgent" hover-class="card-hover" bindtap="goDetail" data-id="{{urgent.id}}">
+    <view class="urgent-head">
+      <view class="urgent-tag lv-bg-{{urgent.status.level}}">{{urgent.status.level === 'expired' ? '需要尽快处理' : '临期提醒'}}</view>
+      <view class="urgent-more">查看详情 ›</view>
+    </view>
+    <view class="urgent-name">{{urgent.name}}</view>
+    <view class="urgent-meta">{{urgent.categoryLabel}} · 到期 {{urgent.status.dueDate}}</view>
+    <view class="bar urgent-bar">
+      <view class="bar-inner lv-{{urgent.status.level}}" style="width:{{urgent.status.progress}}%;"></view>
+    </view>
+    <view class="urgent-label lv-text-{{urgent.status.level}}">{{urgent.status.label}}</view>
+  </view>
+
+  <!-- 无记录时的温和引导 -->
+  <view wx:elif="{{!hasRecords && !showOnboarding}}" class="guide" hover-class="card-hover" bindtap="goAdd">
+    <view class="guide-circle"></view>
+    <view class="guide-title">从第一件物品开始</view>
+    <view class="guide-desc">拍下或录入刚开封的物品，到期的事交给看板替你记着。</view>
+    <view class="guide-btn">＋ 添加第一件物品</view>
+  </view>
+
+  <!-- 列表区 -->
+  <view class="list-head">
+    <view class="list-title">物品看板</view>
+    <view class="list-total">共 {{total}} 件</view>
+  </view>
+
+  <filter-bar options="{{filterOptions}}" active="{{filter}}" bind:change="onFilterChange" />
+
+  <view class="list">
+    <block wx:for="{{list}}" wx:key="id">
+      <item-card item="{{item}}" dark="{{dark}}" bind:tapitem="onCardTap" />
+    </block>
+    <empty-state
+      wx:if="{{!list.length}}"
+      type="box"
+      title="{{hasRecords ? '该状态下暂无物品' : '还没有任何记录'}}"
+      desc="{{hasRecords ? '换个筛选条件，看看其他物品。' : '点击右下角按钮，添加第一件物品。'}}"
+    />
+  </view>
+
+  <!-- 悬浮添加按钮 -->
+  <view class="fab" hover-class="fab-hover" bindtap="goAdd">
+    <text class="fab-plus">＋</text>
+    <text class="fab-text">添加物品</text>
+  </view>
+
+</view>

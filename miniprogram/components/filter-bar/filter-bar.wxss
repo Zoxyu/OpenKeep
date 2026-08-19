@@ -1,0 +1,25 @@
+/* 快捷筛选条：可横滑的胶囊选项 */
+.filter-bar {
+  white-space: nowrap;
+  padding: 8rpx 40rpx;
+}
+.fb-chip {
+  display: inline-flex;
+  align-items: center;
+  min-height: 68rpx;
+  padding: 0 30rpx;
+  margin-right: 16rpx;
+  border-radius: 999rpx;
+  background: var(--c-card);
+  border: 1rpx solid var(--c-line);
+  color: var(--c-sub);
+  font-size: 26rpx;
+}
+.fb-chip-hover { opacity: 0.8; }
+.fb-chip-on {
+  background: var(--c-text);
+  border-color: var(--c-text);
+  color: var(--c-bg);
+  font-weight: 500;
+}
+.fb-count { margin-left: 10rpx; font-size: 22rpx; opacity: 0.7; }

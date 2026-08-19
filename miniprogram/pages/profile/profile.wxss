@@ -1,0 +1,72 @@
+/* 我的页样式 */
+
+/* ====== 品牌头部 ====== */
+.pf-hero { display: flex; align-items: center; padding: 48rpx 40rpx 12rpx; }
+.pf-logo {
+  width: 96rpx;
+  height: 96rpx;
+  border-radius: 26rpx;
+  background: var(--c-safe);
+  color: #FFFFFF;
+  font-size: 48rpx;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+.pf-info { margin-left: 24rpx; min-width: 0; }
+.pf-name { font-size: 38rpx; font-weight: 700; letter-spacing: 3rpx; }
+.pf-sub { margin-top: 4rpx; font-size: 22rpx; color: var(--c-faint); }
+
+/* ====== 统计 ====== */
+.pf-stats { display: flex; margin: 28rpx 40rpx 0; padding: 26rpx 0; }
+.pf-stat { flex: 1; text-align: center; }
+.pf-num { font-size: 40rpx; font-weight: 700; line-height: 1.2; }
+.pf-label { margin-top: 4rpx; font-size: 22rpx; color: var(--c-sub); }
+
+/* ====== 分区 ====== */
+.pf-block { padding: 36rpx 40rpx 0; }
+.pf-block-title { font-size: 30rpx; font-weight: 600; }
+.pf-block-desc { margin-top: 6rpx; font-size: 23rpx; color: var(--c-sub); line-height: 1.6; }
+
+/* 分段选择 */
+.seg-row {
+  display: flex;
+  margin-top: 20rpx;
+  background: var(--c-card-2);
+  border-radius: 18rpx;
+  padding: 6rpx;
+  border: 1rpx solid var(--c-line);
+}
+.seg-item {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 80rpx;
+  border-radius: 14rpx;
+  font-size: 27rpx;
+  color: var(--c-sub);
+}
+.seg-hover { opacity: 0.8; }
+.seg-on {
+  background: var(--c-card);
+  color: var(--c-text);
+  font-weight: 600;
+  box-shadow: var(--c-shadow);
+}
+
+/* ====== 入口卡片 ====== */
+.pf-card { margin: 28rpx 40rpx 0; padding: 0 8rpx; }
+.cell-hover { background: var(--c-hover); }
+.cell-arrow { font-size: 36rpx; color: var(--c-faint); margin-left: 16rpx; }
+.danger-text { color: var(--c-danger); font-weight: 500; }
+.danger-card { border-color: rgba(198, 91, 85, 0.25); }
+
+.pf-footer {
+  padding: 56rpx 40rpx calc(60rpx + env(safe-area-inset-bottom));
+  text-align: center;
+  font-size: 22rpx;
+  color: var(--c-faint);
+}

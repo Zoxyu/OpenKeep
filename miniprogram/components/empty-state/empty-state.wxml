@@ -1,0 +1,11 @@
+<view class="empty">
+  <!-- CSS 绘制的占位图形 -->
+  <view class="empty-icon type-{{type}}">
+    <view class="e-lid"></view>
+    <view class="e-box"></view>
+    <view wx:if="{{type === 'search'}}" class="e-glass"></view>
+    <view wx:if="{{type === 'calendar'}}" class="e-cal"></view>
+  </view>
+  <view class="empty-title">{{title}}</view>
+  <view wx:if="{{desc}}" class="empty-desc">{{desc}}</view>
+</view>
