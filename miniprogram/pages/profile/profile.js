@@ -35,7 +35,7 @@ Page({
     const settings = app.globalData.settings || storage.loadSettings();
     this.setData({ dark: app.isDark(), warningDays: settings.warningDays, themePref: settings.theme });
     app.applyChrome();
-    this.syncTabBar(2);
+    this.syncTabBar(3);
     this.refreshStats();
   },
 
