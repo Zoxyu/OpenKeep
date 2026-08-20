@@ -1,0 +1,165 @@
+/* 自定义悬浮胶囊 tabBar
+ * 浅色 / 深色主题变量定义在组件根节点（组件不在页面 DOM 内，无法继承页面变量）。
+ * 图标全部由 CSS 绘制（currentColor 跟随文字色），不依赖任何外部图片。 */
+
+.tabbar-shell {
+  --tb-bg: rgba(255, 255, 255, 0.94);
+  --tb-line: rgba(32, 36, 33, 0.06);
+  --tb-shadow: 0 14rpx 44rpx rgba(32, 36, 33, 0.14);
+  --tb-sub: #8A8F8B;
+  --tb-active-bg: #202421;
+  --tb-active-text: #FFFFFF;
+
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  padding: 0 32rpx calc(28rpx + env(safe-area-inset-bottom));
+  z-index: 100;
+}
+
+.tabbar-shell.theme-dark {
+  --tb-bg: rgba(30, 33, 37, 0.94);
+  --tb-line: rgba(255, 255, 255, 0.08);
+  --tb-shadow: 0 14rpx 44rpx rgba(0, 0, 0, 0.45);
+  --tb-sub: #8F9691;
+  --tb-active-bg: #E8EAE6;
+  --tb-active-text: #141619;
+}
+
+/* 悬浮胶囊容器：flex 弹性布局，任意屏宽下三等分不变形 */
+.tabbar {
+  display: flex;
+  align-items: center;
+  padding: 10rpx;
+  border-radius: 999rpx;
+  background: var(--tb-bg);
+  border: 1rpx solid var(--tb-line);
+  box-shadow: var(--tb-shadow);
+  backdrop-filter: blur(20rpx);
+}
+
+/* 单个入口：纵向图标 + 文字，最小触控高度 96rpx */
+.tab-item {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 96rpx;
+  border-radius: 999rpx;
+  color: var(--tb-sub);
+  transition: color 0.2s ease, background-color 0.2s ease;
+}
+.tab-hover { opacity: 0.75; }
+
+/* 选中态：墨黑 / 暖白胶囊，文字加粗 */
+.tab-active {
+  background: var(--tb-active-bg);
+  color: var(--tb-active-text);
+}
+.tab-active .tab-text { font-weight: 600; }
+
+.tab-icon {
+  width: 44rpx;
+  height: 44rpx;
+  position: relative;
+  flex-shrink: 0;
+}
+.tab-text {
+  margin-top: 4rpx;
+  font-size: 21rpx;
+  line-height: 1.4;
+  white-space: nowrap;
+  color: currentColor;
+}
+
+/* ====== CSS 图标：看板（2×2 方格） ====== */
+.icon-board .i-dot {
+  position: absolute;
+  width: 15rpx;
+  height: 15rpx;
+  border-radius: 4rpx;
+  background: currentColor;
+}
+.i-d1 { left: 3rpx; top: 3rpx; }
+.i-d2 { right: 3rpx; top: 3rpx; }
+.i-d3 { left: 3rpx; bottom: 3rpx; }
+.i-d4 { right: 3rpx; bottom: 3rpx; }
+
+/* ====== CSS 图标：物品（盒盖 + 盒身） ====== */
+.icon-box .i-lid {
+  position: absolute;
+  left: 7rpx;
+  top: 5rpx;
+  width: 30rpx;
+  height: 10rpx;
+  border: 3rpx solid currentColor;
+  border-radius: 5rpx;
+  box-sizing: border-box;
+}
+.icon-box .i-body {
+  position: absolute;
+  left: 7rpx;
+  top: 17rpx;
+  width: 30rpx;
+  height: 19rpx;
+  border: 3rpx solid currentColor;
+  border-radius: 5rpx;
+  box-sizing: border-box;
+}
+
+/* ====== CSS 图标：我的（头 + 肩） ====== */
+.icon-me .i-head {
+  position: absolute;
+  left: 13rpx;
+  top: 3rpx;
+  width: 16rpx;
+  height: 16rpx;
+  border: 3rpx solid currentColor;
+  border-radius: 50%;
+  box-sizing: border-box;
+}
+.icon-me .i-body2 {
+  position: absolute;
+  left: 8rpx;
+  top: 23rpx;
+  width: 28rpx;
+  height: 15rpx;
+  border: 3rpx solid currentColor;
+  border-radius: 14rpx 14rpx 0 0;
+  box-sizing: border-box;
+}
+
+/* ====== CSS 图标：今天（日历） ====== */
+.icon-today .i-frame {
+  position: absolute;
+  left: 6rpx;
+  top: 8rpx;
+  width: 32rpx;
+  height: 30rpx;
+  border: 3rpx solid currentColor;
+  border-radius: 6rpx;
+  box-sizing: border-box;
+}
+.icon-today .i-line {
+  position: absolute;
+  left: 4rpx;
+  right: 4rpx;
+  top: 10rpx;
+  height: 3rpx;
+  border-radius: 2rpx;
+  background: currentColor;
+}
+.icon-today .i-ear {
+  position: absolute;
+  top: 2rpx;
+  width: 5rpx;
+  height: 9rpx;
+  border: 3rpx solid currentColor;
+  border-bottom: none;
+  border-radius: 3rpx 3rpx 0 0;
+  box-sizing: border-box;
+}
+.i-ear-l { left: 12rpx; }
+.i-ear-r { right: 12rpx; }

@@ -46,7 +46,15 @@ Page({
   onShow() {
     this.setData({ dark: app.isDark() });
     app.applyChrome();
+    this.syncTabBar(1);
     this.load();
+  },
+
+  // 同步自定义 tabBar 选中态
+  syncTabBar(index) {
+    if (typeof this.getTabBar === 'function' && this.getTabBar()) {
+      this.getTabBar().setData({ selected: index });
+    }
   },
 
   onUnload() {

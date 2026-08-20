@@ -8,6 +8,7 @@ const storage = require('../../utils/storage');
 const recordUtil = require('../../utils/record');
 const imageUtil = require('../../utils/image');
 const dateUtil = require('../../utils/date');
+const historyUtil = require('../../utils/history');
 
 Page({
   data: {
@@ -20,13 +21,21 @@ Page({
     filter: 'all',
     filterOptions: [],
     list: [],
-    total: 0
+    total: 0,
+    // 「历史上的今天」首页预览（本地数据，不触发网络请求）
+    historyPreview: null
   },
 
   onLoad() {
     const now = dateUtil.todayStart();
+    const preview = historyUtil.getLocalPreview();
     this.setData({
-      todayText: (now.getMonth() + 1) + ' 月 ' + now.getDate() + ' 日 · ' + dateUtil.weekdayCN(now)
+      todayText: (now.getMonth() + 1) + ' 月 ' + now.getDate() + ' 日 · ' + dateUtil.weekdayCN(now),
+      historyPreview: {
+        month: preview.month,
+        day: preview.day,
+        text: preview.first || preview.second || ''
+      }
     });
     this._untheme = app.onTheme(dark => this.setData({ dark }));
   },
@@ -34,7 +43,15 @@ Page({
   onShow() {
     this.setData({ dark: app.isDark() });
     app.applyChrome();
+    this.syncTabBar(0);
     this.refresh();
+  },
+
+  // 同步自定义 tabBar 选中态
+  syncTabBar(index) {
+    if (typeof this.getTabBar === 'function' && this.getTabBar()) {
+      this.getTabBar().setData({ selected: index });
+    }
   },
 
   onUnload() {
@@ -101,6 +118,11 @@ Page({
 
   goAdd() {
     wx.navigateTo({ url: '/pages/item-form/item-form' });
+  },
+
+  // 跳转「历史上的今天」tab 页
+  goHistory() {
+    wx.switchTab({ url: '/pages/history/history' });
   },
 
   // 首次启动引导：写入示例数据（相对今天生成，保证红黄绿都有）

@@ -58,6 +58,19 @@
     <view class="guide-btn">＋ 添加第一件物品</view>
   </view>
 
+  <!-- 历史上的今天：柔和日期卡（点击进入 tab 页） -->
+  <view wx:if="{{historyPreview}}" class="today-card" hover-class="card-hover" bindtap="goHistory">
+    <view class="today-date">
+      <text class="today-m">{{historyPreview.month}}</text>
+      <text class="today-d">{{historyPreview.day}}</text>
+    </view>
+    <view class="today-body">
+      <view class="today-title">历史上的今天</view>
+      <view wx:if="{{historyPreview.text}}" class="today-text">{{historyPreview.text}}</view>
+      <view class="today-more">查看全部 ›</view>
+    </view>
+  </view>
+
   <!-- 列表区 -->
   <view class="list-head">
     <view class="list-title">物品看板</view>

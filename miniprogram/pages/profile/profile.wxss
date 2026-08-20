@@ -65,7 +65,8 @@
 .danger-card { border-color: rgba(198, 91, 85, 0.25); }
 
 .pf-footer {
-  padding: 56rpx 40rpx calc(60rpx + env(safe-area-inset-bottom));
+  /* 底部预留悬浮胶囊 tabBar 的高度 */
+  padding: 56rpx 40rpx calc(220rpx + env(safe-area-inset-bottom));
   text-align: center;
   font-size: 22rpx;
   color: var(--c-faint);

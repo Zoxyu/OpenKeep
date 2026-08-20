@@ -79,7 +79,8 @@
 .sk-line.w2 { width: 80%; margin-bottom: 0; }
 
 /* ====== 列表 ====== */
-.list { padding: 8rpx 40rpx 80rpx; }
+/* 底部预留悬浮胶囊 tabBar 的高度，避免最后一项被遮挡 */
+.list { padding: 8rpx 40rpx 220rpx; }
 .list-count { padding: 16rpx 4rpx; font-size: 24rpx; color: var(--c-faint); }
 
 .empty-action { display: flex; justify-content: center; padding: 0 96rpx; }

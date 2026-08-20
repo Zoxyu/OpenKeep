@@ -35,7 +35,15 @@ Page({
     const settings = app.globalData.settings || storage.loadSettings();
     this.setData({ dark: app.isDark(), warningDays: settings.warningDays, themePref: settings.theme });
     app.applyChrome();
+    this.syncTabBar(2);
     this.refreshStats();
+  },
+
+  // 同步自定义 tabBar 选中态
+  syncTabBar(index) {
+    if (typeof this.getTabBar === 'function' && this.getTabBar()) {
+      this.getTabBar().setData({ selected: index });
+    }
   },
 
   onUnload() {

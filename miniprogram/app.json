@@ -5,6 +5,7 @@
     "pages/item-form/item-form",
     "pages/item-detail/item-detail",
     "pages/calendar-import/calendar-import",
+    "pages/history/history",
     "pages/profile/profile"
   ],
   "window": {
@@ -15,6 +16,7 @@
     "backgroundTextStyle": "dark"
   },
   "tabBar": {
+    "custom": true,
     "color": "#8A8F8B",
     "selectedColor": "#202421",
     "backgroundColor": "#FFFFFF",
@@ -27,6 +29,10 @@
       {
         "pagePath": "pages/items/items",
         "text": "物品"
+      },
+      {
+        "pagePath": "pages/history/history",
+        "text": "今天"
       },
       {
         "pagePath": "pages/profile/profile",

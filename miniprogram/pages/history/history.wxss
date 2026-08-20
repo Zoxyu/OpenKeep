@@ -1,0 +1,120 @@
+/* 历史上的今天页样式 */
+
+/* ====== 日期头卡 ====== */
+.h-hero {
+  display: flex;
+  align-items: center;
+  margin: 32rpx 40rpx 0;
+  background: var(--c-card);
+  border-radius: 24rpx;
+  border: 1rpx solid var(--c-line);
+  box-shadow: var(--c-shadow);
+  padding: 34rpx 36rpx;
+}
+.h-date {
+  display: flex;
+  align-items: baseline;
+  flex-shrink: 0;
+}
+.h-month { font-size: 40rpx; font-weight: 700; }
+.h-day {
+  font-size: 76rpx;
+  font-weight: 700;
+  line-height: 1;
+  margin-left: 6rpx;
+  color: var(--c-safe);
+}
+.h-info { margin-left: 30rpx; min-width: 0; }
+.h-title { font-size: 34rpx; font-weight: 700; letter-spacing: 2rpx; }
+.h-sub { margin-top: 8rpx; font-size: 23rpx; color: var(--c-sub); }
+
+/* ====== 时间线 ====== */
+.h-list {
+  margin: 36rpx 40rpx 0;
+  background: var(--c-card);
+  border-radius: 24rpx;
+  border: 1rpx solid var(--c-line);
+  box-shadow: var(--c-shadow);
+  padding: 12rpx 32rpx 24rpx;
+}
+.h-item {
+  display: flex;
+  align-items: flex-start;
+  position: relative;
+  padding-top: 28rpx;
+}
+.h-item-left {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 120rpx;
+  flex-shrink: 0;
+}
+.h-year {
+  font-size: 30rpx;
+  font-weight: 700;
+  letter-spacing: 1rpx;
+  color: var(--c-text);
+  line-height: 1.3;
+}
+.h-dot {
+  width: 14rpx;
+  height: 14rpx;
+  border-radius: 50%;
+  background: var(--c-safe);
+  margin-top: 16rpx;
+  flex-shrink: 0;
+}
+/* 竖向连接线：最后一根不显示 */
+.h-item-line {
+  position: absolute;
+  left: 88rpx;
+  top: 64rpx;
+  bottom: 0;
+  width: 2rpx;
+  background: var(--c-line);
+}
+.h-item:last-child .h-item-line { display: none; }
+
+.h-item-text {
+  flex: 1;
+  min-width: 0;
+  margin-left: 26rpx;
+  padding: 2rpx 0 30rpx;
+  font-size: 28rpx;
+  line-height: 1.7;
+  color: var(--c-text);
+  word-break: break-all;
+}
+
+/* ====== 加载骨架 ====== */
+.sk-item { display: flex; align-items: center; padding-top: 28rpx; }
+.sk-year {
+  width: 120rpx;
+  height: 30rpx;
+  border-radius: 999rpx;
+  background: var(--c-card-2);
+  flex-shrink: 0;
+}
+.sk-text {
+  flex: 1;
+  margin-left: 26rpx;
+  height: 30rpx;
+  border-radius: 999rpx;
+  background: var(--c-card-2);
+}
+
+/* ====== 页脚 ====== */
+.h-footer {
+  padding: 36rpx 40rpx calc(220rpx + env(safe-area-inset-bottom));
+  text-align: center;
+}
+.h-source {
+  display: inline-block;
+  font-size: 22rpx;
+  color: var(--c-safe);
+  background: var(--c-safe-bg);
+  border-radius: 999rpx;
+  padding: 8rpx 22rpx;
+}
+.h-note { margin-top: 14rpx; font-size: 21rpx; color: var(--c-faint); }

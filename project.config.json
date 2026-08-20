@@ -2,7 +2,7 @@
   "compileType": "miniprogram",
   "miniprogramRoot": "miniprogram/",
   "projectname": "openkeep-kaifeng-shouhu",
-  "appid": "touristappid",
+  "appid": "wx71a690a5d208391c",
   "libVersion": "2.15.0",
   "description": "开封守护 OpenKeep：家庭开封保质期与临期看板（纯本地数据原生小程序）",
   "setting": {
@@ -17,7 +17,20 @@
       "ignore": [],
       "disablePlugins": [],
       "outputPath": ""
-    }
+    },
+    "compileWorklet": false,
+    "uglifyFileName": false,
+    "uploadWithSourceMap": true,
+    "packNpmManually": false,
+    "packNpmRelationList": [],
+    "minifyWXSS": true,
+    "minifyWXML": true,
+    "localPlugins": false,
+    "disableUseStrict": false,
+    "useCompilerPlugins": false,
+    "condition": false,
+    "swc": false,
+    "disableSWC": true
   },
   "condition": {},
   "editorSetting": {
@@ -27,5 +40,6 @@
   "packOptions": {
     "ignore": [],
     "include": []
-  }
+  },
+  "simulatorPluginLibVersion": {}
 }

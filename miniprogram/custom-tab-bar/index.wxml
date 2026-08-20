@@ -1,0 +1,38 @@
+<view class="tabbar-shell {{dark ? 'theme-dark' : ''}}">
+  <view class="tabbar">
+    <view
+      wx:for="{{list}}"
+      wx:key="pagePath"
+      class="tab-item {{selected === index ? 'tab-active' : ''}}"
+      data-index="{{index}}"
+      hover-class="tab-hover"
+      bindtap="switchTab"
+    >
+      <!-- CSS 绘制的图标：看板 / 物品 / 我的 -->
+      <view class="tab-icon icon-{{item.icon}}">
+        <block wx:if="{{item.icon === 'board'}}">
+          <view class="i-dot i-d1"></view>
+          <view class="i-dot i-d2"></view>
+          <view class="i-dot i-d3"></view>
+          <view class="i-dot i-d4"></view>
+        </block>
+        <block wx:elif="{{item.icon === 'box'}}">
+          <view class="i-lid"></view>
+          <view class="i-body"></view>
+        </block>
+        <block wx:elif="{{item.icon === 'today'}}">
+          <view class="i-frame">
+            <view class="i-line"></view>
+          </view>
+          <view class="i-ear i-ear-l"></view>
+          <view class="i-ear i-ear-r"></view>
+        </block>
+        <block wx:else>
+          <view class="i-head"></view>
+          <view class="i-body2"></view>
+        </block>
+      </view>
+      <text class="tab-text">{{item.text}}</text>
+    </view>
+  </view>
+</view>

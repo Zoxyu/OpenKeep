@@ -1,0 +1,49 @@
+<view class="page-root {{dark ? 'theme-dark' : ''}}">
+
+  <!-- 日期头卡 -->
+  <view class="h-hero">
+    <view class="h-date">
+      <text class="h-month">{{month}}</text>
+      <text class="h-day">{{day}}</text>
+    </view>
+    <view class="h-info">
+      <view class="h-title">历史上的今天</view>
+      <view class="h-sub">{{dateText}} · 今天，值得被记住</view>
+    </view>
+  </view>
+
+  <!-- 加载骨架 -->
+  <view wx:if="{{loading}}" class="h-list">
+    <view class="sk-item" wx:for="{{[1,2,3,4,5]}}" wx:key="*this">
+      <view class="sk-year"></view>
+      <view class="sk-text"></view>
+    </view>
+  </view>
+
+  <!-- 时间线 -->
+  <view wx:elif="{{events.length}}" class="h-list">
+    <view wx:for="{{events}}" wx:key="index" class="h-item">
+      <view class="h-item-left">
+        <view class="h-year">{{item.year}}</view>
+        <view class="h-dot"></view>
+      </view>
+      <view class="h-item-line"></view>
+      <view class="h-item-text">{{item.text}}</view>
+    </view>
+  </view>
+
+  <!-- 空状态（理论上不会出现，本地数据全年覆盖） -->
+  <empty-state
+    wx:else
+    type="box"
+    title="今天还没有收录内容"
+    desc="换个日子再来看看吧。"
+  />
+
+  <!-- 页脚说明 -->
+  <view class="h-footer">
+    <view class="h-source">{{sourceText}}</view>
+    <view class="h-note">内容为公开历史事实的精选整理，仅供了解与浏览。</view>
+  </view>
+
+</view>

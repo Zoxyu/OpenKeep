@@ -1,0 +1,8 @@
+{
+  "navigationBarTitleText": "历史上的今天",
+  "enablePullDownRefresh": true,
+  "backgroundTextStyle": "dark",
+  "usingComponents": {
+    "empty-state": "/components/empty-state/empty-state"
+  }
+}
