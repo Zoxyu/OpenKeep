@@ -78,6 +78,37 @@
 .picker-row { display: flex; align-items: center; justify-content: space-between; line-height: 88rpx; }
 .picker-arrow { color: var(--c-faint); font-size: 32rpx; }
 
+/* 保质期行：数值输入 + 单位分段选择 */
+.shelf-row { display: flex; align-items: stretch; gap: 16rpx; }
+.shelf-input { flex: 1; min-width: 0; }
+.unit-seg {
+  display: flex;
+  align-items: center;
+  background: var(--c-card-2);
+  border: 1rpx solid var(--c-line);
+  border-radius: 18rpx;
+  padding: 6rpx;
+  flex-shrink: 0;
+}
+.unit-item {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 96rpx;
+  min-height: 76rpx;
+  padding: 0 20rpx;
+  border-radius: 14rpx;
+  font-size: 26rpx;
+  color: var(--c-sub);
+}
+.unit-hover { opacity: 0.8; }
+.unit-on {
+  background: var(--c-card);
+  color: var(--c-text);
+  font-weight: 600;
+  box-shadow: var(--c-shadow);
+}
+
 /* 备注 */
 .notes-input { min-height: 150rpx; padding: 20rpx 24rpx; box-sizing: border-box; }
 .notes-count { margin-top: 8rpx; text-align: right; font-size: 22rpx; color: var(--c-faint); }

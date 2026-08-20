@@ -53,21 +53,41 @@ function normalizeRecord(raw) {
   const name = typeof raw.name === 'string' ? raw.name.trim().slice(0, 30) : '';
   if (!name) return null;
 
-  const shelf = parseInt(raw.shelfLifeDays, 10);
   const now = Date.now();
+
+  // 开封后可保存天数：可选（1–3650），未填为 0 表示按保质期计算到期
+  const openedDaysRaw = parseInt(raw.openedDays, 10);
+  let openedDays = (isFinite(openedDaysRaw) && openedDaysRaw >= 1 && openedDaysRaw <= 3650) ? openedDaysRaw : 0;
+
+  // 保质期：数值（1–3650）+ 单位（天/个月/年）
+  const shelfRaw = parseInt(raw.shelfLifeValue, 10);
+  let shelfLifeValue = (isFinite(shelfRaw) && shelfRaw >= 1 && shelfRaw <= 3650) ? shelfRaw : 0;
+  const shelfLifeUnit = ['day', 'month', 'year'].indexOf(raw.shelfLifeUnit) > -1 ? raw.shelfLifeUnit : 'day';
+
+  // 旧版本数据迁移：旧字段 shelfLifeDays 的语义即「开封后可保存天数」
+  if (raw.openedDays === undefined && shelfLifeValue === 0) {
+    const legacy = parseInt(raw.shelfLifeDays, 10);
+    if (isFinite(legacy) && legacy >= 1 && legacy <= 3650) {
+      openedDays = legacy;
+    }
+  }
+
   return {
     id: typeof raw.id === 'string' && raw.id ? raw.id : genId(),
     name: name,
     category: CATEGORY_KEYS.indexOf(raw.category) > -1 ? raw.category : 'other',
     photoPath: typeof raw.photoPath === 'string' ? raw.photoPath : '',
     openedAt: dateUtil.parseDate(raw.openedAt) ? raw.openedAt : dateUtil.todayStr(),
-    shelfLifeDays: (isFinite(shelf) && shelf >= 1 && shelf <= 3650) ? shelf : 30,
+    shelfLifeValue: shelfLifeValue,
+    shelfLifeUnit: shelfLifeUnit,
+    openedDays: openedDays,
+    location: typeof raw.location === 'string' ? raw.location.trim().slice(0, 20) : '',
     notes: typeof raw.notes === 'string' ? raw.notes.slice(0, 100) : '',
     createdAt: typeof raw.createdAt === 'number' ? raw.createdAt : now,
     updatedAt: typeof raw.updatedAt === 'number' ? raw.updatedAt : now,
     calendarImported: !!raw.calendarImported,
     calendarImportedAt: typeof raw.calendarImportedAt === 'number' ? raw.calendarImportedAt : null,
-    calendarReminderDays: [0, 1, 3, 7].indexOf(raw.calendarReminderDays) > -1 ? raw.calendarReminderDays : 1
+    calendarReminderDays: [0, 1, 2, 3, 5, 7, 14].indexOf(raw.calendarReminderDays) > -1 ? raw.calendarReminderDays : 1
   };
 }
 

@@ -12,8 +12,11 @@ const calendarUtil = require('../../utils/calendar');
 const REMINDER_OPTIONS = [
   { v: 0, label: '到期当天提醒' },
   { v: 1, label: '提前 1 天提醒' },
+  { v: 2, label: '提前 2 天提醒' },
   { v: 3, label: '提前 3 天提醒' },
-  { v: 7, label: '提前 7 天提醒' }
+  { v: 5, label: '提前 5 天提醒' },
+  { v: 7, label: '提前 7 天提醒' },
+  { v: 14, label: '提前 14 天提醒' }
 ];
 
 Page({
@@ -24,6 +27,7 @@ Page({
     status: null,
     cat: null,
     photoOk: false,
+    shelfLifeText: '',
     missing: false,
     reminderOptions: REMINDER_OPTIONS.map(r => r.label),
     reminderIndex: 1,
@@ -65,6 +69,7 @@ Page({
       record: r,
       status,
       cat: recordUtil.categoryOf(r.category),
+      shelfLifeText: recordUtil.shelfLifeText(r),
       photoOk: !!r.photoPath && imageUtil.isPhotoValid(r.photoPath),
       reminderIndex: idx
     });

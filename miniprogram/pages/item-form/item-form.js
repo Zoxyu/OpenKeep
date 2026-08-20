@@ -1,7 +1,10 @@
 /**
  * 新增 / 编辑物品页
  * - 封面照片：拍照或相册选择，保存时复制到 USER_DATA_PATH 持久化
- * - 「已开封 X 天」快捷输入自动反推开封日期（仍需填写可保存天数）
+ * - 「已开封 X 天」快捷输入自动反推开封日期
+ * - 保质期（必填，可选天/个月/年）是到期日的主要依据；
+ *   「开封后可保存天数」为可选修正项（填了则优先按它算到期），
+ *   并按分类给出保守参考值；新增「存放位置」可选字段供日历提醒文案使用
  * - 保存前逐字段校验，错误信息显示在字段附近
  * - 编辑模式支持替换 / 移除照片与删除记录（删除同步清理本地照片文件）
  */
@@ -23,8 +26,17 @@ Page({
     category: 'fridge',
     categoryOptions: [],
     openedAt: '',
-    shelfLifeDays: '',
-    openedDaysInput: '',      // 「已开封 X 天」快捷输入
+    shelfLifeValue: '',       // 保质期数值（必填）
+    shelfLifeUnit: 'day',     // 保质期单位：天 / 个月 / 年
+    unitOptions: [
+      { v: 'day', label: '天' },
+      { v: 'month', label: '个月' },
+      { v: 'year', label: '年' }
+    ],
+    openedDays: '',           // 开封后可保存天数（可选，填了优先按它算到期）
+    refHint: '',              // 开封后可保存天数的分类参考值提示
+    location: '',             // 存放位置（可选，用于日历提醒文案）
+    quickOpenedInput: '',     // 「已开封 X 天」快捷输入
     quickHint: '',
     quickOk: false,           // 快捷输入是否推算成功（控制提示文案颜色）
     notes: '',
@@ -34,7 +46,11 @@ Page({
 
   onLoad(options) {
     const cats = Object.keys(recordUtil.CATEGORIES).map(k => recordUtil.CATEGORIES[k]);
-    this.setData({ categoryOptions: cats, openedAt: dateUtil.todayStr() });
+    this.setData({
+      categoryOptions: cats,
+      openedAt: dateUtil.todayStr(),
+      refHint: this.buildRefHint('fridge')
+    });
     this._untheme = app.onTheme(dark => this.setData({ dark }));
 
     if (options && options.id) {
@@ -49,9 +65,13 @@ Page({
           category: r.category,
           photoPath: r.photoPath,
           openedAt: r.openedAt,
-          shelfLifeDays: String(r.shelfLifeDays),
+          shelfLifeValue: r.shelfLifeValue ? String(r.shelfLifeValue) : '',
+          shelfLifeUnit: r.shelfLifeUnit || 'day',
+          openedDays: r.openedDays > 0 ? String(r.openedDays) : '',
+          location: r.location || '',
           notes: r.notes,
-          openedDaysInput: openedDiff >= 0 ? String(openedDiff) : ''
+          refHint: this.buildRefHint(r.category),
+          quickOpenedInput: openedDiff >= 0 ? String(openedDiff) : ''
         });
         wx.setNavigationBarTitle({ title: '编辑物品' });
       } else {
@@ -59,6 +79,12 @@ Page({
         setTimeout(() => wx.navigateBack(), 800);
       }
     }
+  },
+
+  // 按分类生成「开封后可保存天数」的保守参考提示（宁少勿多）
+  buildRefHint(category) {
+    const cat = recordUtil.categoryOf(category);
+    return '参考：' + cat.label + '类开封后建议 ' + cat.refOpenedDays + ' 天内用完';
   },
 
   onShow() {
@@ -119,11 +145,18 @@ Page({
 
   // ====== 表单输入 ======
   onNameInput(e) { this.setData({ name: e.detail.value }); },
-  onShelfInput(e) { this.setData({ shelfLifeDays: e.detail.value }); },
+  onShelfValueInput(e) { this.setData({ shelfLifeValue: e.detail.value }); },
+  onOpenedDaysInput(e) { this.setData({ openedDays: e.detail.value }); },
+  onLocationInput(e) { this.setData({ location: e.detail.value }); },
   onNotesInput(e) { this.setData({ notes: e.detail.value }); },
 
+  onUnitTap(e) {
+    this.setData({ shelfLifeUnit: e.currentTarget.dataset.v });
+  },
+
   onCategoryTap(e) {
-    this.setData({ category: e.currentTarget.dataset.key });
+    const key = e.currentTarget.dataset.key;
+    this.setData({ category: key, refHint: this.buildRefHint(key) });
   },
 
   onDateChange(e) {
@@ -131,10 +164,10 @@ Page({
   },
 
   // 「已开封 X 天」快捷输入：自动反推开封日期。
-  // 注意：仅凭已开封天数无法推算到期日，仍必须填写「开封后可保存天数」。
-  onOpenedDaysInput(e) {
+  // 注意：仅凭已开封天数无法推算到期日，到期日由保质期或「开封后可保存天数」决定。
+  onQuickOpenedInput(e) {
     const v = e.detail.value;
-    const patch = { openedDaysInput: v, quickOk: false };
+    const patch = { quickOpenedInput: v, quickOk: false };
     const x = parseInt(v, 10);
     if (v === '') {
       patch.quickHint = '';
@@ -155,14 +188,28 @@ Page({
     if (!name) errors.name = '请输入物品名称';
     else if (name.length > 30) errors.name = '名称最多 30 个字';
 
-    const shelfRaw = String(this.data.shelfLifeDays).trim();
-    const shelf = Number(shelfRaw);
-    if (!shelfRaw) errors.shelfLifeDays = '请填写开封后可保存天数';
-    else if (!isFinite(shelf) || Math.floor(shelf) !== shelf || shelf < 1 || shelf > 3650) {
-      errors.shelfLifeDays = '请输入 1–3650 之间的整数天数';
+    // 保质期：未填「开封后可保存天数」时必填；填了则为 1–3650 整数
+    const shelfRaw = String(this.data.shelfLifeValue).trim();
+    const openedRaw = String(this.data.openedDays).trim();
+    if (shelfRaw) {
+      const v = Number(shelfRaw);
+      if (!isFinite(v) || Math.floor(v) !== v || v < 1 || v > 3650) {
+        errors.shelfLifeValue = '请输入 1–3650 之间的整数';
+      }
+    } else if (!openedRaw) {
+      errors.shelfLifeValue = '请填写保质期，或填写下方的开封后可保存天数';
+    }
+
+    // 开封后可保存天数：可选，填了则必须是 1–3650 整数
+    if (openedRaw) {
+      const v = Number(openedRaw);
+      if (!isFinite(v) || Math.floor(v) !== v || v < 1 || v > 3650) {
+        errors.openedDays = '请输入 1–3650 之间的整数天数';
+      }
     }
 
     if (!dateUtil.parseDate(this.data.openedAt)) errors.openedAt = '开封日期无效，请重新选择';
+    if (this.data.location.trim().length > 20) errors.location = '存放位置最多 20 个字';
     if (this.data.notes.length > 100) errors.notes = '备注最多 100 个字';
     return errors;
   },
@@ -193,7 +240,10 @@ Page({
       base.category = this.data.category;
       base.photoPath = photoPath || '';
       base.openedAt = this.data.openedAt;
-      base.shelfLifeDays = parseInt(this.data.shelfLifeDays, 10);
+      base.shelfLifeValue = parseInt(this.data.shelfLifeValue, 10) || 0;
+      base.shelfLifeUnit = this.data.shelfLifeUnit;
+      base.openedDays = parseInt(this.data.openedDays, 10) || 0;
+      base.location = this.data.location.trim();
       base.notes = this.data.notes.trim();
       base.updatedAt = now;
 

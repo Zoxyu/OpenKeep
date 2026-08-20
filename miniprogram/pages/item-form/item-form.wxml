@@ -64,28 +64,69 @@
       <input
         class="input-base"
         type="number"
-        value="{{openedDaysInput}}"
+        value="{{quickOpenedInput}}"
         placeholder="输入天数，自动反推开封日期"
         placeholder-class="ph-text"
-        bindinput="onOpenedDaysInput"
+        bindinput="onQuickOpenedInput"
       />
       <view wx:if="{{quickHint && quickOk}}" class="hint-text">{{quickHint}}</view>
       <view wx:elif="{{quickHint}}" class="err-text">{{quickHint}}</view>
-      <view class="field-sub">仅凭已开封天数无法推算到期日，仍需填写下方「开封后可保存天数」。</view>
+      <view class="field-sub">仅凭已开封天数无法推算到期日，到期日由下方保质期或开封后可保存天数决定。</view>
     </view>
 
-    <!-- 开封后可保存天数 -->
+    <!-- 保质期（必填，可选天/个月/年） -->
     <view class="field">
-      <view class="field-label"><text class="req">*</text>开封后可保存天数（1–3650）</view>
+      <view class="field-label"><text class="req">*</text>保质期（包装标注）</view>
+      <view class="shelf-row">
+        <input
+          class="input-base shelf-input"
+          type="number"
+          value="{{shelfLifeValue}}"
+          placeholder="如：12"
+          placeholder-class="ph-text"
+          bindinput="onShelfValueInput"
+        />
+        <view class="unit-seg">
+          <view
+            wx:for="{{unitOptions}}"
+            wx:key="v"
+            class="unit-item {{shelfLifeUnit === item.v ? 'unit-on' : ''}}"
+            data-v="{{item.v}}"
+            hover-class="unit-hover"
+            bindtap="onUnitTap"
+          >{{item.label}}</view>
+        </view>
+      </view>
+      <view wx:if="{{errors.shelfLifeValue}}" class="err-text">{{errors.shelfLifeValue}}</view>
+    </view>
+
+    <!-- 开封后可保存天数（可选修正项） -->
+    <view class="field">
+      <view class="field-label">开封后可保存天数（可选，填了优先按它算到期）</view>
       <input
         class="input-base"
         type="number"
-        value="{{shelfLifeDays}}"
-        placeholder="例如：30"
+        value="{{openedDays}}"
+        placeholder="如：30（不填则按保质期提醒）"
         placeholder-class="ph-text"
-        bindinput="onShelfInput"
+        bindinput="onOpenedDaysInput"
       />
-      <view wx:if="{{errors.shelfLifeDays}}" class="err-text">{{errors.shelfLifeDays}}</view>
+      <view wx:if="{{errors.openedDays}}" class="err-text">{{errors.openedDays}}</view>
+      <view wx:else class="hint-text">{{refHint}}（宁少勿多，提醒更安全）</view>
+    </view>
+
+    <!-- 存放位置（可选，用于日历提醒文案） -->
+    <view class="field">
+      <view class="field-label">存放位置（可选，最多 20 字）</view>
+      <input
+        class="input-base"
+        value="{{location}}"
+        maxlength="20"
+        placeholder="如：冰箱冷冻室、药箱、梳妆台"
+        placeholder-class="ph-text"
+        bindinput="onLocationInput"
+      />
+      <view wx:if="{{errors.location}}" class="err-text">{{errors.location}}</view>
     </view>
 
     <!-- 备注 -->

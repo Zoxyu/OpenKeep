@@ -61,6 +61,23 @@ function addDays(input, days) {
   return new Date(base.getFullYear(), base.getMonth(), base.getDate() + n);
 }
 
+// 日期加 N 个月（按日历计算，月末日期自动收敛：如 1/31 加 1 个月 = 2/28 或 2/29）
+function addMonths(input, months) {
+  const base = input instanceof Date ? input : parseDate(input);
+  if (!base) return null;
+  const n = Number(months) || 0;
+  const total = base.getMonth() + n;
+  const year = base.getFullYear() + Math.floor(total / 12);
+  const month = ((total % 12) + 12) % 12;
+  const maxDay = daysInMonth(year, month + 1);
+  return new Date(year, month, Math.min(base.getDate(), maxDay));
+}
+
+// 日期加 N 年（闰年 2/29 加一年后收敛为 2/28）
+function addYears(input, years) {
+  return addMonths(input, (Number(years) || 0) * 12);
+}
+
 // 自然日差：a - b（两个日期都取 00:00，差值除以一天毫秒数后四舍五入，规避夏令时误差）
 function diffDays(a, b) {
   return Math.round((a.getTime() - b.getTime()) / 86400000);
@@ -79,6 +96,8 @@ module.exports = {
   isLeapYear,
   daysInMonth,
   addDays,
+  addMonths,
+  addYears,
   diffDays,
   weekdayCN
 };

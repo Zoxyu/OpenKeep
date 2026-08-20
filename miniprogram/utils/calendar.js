@@ -4,6 +4,7 @@
  * 注意：日历 API 的时间戳单位为「秒」，alarmOffset（提醒提前量）单位也是「秒」。
  */
 const dateUtil = require('./date');
+const recordUtil = require('./record');
 
 const SCOPE = 'scope.addPhoneCalendar';
 
@@ -87,21 +88,32 @@ function requestAuth() {
 /**
  * 构造日历事件参数：
  *   事件时间 = 到期日当天上午 09:00（本地时间，转成秒级时间戳）
- *   标题     = 【临期提醒】物品名称
+ *   到期日依据：已填「开封后可保存天数」则按它，否则按保质期（已在状态计算中处理）
+ *   标题：填了存放位置时为「存放位置 的 物品名称 快要到期啦」
  *   alarmOffset = 提前提醒天数 × 86400 秒（0 表示事件开始时提醒）
  */
 function buildEvent(record, status, reminderDays) {
   const due = dateUtil.parseDate(status.dueDate);
   const start = new Date(due.getFullYear(), due.getMonth(), due.getDate(), 9, 0, 0);
+
+  // 标题：带存放位置时生成「冰箱冷冻室 的 冷冻水饺 快要到期啦」
+  const title = record.location
+    ? record.location + ' 的 ' + record.name + ' 快要到期啦'
+    : record.name + ' 快要到期啦';
+
   const lines = [
-    '分类：' + (record.categoryLabel || '其他'),
-    '开封日期：' + record.openedAt,
-    '到期日期：' + status.dueDate,
-    '开封后可保存：' + record.shelfLifeDays + ' 天'
+    '分类：' + (record.categoryLabel || '其他')
   ];
+  if (record.location) lines.push('存放位置：' + record.location);
+  lines.push('开封日期：' + record.openedAt);
+  lines.push('到期日期：' + status.dueDate);
+  const shelfText = recordUtil.shelfLifeText(record);
+  if (shelfText) lines.push('保质期：' + shelfText);
+  if (record.openedDays > 0) lines.push('开封后可保存：' + record.openedDays + ' 天');
   if (record.notes) lines.push('备注：' + record.notes);
+
   return {
-    title: '【临期提醒】' + record.name,
+    title: title,
     startTime: Math.floor(start.getTime() / 1000),
     description: lines.join('\n'),
     alarmOffset: Math.max(0, Number(reminderDays) || 0) * 86400
