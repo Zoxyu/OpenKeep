@@ -22,6 +22,17 @@ const REMINDER_OPTIONS = [
   { v: 14, label: '提前 14 天提醒' }
 ];
 
+// 两条写入之间的串行间隔（毫秒）：iOS 端系统日历写入是异步落盘的，
+// 间隔过短会导致第二条及之后全部失败
+const STEP_INTERVAL = 800;
+
+// 安卓端：微信要求日历写入必须在用户点击手势链内发起，
+// 第一条写入调起系统日历后手势链即被消耗，无论间隔多久自动续写
+// 下一条都会被拒绝（报错 addPhoneCalendar:fail can only be invoked
+// by user TAP gesture）。因此安卓端改为「逐条弹窗确认续写」，
+// 每次弹窗按钮点击形成新的手势链，保证后续条目也能写入成功。
+const IS_ANDROID = (wx.getSystemInfoSync() || {}).platform === 'android';
+
 Page({
   data: {
     dark: false,
@@ -88,8 +99,13 @@ Page({
   onToggleAll() {
     if (this.data.importing) return;
     const items = this.data.items;
+    // 存在未勾选的可选记录时全部勾选，否则全部取消。
+    // 注意：必须映射为新的记录对象，不能把元素替换成布尔值，
+    // 否则会丢掉 record 等字段，导致列表空白且无法再勾选
     const anyUnchecked = items.some(i => !i.checked && !i.disabled);
-    const next = items.map(i => (i.disabled ? i.checked : anyUnchecked));
+    const next = items.map(i =>
+      i.disabled ? i : Object.assign({}, i, { checked: anyUnchecked })
+    );
     this.setData({ items: next });
     this.recount();
   },
@@ -144,8 +160,25 @@ Page({
       success: r => {
         if (!r.confirm) return;
         // 仅在用户明确确认后申请权限
-        calendarUtil.requestAuth().then(ok => {
-          if (ok) this.startImport(selected);
+        calendarUtil.requestAuth().then(res => {
+          if (!res.granted) return;
+          if (!res.fresh) {
+            // 之前已授权：手势链完整，直接开始
+            this.startImport(selected);
+            return;
+          }
+          // 首次授权：权限同步存在延迟，紧接着的第一条写入可能被系统
+          // 吞掉（甚至误报成功，导致第一条被标为已导入但实际未写入），
+          // 改为弹确认框由用户点击重新发起，确保第一条真正写入
+          wx.showModal({
+            title: '已获得日历权限',
+            content: '即将写入 ' + selected.length + ' 条到期提醒（到期日上午 9:00），点击开始写入。',
+            confirmText: '开始写入',
+            cancelText: '取消',
+            success: r2 => {
+              if (r2.confirm) this.startImport(selected);
+            }
+          });
         });
       }
     });
@@ -164,13 +197,27 @@ Page({
     this.runStep(selected, 0, reminderDays);
   },
 
-  // 串行逐条写入：避免并发轰炸日历 API，同时能展示真实进度
+  // 串行逐条写入：避免并发轰炸日历 API，同时能展示真实进度。
+  // 安卓端每次调用会调起系统日历写入流程，上一条尚未落盘就发起下一条会失败
+  // （表现为「选 N 条只成功第一条」），因此每条完成后固定间隔 STEP_INTERVAL 再继续。
   runStep(list, idx, reminderDays) {
     if (this._cancelled) { this.finishImport(true); return; }
     if (idx >= list.length) { this.finishImport(false); return; }
 
     const item = list[idx];
     const evt = calendarUtil.buildEvent(item.record, item.record.status, reminderDays);
+
+    // 到期日期非法等构造失败：记为失败，不阻断后续条目
+    if (!evt) {
+      this._results.push({
+        name: item.record.name,
+        ok: false,
+        reason: '到期日期无效，无法创建日程'
+      });
+      this.runStep(list, idx + 1, reminderDays);
+      return;
+    }
+
     this.setData({
       progressText: '正在导入 ' + (idx + 1) + ' / ' + list.length,
       progressPct: Math.round(idx / list.length * 100)
@@ -189,10 +236,37 @@ Page({
       this._results.push({
         name: item.record.name,
         ok: false,
-        reason: (err && err.errMsg) || '未知原因'
+        reason: calendarUtil.friendlyError(err)
       });
     }).then(() => {
-      this.runStep(list, idx + 1, reminderDays);
+      // 完成进度同步刷新后再继续下一条
+      this.setData({ progressPct: Math.round((idx + 1) / list.length * 100) });
+      if (this._cancelled) { this.finishImport(true); return; }
+
+      // 安卓：借弹窗按钮点击获得新手势链，续写下一条（直接自动续写会被微信拒绝）
+      if (IS_ANDROID && idx + 1 < list.length) {
+        wx.showModal({
+          title: '已写入 ' + (idx + 1) + ' / ' + list.length,
+          content: '下一条：「' + list[idx + 1].record.name + '」。安卓系统每次写入日历需点击确认。',
+          confirmText: '继续写入',
+          cancelText: '停止',
+          success: r => {
+            if (this._cancelled) { this.finishImport(true); return; }
+            if (r.confirm) {
+              this.runStep(list, idx + 1, reminderDays);
+            } else {
+              this._cancelled = true;
+              this.finishImport(true);
+            }
+          }
+        });
+        return;
+      }
+
+      // iOS / 开发者工具：间隔后自动串行下一条，给系统日历留出落盘时间
+      setTimeout(() => {
+        this.runStep(list, idx + 1, reminderDays);
+      }, STEP_INTERVAL);
     });
   },
 
@@ -217,6 +291,8 @@ Page({
     });
     if (cancelled) {
       wx.showToast({ title: '已停止，未导入的任务已取消', icon: 'none' });
+    } else if (ok > 0) {
+      wx.showToast({ title: '已写入 ' + ok + ' 条到系统日历', icon: 'success' });
     }
     this.buildList(); // 刷新列表与「已导入」标记
   },

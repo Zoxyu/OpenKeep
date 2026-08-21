@@ -1,6 +1,6 @@
 {
-  "navigationBarTitleText": "开封守护",
-  "enablePullDownRefresh": true,
+  "disableScroll": true,
+  "navigationBarTitleText": "到期那天",
   "backgroundTextStyle": "dark",
   "usingComponents": {
     "item-card": "/components/item-card/item-card",

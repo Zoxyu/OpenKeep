@@ -17,6 +17,8 @@ Page({
   data: {
     dark: false,
     loading: true,
+    // scroll-view 下拉刷新状态（页面已 disableScroll，改用 refresher）
+    refreshing: false,
     month: '',
     day: '',
     dateText: '',
@@ -58,6 +60,8 @@ Page({
     historyUtil.getTodayEvents(force).then(res => {
       this.setData({
         loading: false,
+        // 数据返回后同时收起下拉刷新指示器
+        refreshing: false,
         events: res.events || [],
         source: res.source,
         sourceText: SOURCE_TEXT[res.source] || SOURCE_TEXT.local
@@ -65,9 +69,9 @@ Page({
     });
   },
 
-  // 下拉刷新：强制重新获取（跳过当天缓存）
-  onPullDownRefresh() {
+  // 下拉刷新（scroll-view refresher）：强制重新获取，跳过当天缓存
+  onScrollRefresh() {
+    this.setData({ refreshing: true });
     this.load(true);
-    wx.stopPullDownRefresh();
   }
 });

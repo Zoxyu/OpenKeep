@@ -18,7 +18,7 @@ Page({
     sort: 'due',
     categoryOptions: [],
     statusOptions: [
-      { key: 'all', label: '全部状态' },
+      { key: 'all', label: '全部' },
       { key: 'expired', label: '已过期' },
       { key: 'warning', label: '临期' },
       { key: 'safe', label: '安全' }
@@ -35,7 +35,8 @@ Page({
   },
 
   onLoad() {
-    const cats = [{ key: 'all', label: '全部分类' }];
+    // 筛选面板按组展示（分类/状态/排序），「全部」文案由组标签补充语义
+    const cats = [{ key: 'all', label: '全部' }];
     Object.keys(recordUtil.CATEGORIES).forEach(k => {
       cats.push({ key: k, label: recordUtil.CATEGORIES[k].label });
     });

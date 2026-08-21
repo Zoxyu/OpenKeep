@@ -1,5 +1,5 @@
 /**
- * 开封守护 OpenKeep · 全局样式
+ * 到期那天 In Time · 全局样式
  * 设计语言：克制、温暖、轻奢。暖白底 + 墨黑文字 + 低饱和红黄绿语义色。
  * 深浅色主题通过 CSS 变量切换：页面根节点挂 .page-root（深色再挂 .theme-dark）。
  * 自定义属性可穿透组件边界向下继承，组件内部直接使用 var(--c-xxx) 即可。
@@ -74,6 +74,16 @@ page {
 .btn-danger { background: var(--c-danger); color: #FFFFFF; }
 .btn-danger-ghost { background: var(--c-danger-bg); color: var(--c-danger); }
 .btn-disabled { opacity: 0.45; }
+
+/* ====== 页面级纵向滚动容器 ======
+ * 配合各页面 json 中的 "disableScroll": true 使用：
+ * 锁死页面原生滚动，彻底避免 iOS WebView 整体可上下左右拖拽、
+ * 内容偏移与双向滚动条问题；纵向滚动完全由 scroll-view 承担。 */
+.page-scroll {
+  width: 100%;
+  height: 100vh;
+  box-sizing: border-box;
+}
 
 /* ====== 通用卡片与分区 ====== */
 .card {

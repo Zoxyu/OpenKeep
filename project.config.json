@@ -1,10 +1,10 @@
 {
   "compileType": "miniprogram",
   "miniprogramRoot": "miniprogram/",
-  "projectname": "openkeep-kaifeng-shouhu",
-  "appid": "wx71a690a5d208391c",
-  "libVersion": "2.15.0",
-  "description": "开封守护 OpenKeep：家庭开封保质期与临期看板（纯本地数据原生小程序）",
+  "projectname": "intime-daoqinatian",
+  "appid": "wx391039438b36bcb8",
+  "libVersion": "3.17.1",
+  "description": "到期那天 In Time：家庭开封保质期与临期看板（纯本地数据原生小程序）",
   "setting": {
     "es6": true,
     "enhance": true,

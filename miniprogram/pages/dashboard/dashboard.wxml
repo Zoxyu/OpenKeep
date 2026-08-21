@@ -3,21 +3,32 @@
   <!-- 首次启动引导：用户主动选择，不擅自写入演示数据 -->
   <view wx:if="{{showOnboarding}}" class="onboard-mask">
     <view class="onboard-card">
-      <view class="onboard-logo">守</view>
-      <view class="onboard-name">开封守护</view>
-      <view class="onboard-sub">OpenKeep · 家庭开封保质期看板</view>
+      <view class="onboard-logo">期</view>
+      <view class="onboard-name">到期那天</view>
+      <view class="onboard-sub">In Time · 到期那天，还来得及</view>
       <view class="onboard-desc">记录每一次开封，红黄绿看板一眼看清临期与过期。所有数据仅保存在你的手机本地，不上传、不联网。</view>
       <view class="btn btn-primary onboard-btn" hover-class="btn-hover" bindtap="onUseDemo">体验示例数据</view>
       <view class="btn btn-plain onboard-btn" hover-class="btn-hover" bindtap="onStartBlank">从空白开始</view>
     </view>
   </view>
 
+  <!-- 主体内容：scroll-view 承担纵向滚动（页面已 disableScroll，锁死 iOS 双向拖拽） -->
+  <scroll-view
+    class="page-scroll"
+    scroll-y
+    enhanced
+    show-scrollbar="{{false}}"
+    refresher-enabled
+    refresher-default-style="black"
+    refresher-triggered="{{refreshing}}"
+    bindrefresherrefresh="onScrollRefresh"
+  >
   <!-- 顶部问候 -->
   <view class="hero">
     <view class="hero-date">{{todayText}}</view>
     <view class="hero-greet">今天，值得被记住。</view>
-    <view class="hero-brand">开封守护</view>
-    <view class="hero-sub">Keep track of what you open.</view>
+    <view class="hero-brand">到期那天</view>
+    <view class="hero-sub">In Time · Keep track of what you open.</view>
   </view>
 
   <!-- 三色统计卡 -->
@@ -90,6 +101,7 @@
       desc="{{hasRecords ? '换个筛选条件，看看其他物品。' : '点击右下角按钮，添加第一件物品。'}}"
     />
   </view>
+  </scroll-view>
 
   <!-- 悬浮添加按钮 -->
   <view class="fab" hover-class="fab-hover" bindtap="goAdd">

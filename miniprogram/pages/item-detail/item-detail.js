@@ -116,8 +116,24 @@ Page({
     }
 
     const doWrite = () => {
-      calendarUtil.requestAuth().then(ok => {
-        if (ok) this.writeCalendar();
+      calendarUtil.requestAuth().then(res => {
+        if (!res.granted) return;
+        if (!res.fresh) {
+          // 之前已授权：直接写入
+          this.writeCalendar();
+          return;
+        }
+        // 首次授权：权限同步存在延迟，紧接着的写入可能被系统吞掉
+        // （甚至误报成功），改为弹确认框由用户点击重新发起
+        wx.showModal({
+          title: '已获得日历权限',
+          content: '点击开始写入这条到期提醒（到期日上午 9:00）。',
+          confirmText: '开始写入',
+          cancelText: '取消',
+          success: r => {
+            if (r.confirm) this.writeCalendar();
+          }
+        });
       });
     };
 
@@ -143,6 +159,11 @@ Page({
       status,
       reminderDays
     );
+    // 到期日期非法时 buildEvent 返回 null，提前拦截避免崩溃
+    if (!evt) {
+      wx.showToast({ title: '到期日期无效，无法创建日程', icon: 'none' });
+      return;
+    }
     this.setData({ writing: true });
     calendarUtil.addEvent(evt).then(() => {
       const updated = Object.assign({}, record, {
@@ -158,7 +179,7 @@ Page({
       this.setData({ writing: false });
       wx.showModal({
         title: '写入失败',
-        content: '日历事件未能写入：' + ((err && err.errMsg) || '未知原因') + '。物品记录不受影响，可稍后重试。',
+        content: '日历事件未能写入：' + calendarUtil.friendlyError(err) + '。物品记录不受影响，可稍后重试。',
         showCancel: false
       });
     });

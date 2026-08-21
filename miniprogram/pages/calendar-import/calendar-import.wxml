@@ -1,5 +1,9 @@
 <view class="page-root {{dark ? 'theme-dark' : ''}}">
 
+  <!-- 主体内容：scroll-view 承担纵向滚动（页面已 disableScroll，锁死 iOS 双向拖拽）
+       底部操作栏与结果弹层为 fixed 定位，留在滚动区外 -->
+  <scroll-view class="page-scroll" scroll-y enhanced show-scrollbar="{{false}}">
+
   <!-- 不支持时的降级提示 -->
   <view wx:if="{{!supported}}" class="warn-banner">当前微信版本或设备不支持写入系统日历。你仍可正常使用物品看板。</view>
 
@@ -65,6 +69,8 @@
     title="暂无需要提醒的物品"
     desc="已过期与未来 90 天内到期的物品会自动出现在这里。"
   />
+
+  </scroll-view>
 
   <!-- 底部操作区 -->
   <view class="bottom-bar">

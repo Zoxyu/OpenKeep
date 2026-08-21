@@ -23,7 +23,9 @@ Page({
     list: [],
     total: 0,
     // 「历史上的今天」首页预览（本地数据，不触发网络请求）
-    historyPreview: null
+    historyPreview: null,
+    // scroll-view 下拉刷新状态（页面已 disableScroll，改用 refresher）
+    refreshing: false
   },
 
   onLoad() {
@@ -139,10 +141,11 @@ Page({
     this.refresh();
   },
 
-  // 下拉刷新：仅重新计算本地状态，不发起任何网络请求
-  onPullDownRefresh() {
+  // 下拉刷新（scroll-view refresher）：仅重新计算本地状态，不发起任何网络请求
+  onScrollRefresh() {
+    this.setData({ refreshing: true });
     this.refresh();
-    wx.stopPullDownRefresh();
+    this.setData({ refreshing: false });
     wx.showToast({ title: '已刷新本地状态', icon: 'none' });
   }
 });

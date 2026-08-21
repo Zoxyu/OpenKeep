@@ -36,19 +36,62 @@
 .clear-hover { opacity: 0.6; }
 .search-input { flex: 1; font-size: 28rpx; height: 88rpx; }
 
-/* ====== 筛选行 ====== */
-.chip-row {
+/* ====== 筛选面板：固定网格，一屏可见无需滑动 ====== */
+.filter-panel {
+  margin: 20rpx 40rpx 0;
+  padding: 24rpx 24rpx 10rpx;
+  background: var(--c-card);
+  border: 1rpx solid var(--c-line);
+  border-radius: 24rpx;
+  box-shadow: var(--c-shadow);
+}
+.fp-group { margin-bottom: 24rpx; }
+.fp-group-last { margin-bottom: 12rpx; }
+.fp-label {
+  padding: 0 8rpx;
+  margin-bottom: 14rpx;
+  font-size: 24rpx;
+  color: var(--c-faint);
+}
+
+/* 单元格网格：flex 换行 + nth-child 消除行尾间距 */
+.fp-grid { display: flex; flex-wrap: wrap; }
+.fp-cell {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 68rpx;
+  margin-bottom: 14rpx;
+  border-radius: 16rpx;
+  background: var(--c-card-2);
+  color: var(--c-sub);
+  font-size: 25rpx;
+  box-sizing: border-box;
+  overflow: hidden;
   white-space: nowrap;
-  padding: 16rpx 40rpx 0;
 }
-.chip-divider {
-  display: inline-block;
-  width: 1rpx;
-  height: 36rpx;
-  background: var(--c-line);
-  margin: 0 20rpx;
-  vertical-align: middle;
+.fp-cell-hover { opacity: 0.8; }
+
+/* 默认 3 列（分类、排序） */
+.fp-cell { width: calc((100% - 32rpx) / 3); margin-right: 16rpx; }
+.fp-cell:nth-child(3n) { margin-right: 0; }
+
+/* 4 列（状态） */
+.fp-grid-4 .fp-cell { width: calc((100% - 48rpx) / 4); margin-right: 16rpx; }
+.fp-grid-4 .fp-cell:nth-child(3n) { margin-right: 16rpx; }
+.fp-grid-4 .fp-cell:nth-child(4n) { margin-right: 0; }
+
+/* 选中态：默认墨色填充 */
+.fp-cell-on {
+  background: var(--c-text);
+  color: var(--c-bg);
+  font-weight: 500;
 }
+
+/* 状态选中时改用红黄绿语义色（浅深色模式变量自适应） */
+.fp-cell-on.fp-st-expired { background: var(--c-danger-bg); color: var(--c-danger); }
+.fp-cell-on.fp-st-warning { background: var(--c-warn-bg); color: var(--c-warn); }
+.fp-cell-on.fp-st-safe { background: var(--c-safe-bg); color: var(--c-safe); }
 
 /* ====== 加载骨架 ====== */
 .skeleton-list { padding: 24rpx 40rpx; }
