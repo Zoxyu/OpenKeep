@@ -1,0 +1,233 @@
+# AI_CONTEXT.md
+
+> 本文件是本项目所有 AI Coding Agent 共用的持久化项目上下文。
+>
+> This file is the shared persistent project context for all AI coding agents.
+>
+> 本文件只记录对未来 Agent 有长期价值的信息，保持简洁、准确，并始终反映项目当前的有效状态。
+
+
+---
+
+# 1. 项目概览 / Project Overview
+
+## 项目用途 / Purpose
+
+「到期那天 In Time」（原名「开封守护 OpenKeep」，已更名，见决策 #3）是一个**纯原生微信小程序**，用于记录家庭物品（冷藏、冷冻、药品、化妆品等）的开封日期与保质期，用**红（已过期）/ 黄（临期）/ 绿（安全）**三色状态看板实时提醒，并可将到期提醒写入手机系统日历。
+
+核心定位：克制、温暖、轻奢的家庭健康记录工具。附带「历史上的今天」轻内容模块（本地数据）。
+
+## 当前阶段 / Current Stage
+
+开发后期 / 真机测试与修缺陷阶段。核心功能已全部完成并通过多轮安卓 / iOS 真机测试修复，用户正在自行真机验证。
+
+## 技术栈 / Technology Stack
+
+- 主要语言 / Primary language: JavaScript（ES6，无 TypeScript）
+- 后端框架 / Backend framework: **无**（纯本地，禁用云开发与网络请求）
+- 前端框架 / Frontend framework: 原生微信小程序（WXML / WXSS / JS / JSON，无 uni-app / Taro / Vue / React / 第三方 UI 库 / 图标库 / CDN）
+- Runtime: 微信小程序基础库；最低兼容 2.15.0，开发工具当前使用 3.17.1
+- 数据库 / Database: 无。仅 `wx.setStorage` 本地缓存 + 文件系统（照片持久化到 `USER_DATA_PATH`）
+- 基础设施 / Infrastructure: 无。appid `wx391039438b36bcb8`（见 `project.config.json`）
+- 其他重要技术 / Other important technologies:
+  - 深浅色主题：`app.wxss` CSS 变量双套色板，`app.js` 主题广播（跟随系统 / 手动切换）
+  - 自定义 tabBar（`custom: true`）悬浮胶囊样式，CSS 绘制图标
+  - Node.js 构建脚本仅用于离线生成历史数据（`tools/`，不参与小程序运行）
+
+
+---
+
+# 2. 项目架构 / Architecture
+
+## 整体架构 / High-Level Architecture
+
+三层结构，全部运行在小程序端：
+
+```
+pages/（7 个页面） + custom-tab-bar/（自定义导航）
+    ↓ 依赖
+components/（4 个展示组件） + utils/（6 个工具模块）
+    ↓ 依赖
+wx.setStorage 本地缓存（版本化 key） + USER_DATA_PATH 文件（照片）
+```
+
+关键约束：**红黄绿状态只有一个计算来源**（`utils/record.js`），**日期计算只走** `utils/date.js`（禁止 `new Date('YYYY-MM-DD')`，一律 `new Date(y, m-1, d)` 本地构造，避免时区偏差），**日历写入只走** `utils/calendar.js`。
+
+## 主要模块 / Important Modules
+
+| 模块 / Module | 作用 / Purpose | 当前状态 / Status |
+| ------------- | -------------- | ----------------- |
+| `miniprogram/app.js` | 全局设置、主题解析与广播（`isDark` / `onTheme` / `applyChrome`） | 稳定 |
+| `pages/dashboard` | 首页看板：问候、三色统计、主提醒卡、筛选、列表、悬浮添加按钮、历史预览卡、引导页 | 稳定 |
+| `pages/items` | 全部物品：搜索 + 分类/状态/排序固定网格筛选（非横滑） | 稳定 |
+| `pages/item-form` | 新增/编辑：封面照片持久化、保质期（天/月/年）、可选开封天数、存放位置、快捷反推 | 稳定 |
+| `pages/item-detail` | 详情、编辑/删除、单条写入日历 | 稳定 |
+| `pages/calendar-import` | 批量导入日历：勾选、全选、跳过已导入、逐条串行写入、进度与结果统计 | 稳定（含安卓手势链方案） |
+| `pages/history` | 历史上的今天：缓存→在线（可选未启用）→本地 366 天数据兜底 | 稳定 |
+| `pages/profile` | 设置：临期阈值（3/7/14 天，默认 7）、外观、统计、批量导入入口、数据说明、清空数据 | 稳定 |
+| `utils/record.js` | 状态唯一计算源、排序、分类定义与参考天数、示例数据 | 稳定 |
+| `utils/storage.js` | 版本化缓存键（`openkeep_*_v1`）、字段规范化与旧数据迁移、清空 | 稳定 |
+| `utils/date.js` | 本地 00:00、parseDate、addDays/addMonths/addYears、diffDays | 稳定 |
+| `utils/calendar.js` | 日历能力检测、授权流程（含 `fresh` 首次授权标记）、事件构造、友好错误翻译 | 稳定 |
+| `utils/image.js` | 照片复制到 `USER_DATA_PATH`、删除、有效性检查 | 稳定 |
+| `utils/history.js` | 历史数据三级获取策略（`API_CONFIG.enabled = false`，在线功能默认关闭） | 稳定 |
+| `components/` | status-badge、item-card、empty-state、filter-bar | 稳定 |
+| `custom-tab-bar/` | 悬浮胶囊导航，4 个入口：看板 0 / 物品 1 / 今天 2 / 我的 3 | 稳定 |
+| `miniprogram/data/history/01.js~12.js` | 366 天 × 5~10 条历史事件数据（约 295KB，必须为 `.js` 模块） | 稳定 |
+| `tools/` | `convert.js` 数据转换脚本 + 源数据 `history_in_today.json`（约 6MB，仅离线用） | 辅助工具 |
+
+## 重要依赖 / Important Dependencies
+
+- 无任何 npm / 第三方依赖（`packNpmManually: false`）。
+- 微信平台能力依赖：`wx.addPhoneCalendar`（基础库 2.15.0+）、`wx.onThemeChange`、`wx.chooseMedia`、`wx.getFileSystemManager`。
+
+
+---
+
+# 3. 项目开发规则 / Development Rules
+
+- **禁止联网**：不得引入云开发、`wx.request`、后端、登录、地图、支付等；所有数据仅存本地。
+- **不得修改缓存 key 前缀**：`storage.js` 中 `openkeep_*` 键名是历史遗留但必须保留，改名不影响存储；改动会导致用户数据丢失。
+- **状态 / 日期 / 日历逻辑必须走对应 utils**，不要在页面内复制粘贴计算逻辑。
+- **新增数据字段必须在 `storage.js` 的 `normalizeRecord` 中做规范化与默认值兜底**，保证旧缓存不白屏。
+- **危险操作（删除记录、清空数据、重新导入日历）必须二次确认**；删除记录时同步删除本地照片文件。
+- 所有页面使用 `disableScroll: true` + 内部 `scroll-view`（`.page-scroll`），不要恢复页面级原生滚动。
+- 日历权限仅在用户主动点击导入后申请；禁止后台 / 页面加载时静默申请。
+- 中文界面，文案克制温和；尺寸一律 `rpx`；点击区不小于 68rpx。
+
+
+---
+
+# 4. 当前项目状态 / Current Status
+
+## 整体状态 / Overall Status
+
+功能完整、可编译运行。近两周边开发边在安卓 / iOS 真机上测试，已修复多轮兼容性缺陷；用户正在自行进行最终真机验证（用户明确不需要 Agent 代跑验证）。
+
+## 已完成 / Completed
+
+- 全部 7 页面 + 4 组件 + 自定义悬浮胶囊 tabBar + 深色模式
+- 物品录入体系：保质期（天/月/年）为主、开封后可保存天数为可选修正、存放位置、已开封 X 天快捷反推
+- 三色状态看板、搜索/筛选/排序（物品页为固定网格，一屏可见）
+- 单条 + 批量手机日历导入（含安卓手势链兼容方案）
+- 历史上的今天（本地 366 天数据，来自开源项目 PrintNow/TodayInHistory，经敏感词过滤）
+- 首次启动引导（体验示例数据 / 从空白开始）
+- README、隐私政策（`privacy-policy.txt`）、小程序图标；项目已在 Git 管理（main 分支，共 7 个提交，工作区仅有未跟踪的 `AGENTS.md` / `AI_CONTEXT.md`）
+
+## 进行中 / In Progress
+
+- 用户真机最终验证；等待用户反馈新问题。
+
+## 阻塞问题 / Blocked
+
+- 无 / None
+
+## 已知问题 / Known Issues
+
+- 部分安卓机型首次批量导入后，第一条记录可能被误标「已导入」但系统日历中实际没有（历史数据问题，需用户关闭「跳过已导入记录」重新导入该条补写）。
+- 个别安卓厂商 ROM 每次日历写入都弹系统确认页，需逐条手动保存，属平台行为无法绕过（已在批量导入页文案中提示）。
+- `tools/history_in_today.json`（约 6MB 源数据）已随仓库提交，体积偏大但不影响小程序包体积（不在 `miniprogramRoot` 内）。
+
+
+---
+
+# 5. 当前任务 / Active Tasks
+
+无进行中任务。等待用户真机测试反馈。
+
+
+---
+
+# 6. 重要技术决策 / Important Decisions
+
+## 决策 1：纯本地数据，零网络
+
+**日期 / Date:** 2026-08（项目初始）
+
+**决定 / Decision:** 不使用云开发 / 后端 / 登录，所有数据仅存 `wx.setStorage` 与本地文件系统。
+
+**原因 / Reason:** 产品定位为离线可用的家庭工具，隐私优先。
+
+**影响 / Impact:** 所有功能设计必须考虑离线可用；「历史上的今天」在线接口做成可选关闭的增强项。
+
+## 决策 2：红黄绿状态实时计算，永不落库
+
+**日期 / Date:** 2026-08
+
+**决定 / Decision:** 状态每次打开页面时由 `utils/record.js` 基于当前本地日期实时计算；`warningDays` 阈值（3/7/14）修改后全局立即重算。
+
+**原因 / Reason:** 避免缓存中状态过期导致颜色、统计、筛选不一致。
+
+**影响 / Impact:** 页面不允许缓存状态字段；`withStatus` 是唯一入口。
+
+## 决策 3：项目更名为「到期那天 In Time」，但保留 `openkeep_*` 缓存键
+
+**日期 / Date:** 2026-08
+
+**决定 / Decision:** 品牌从「开封守护 OpenKeep」更名为「到期那天 In Time」（界面文案、导航标题、`project.config.json` projectname 均已更新），但本地缓存 key 前缀保持 `openkeep_` 不变。
+
+**原因 / Reason:** 修改缓存键会使已安装用户的数据全部丢失。
+
+**影响 / Impact:** 代码中 `openkeep_` 前缀与新品牌名并存属正常现象，不是待办。
+
+## 决策 4：安卓批量导入日历采用「逐条弹窗确认续写」
+
+**日期 / Date:** 2026-08-21
+
+**决定 / Decision:** 安卓端批量导入每条写入成功后弹确认框（「已写入 x/n，继续写入」），由用户点击发起下一条；首次授权后再弹「已获得日历权限，点击开始写入」。iOS / 开发者工具保持 800ms 间隔自动串行。
+
+**原因 / Reason:** 微信要求 `wx.addPhoneCalendar` 在用户点击手势链内发起；安卓端第一条写入调起系统日历后手势链即失效，自动续写必报 `fail can only be invoked by user TAP gesture`（曾误译成「设备不支持」）；首次授权瞬间权限未同步，第一条写入会被吞掉。
+
+**影响 / Impact:** 安卓批量导入交互为逐条确认，属平台限制；勿改回自动串行。
+
+## 决策 5：全页面 `disableScroll` + `scroll-view` 滚动锁死
+
+**日期 / Date:** 2026-08-21
+
+**决定 / Decision:** 所有 7 个页面配置 `"disableScroll": true`，主体内容放入 `scroll-view.page-scroll`（`100vh`）；首页与「今天」页下拉刷新改用 `refresher`。
+
+**原因 / Reason:** iOS WebView 页面整体可上下左右拖拽、内容偏移、双向滚动条，真机实锤；锁死后横向位移彻底消失。
+
+**影响 / Impact:** 新增页面必须沿用此模式；fixed 元素（悬浮按钮、弹层、底部操作栏）需放在 `scroll-view` 之外。
+
+
+---
+
+# 7. 重要约束 / Important Constraints
+
+- 基础库最低兼容 2.15.0；使用较高版本 API 前必须 `wx.canIUse` 检测。
+- 微信 `require()` 不支持加载 `.json` 文件（基础库 3.x 报 `module not defined`），数据文件必须输出为 `.js` 模块（`module.exports = {...}`）。
+- 日历 API 只写不读、不返回事件 ID，无法删除/更新已写入日程；时间戳与 `alarmOffset` 均为**秒**；事件固定到期日上午 09:00；需显式传 `endTime`（+3600s）否则部分安卓异常；已过期物品的事件时间钳制到最近未来的 09:00。
+- `wx.setStorage` 总量约 10MB、单 key 约 1MB；照片走文件系统不占该额度。
+- 卸载微信 / 清缓存 / 换设备会丢数据，已在「本地数据说明」中向用户明示。
+- 模拟器与真机行为差异大（相机、日历），验证以真机为准；用户自行真机验证，Agent 无需代跑。
+- 日历写入需隐私协议中声明「使用你的日历（仅写入）权限」。
+
+
+---
+
+# 8. 最近的重要变化 / Recent Significant Changes
+
+- 2026-08-26 — 初始化 `AI_CONTEXT.md`（本次）；根目录新增 `AGENTS.md` / `AI_CONTEXT.md`（未提交）。
+- 2026-08-21 前后 — 修复安卓日历导入三连问题（手势链逐条确认、首次授权吞第一条、全选/取消全选破坏列表数据结构）；全页面 `disableScroll` + `scroll-view` 改造锁定 iOS 滚动。
+- 2026-08 中旬 — 保质期体系重构（保质期为主、开封天数为可选修正、存放位置、日历文案「你放在XX的XX快要到期啦」）；物品页筛选改固定网格。
+- 2026-08 上旬 — 项目更名为「到期那天 In Time」；新增「历史上的今天」功能；自定义悬浮胶囊 tabBar。
+
+完整开发说明见 `README.md`；提交历史见 `git log`（main 分支）。
+
+
+---
+
+# 9. 下一步建议 / Next Recommended Actions
+
+1. 等待用户真机验证反馈；若报新缺陷，优先核对本文件「已知问题」与决策 4/5 的兼容性结论。
+2. 用户验证通过后：将 `AGENTS.md` / `AI_CONTEXT.md` 纳入版本控制（由用户决定是否提交）。
+3. 可选优化方向（需用户确认后再做）：考虑把 `tools/history_in_today.json`（6MB）移出仓库或加入忽略；为「历史上的今天」补充更多日期事件需重新运行 `node tools/convert.js`。
+4. 若未来开放在线接口，需在小程序后台配置合法域名并更新隐私协议；目前 `utils/history.js` 中 `API_CONFIG.enabled = false`。
+
+
+---
+
+# 10. 上下文维护规则 / Context Maintenance
+
+本文件描述「项目现在是什么状态」，而不是完整开发日志。信息过期时更新或删除，不无限追加。未知信息标记 `UNKNOWN`，不猜测；与代码冲突时以代码实际状态为准。
