@@ -18,6 +18,7 @@ Page({
     stats: { expired: 0, warning: 0, safe: 0 },
     hasRecords: false,
     urgent: null,            // 最紧急的一条（优先已过期，其次临期）
+    warrantySoon: [],        // M1：近期即将过保的物品（轻量提醒，独立于三色到期统计）
     filter: 'all',
     filterOptions: [],
     list: [],
@@ -80,6 +81,23 @@ Page({
       if (items[i].status.level !== 'safe') { urgentItem = items[i]; break; }
     }
 
+    // M1：近期保修提醒（轻量，独立于三色到期统计，不改变其含义）；
+    // 仅统计已设置保修、且将在 30 天内到期（含今天）的物品，按剩余天数升序。
+    const WARRANTY_WINDOW = 30;
+    const warrantySoon = [];
+    items.forEach(it => {
+      const w = recordUtil.getWarrantyStatus(it);
+      if (w.hasWarranty && w.daysLeft >= 0 && w.daysLeft <= WARRANTY_WINDOW) {
+        warrantySoon.push({
+          id: it.id,
+          name: it.name,
+          daysLeft: w.daysLeft,
+          warrantyText: w.daysLeft === 0 ? '今天过保' : '还有 ' + w.daysLeft + ' 天'
+        });
+      }
+    });
+    warrantySoon.sort((a, b) => a.daysLeft - b.daysLeft);
+
     const filter = this.data.filter;
     const list = filter === 'all' ? items : items.filter(it => it.status.level === filter);
 
@@ -87,6 +105,7 @@ Page({
       showOnboarding: !storage.isOnboarded(),
       stats,
       urgent: urgentItem,
+      warrantySoon,
       list,
       hasRecords: items.length > 0,
       total: items.length,

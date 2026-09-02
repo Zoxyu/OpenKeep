@@ -69,6 +69,25 @@
     <view class="guide-btn">＋ 添加第一件物品</view>
   </view>
 
+  <!-- 近期保修提醒（M1，轻量；独立于三色到期统计，不改变其含义） -->
+  <view wx:if="{{warrantySoon.length}}" class="warranty-card card">
+    <view class="warranty-head">
+      <view class="warranty-title">近期保修</view>
+      <view class="warranty-sub">{{warrantySoon.length}} 件即将过保</view>
+    </view>
+    <view
+      wx:for="{{warrantySoon}}"
+      wx:key="id"
+      class="warranty-row"
+      hover-class="card-hover"
+      bindtap="goDetail"
+      data-id="{{item.id}}"
+    >
+      <view class="warranty-name">{{item.name}}</view>
+      <view class="warranty-days">{{item.warrantyText}}</view>
+    </view>
+  </view>
+
   <!-- 历史上的今天：柔和日期卡（点击进入 tab 页） -->
   <view wx:if="{{historyPreview}}" class="today-card" hover-class="card-hover" bindtap="goHistory">
     <view class="today-date">

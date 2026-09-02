@@ -113,6 +113,30 @@
 }
 .today-more { margin-top: 8rpx; font-size: 22rpx; color: var(--c-faint); }
 
+/* ====== 近期保修提醒（M1，轻量） ====== */
+.warranty-card { margin: 28rpx 40rpx 0; padding: 28rpx 32rpx; }
+.warranty-head { display: flex; align-items: baseline; justify-content: space-between; }
+.warranty-title { font-size: 28rpx; font-weight: 600; letter-spacing: 1rpx; }
+.warranty-sub { font-size: 22rpx; color: var(--c-faint); }
+.warranty-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  min-height: 88rpx;
+  padding: 12rpx 0;
+}
+.warranty-row + .warranty-row { border-top: 1rpx solid var(--c-line); }
+.warranty-name {
+  flex: 1;
+  min-width: 0;
+  margin-right: 16rpx;
+  font-size: 28rpx;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.warranty-days { flex-shrink: 0; font-size: 25rpx; color: var(--c-warn); }
+
 /* ====== 列表区 ====== */
 .list-head {
   display: flex;
