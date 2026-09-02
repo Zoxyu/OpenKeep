@@ -247,17 +247,21 @@ Page({
       base.notes = this.data.notes.trim();
       base.updatedAt = now;
 
-      storage.upsertRecord(base);
+      const ok = storage.upsertRecord(base);
+      // 编辑模式下清理不再被引用的旧照片文件：统一覆盖「移除照片」「替换照片」「移除后重拍」，
+      // 避免 USER_DATA_PATH 孤儿文件堆积；仅在记录已成功持久化、且旧照片与最终照片不同时删除。
+      // 新增模式 origin 为 null，oldPhoto 为空，不会误删。
+      const oldPhoto = this.data.origin ? this.data.origin.photoPath : '';
+      if (ok && oldPhoto && oldPhoto !== base.photoPath) {
+        imageUtil.removePhoto(oldPhoto);
+      }
       wx.showToast({ title: this.data.isEdit ? '已保存修改' : '已添加物品', icon: 'success' });
       setTimeout(() => wx.navigateBack(), 600);
     };
 
     if (this.data.tempPhoto) {
-      // 新照片：持久化到 USER_DATA_PATH；替换时删除旧照片文件
+      // 新照片：持久化到 USER_DATA_PATH；旧照片清理统一在 finish 中按 origin 比对处理
       imageUtil.savePhoto(this.data.tempPhoto).then(saved => {
-        if (this.data.isEdit && this.data.photoPath) {
-          imageUtil.removePhoto(this.data.photoPath);
-        }
         finish(saved);
       }).catch(() => {
         this.setData({ saving: false });
