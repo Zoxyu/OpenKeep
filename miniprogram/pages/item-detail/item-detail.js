@@ -28,6 +28,9 @@ Page({
     cat: null,
     photoOk: false,
     shelfLifeText: '',
+    priceText: '',            // 购买价格展示串（M1，未设置为 ''）
+    warranty: null,           // getWarrantyStatus 结果（M1）
+    warrantyLeftText: '',     // 保修剩余 / 已过保的展示文案（M1）
     missing: false,
     reminderOptions: REMINDER_OPTIONS.map(r => r.label),
     reminderIndex: 1,
@@ -61,6 +64,16 @@ Page({
     }
     const settings = app.globalData.settings || storage.loadSettings();
     const status = recordUtil.computeStatus(r, settings.warningDays);
+    // M1：保修状态走 record.getWarrantyStatus（与到期状态分离）；价格仅做展示格式化
+    const warranty = recordUtil.getWarrantyStatus(r);
+    let warrantyLeftText = '';
+    if (warranty.hasWarranty) {
+      if (warranty.expired) warrantyLeftText = '已过保 ' + (-warranty.daysLeft) + ' 天';
+      else if (warranty.daysLeft === 0) warrantyLeftText = '今天最后一天';
+      else warrantyLeftText = '还剩 ' + warranty.daysLeft + ' 天';
+    }
+    const priceText = (r.purchasePrice === null || r.purchasePrice === undefined)
+      ? '' : '¥' + Number(r.purchasePrice).toFixed(2);
     let idx = 1;
     for (let i = 0; i < REMINDER_OPTIONS.length; i++) {
       if (REMINDER_OPTIONS[i].v === r.calendarReminderDays) { idx = i; break; }
@@ -70,6 +83,9 @@ Page({
       status,
       cat: recordUtil.categoryOf(r.category),
       shelfLifeText: recordUtil.shelfLifeText(r),
+      priceText: priceText,
+      warranty: warranty,
+      warrantyLeftText: warrantyLeftText,
       photoOk: !!r.photoPath && imageUtil.isPhotoValid(r.photoPath),
       reminderIndex: idx
     });

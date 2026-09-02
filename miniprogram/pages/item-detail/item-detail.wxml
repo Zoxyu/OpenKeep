@@ -66,6 +66,26 @@
       </view>
     </view>
 
+    <!-- 购买与保修（M1，有值才展示；保修状态与到期红黄绿分离） -->
+    <view wx:if="{{record.purchaseDate || priceText || warranty.hasWarranty}}" class="info-card card">
+      <view wx:if="{{record.purchaseDate}}" class="cell">
+        <view class="cell-title">购买日期</view>
+        <view class="cell-value">{{record.purchaseDate}}</view>
+      </view>
+      <view wx:if="{{priceText}}" class="cell">
+        <view class="cell-title">购买价格</view>
+        <view class="cell-value">{{priceText}}</view>
+      </view>
+      <view wx:if="{{warranty.hasWarranty}}" class="cell">
+        <view class="cell-title">保修结束</view>
+        <view class="cell-value">{{warranty.endDate}}</view>
+      </view>
+      <view wx:if="{{warranty.hasWarranty}}" class="cell">
+        <view class="cell-title">保修状态</view>
+        <view class="cell-value {{warranty.expired ? 'lv-text-expired' : 'lv-text-safe'}}">{{warrantyLeftText}}</view>
+      </view>
+    </view>
+
     <!-- 备注 -->
     <view wx:if="{{record.notes}}" class="notes-card card">
       <view class="notes-title">备注</view>
