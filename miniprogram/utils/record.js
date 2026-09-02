@@ -142,6 +142,32 @@ function sortUrgent(list) {
   });
 }
 
+/**
+ * 保修状态（M1）：与红黄绿「到期状态」完全独立的辅助计算，互不影响。
+ * 只回答三件事：是否设置了保修、距保修结束还剩多少天、是否已过保。
+ * 不做提醒分级、不参与到期排序、不写日历、不修改 record 本身。
+ * 到期状态仍由 computeStatus 负责（食品 / 物品到期），二者必须分离。
+ * @returns {{hasWarranty:boolean, endDate:string, daysLeft:number|null, expired:boolean}}
+ *   hasWarranty 是否填写了合法保修结束日期；endDate 规范化后的 'YYYY-MM-DD'（未设置为 ''）；
+ *   daysLeft 相对今天 00:00 的剩余自然日（未设置为 null；<0 已过保；=0 今天最后一天）；
+ *   expired 是否已过保（daysLeft < 0）。
+ */
+function getWarrantyStatus(record, today) {
+  const endStr = record && typeof record.warrantyEnd === 'string' ? record.warrantyEnd : '';
+  const end = dateUtil.parseDate(endStr);
+  if (!end) {
+    return { hasWarranty: false, endDate: '', daysLeft: null, expired: false };
+  }
+  const base = today || dateUtil.todayStart();
+  const daysLeft = dateUtil.diffDays(end, base);
+  return {
+    hasWarranty: true,
+    endDate: dateUtil.formatDate(end),
+    daysLeft: daysLeft,
+    expired: daysLeft < 0
+  };
+}
+
 // 示例数据：相对今天的偏移生成，保证首次体验就能看到红、黄、绿三种状态
 function demoRecords() {
   const now = Date.now();
@@ -185,5 +211,6 @@ module.exports = {
   computeStatus,
   withStatus,
   sortUrgent,
+  getWarrantyStatus,
   demoRecords
 };

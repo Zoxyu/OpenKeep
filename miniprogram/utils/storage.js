@@ -72,6 +72,22 @@ function normalizeRecord(raw) {
     }
   }
 
+  // ===== M1 家庭物品管家：购买 / 保修字段（全部可选，旧数据读时自动补默认）=====
+  // 仅作类型校验与默认兜底；不参与到期状态计算，不影响照片 / 删除 / 日历字段。
+  // 购买日期：'YYYY-MM-DD'，经 date.js 校验，非法 / 未填为 ''
+  const purchaseDate = dateUtil.parseDate(raw.purchaseDate) ? raw.purchaseDate : '';
+  // 保修结束日期：'YYYY-MM-DD'，经 date.js 校验，非法 / 未填为 ''
+  const warrantyEnd = dateUtil.parseDate(raw.warrantyEnd) ? raw.warrantyEnd : '';
+  // 购买价格：number|null，仅接受有限且 >=0 的数值并保留两位小数；未填 / 非法为 null
+  //（不引入折旧 / 财务 / 货币逻辑，null 与 0 语义不同：null = 未填写）
+  let purchasePrice = null;
+  const priceNum = Number(raw.purchasePrice);
+  if ((typeof raw.purchasePrice === 'number' ||
+       (typeof raw.purchasePrice === 'string' && raw.purchasePrice.trim() !== '')) &&
+      isFinite(priceNum) && priceNum >= 0) {
+    purchasePrice = Math.round(priceNum * 100) / 100;
+  }
+
   return {
     id: typeof raw.id === 'string' && raw.id ? raw.id : genId(),
     name: name,
@@ -83,6 +99,9 @@ function normalizeRecord(raw) {
     openedDays: openedDays,
     location: typeof raw.location === 'string' ? raw.location.trim().slice(0, 20) : '',
     notes: typeof raw.notes === 'string' ? raw.notes.slice(0, 100) : '',
+    purchaseDate: purchaseDate,
+    purchasePrice: purchasePrice,
+    warrantyEnd: warrantyEnd,
     createdAt: typeof raw.createdAt === 'number' ? raw.createdAt : now,
     updatedAt: typeof raw.updatedAt === 'number' ? raw.updatedAt : now,
     calendarImported: !!raw.calendarImported,
