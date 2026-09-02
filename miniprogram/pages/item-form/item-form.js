@@ -36,6 +36,9 @@ Page({
     openedDays: '',           // 开封后可保存天数（可选，填了优先按它算到期）
     refHint: '',              // 开封后可保存天数的分类参考值提示
     location: '',             // 存放位置（可选，用于日历提醒文案）
+    purchaseDate: '',         // 购买日期（M1 可选，'YYYY-MM-DD' 或 ''）
+    purchasePrice: '',        // 购买价格（M1 可选，表单内为字符串，保存交由 storage 规范化为 number|null）
+    warrantyEnd: '',          // 保修结束日期（M1 可选，'YYYY-MM-DD' 或 ''）
     quickOpenedInput: '',     // 「已开封 X 天」快捷输入
     quickHint: '',
     quickOk: false,           // 快捷输入是否推算成功（控制提示文案颜色）
@@ -69,6 +72,9 @@ Page({
           shelfLifeUnit: r.shelfLifeUnit || 'day',
           openedDays: r.openedDays > 0 ? String(r.openedDays) : '',
           location: r.location || '',
+          purchaseDate: r.purchaseDate || '',
+          purchasePrice: (r.purchasePrice === null || r.purchasePrice === undefined) ? '' : String(r.purchasePrice),
+          warrantyEnd: r.warrantyEnd || '',
           notes: r.notes,
           refHint: this.buildRefHint(r.category),
           quickOpenedInput: openedDiff >= 0 ? String(openedDiff) : ''
@@ -150,6 +156,23 @@ Page({
   onLocationInput(e) { this.setData({ location: e.detail.value }); },
   onNotesInput(e) { this.setData({ notes: e.detail.value }); },
 
+  // ====== 购买 / 保修（M1 可选字段）======
+  // 输入即清除对应字段错误，交互与既有字段一致
+  onPurchaseDateChange(e) {
+    const errors = Object.assign({}, this.data.errors); delete errors.purchaseDate;
+    this.setData({ purchaseDate: e.detail.value, errors });
+  },
+  onPurchasePriceInput(e) {
+    const errors = Object.assign({}, this.data.errors); delete errors.purchasePrice;
+    this.setData({ purchasePrice: e.detail.value, errors });
+  },
+  onWarrantyEndChange(e) {
+    const errors = Object.assign({}, this.data.errors); delete errors.warrantyEnd;
+    this.setData({ warrantyEnd: e.detail.value, errors });
+  },
+  onClearPurchaseDate() { this.setData({ purchaseDate: '' }); },
+  onClearWarrantyEnd() { this.setData({ warrantyEnd: '' }); },
+
   onUnitTap(e) {
     this.setData({ shelfLifeUnit: e.currentTarget.dataset.v });
   },
@@ -211,6 +234,19 @@ Page({
     if (!dateUtil.parseDate(this.data.openedAt)) errors.openedAt = '开封日期无效，请重新选择';
     if (this.data.location.trim().length > 20) errors.location = '存放位置最多 20 个字';
     if (this.data.notes.length > 100) errors.notes = '备注最多 100 个字';
+
+    // 购买 / 保修（M1 可选）：非空才校验；不强制、不做跨字段约束，避免录入压力
+    if (this.data.purchaseDate && !dateUtil.parseDate(this.data.purchaseDate)) {
+      errors.purchaseDate = '购买日期无效，请重新选择';
+    }
+    if (this.data.warrantyEnd && !dateUtil.parseDate(this.data.warrantyEnd)) {
+      errors.warrantyEnd = '保修结束日期无效，请重新选择';
+    }
+    const priceRaw = String(this.data.purchasePrice).trim();
+    if (priceRaw !== '') {
+      const p = Number(priceRaw);
+      if (!isFinite(p) || p < 0) errors.purchasePrice = '请输入有效的购买价格（不小于 0）';
+    }
     return errors;
   },
 
@@ -245,6 +281,10 @@ Page({
       base.openedDays = parseInt(this.data.openedDays, 10) || 0;
       base.location = this.data.location.trim();
       base.notes = this.data.notes.trim();
+      // M1 可选字段：透传表单值，由 storage.normalizeRecord 统一规范化（页面不自行兜底）
+      base.purchaseDate = this.data.purchaseDate;
+      base.purchasePrice = this.data.purchasePrice;
+      base.warrantyEnd = this.data.warrantyEnd;
       base.updatedAt = now;
 
       const ok = storage.upsertRecord(base);

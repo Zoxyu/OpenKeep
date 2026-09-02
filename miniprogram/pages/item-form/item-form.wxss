@@ -57,6 +57,13 @@
 .form-card { margin: 28rpx 40rpx 0; padding-bottom: 12rpx; }
 .field-sub { margin-top: 10rpx; font-size: 23rpx; color: var(--c-faint); }
 
+/* 购买与保修（M1 可选）分区标题与清除链接 */
+.opt-head { display: flex; align-items: baseline; gap: 12rpx; padding: 32rpx 32rpx 6rpx; }
+.opt-title { font-size: 28rpx; font-weight: 600; color: var(--c-text); letter-spacing: 1rpx; }
+.opt-sub { font-size: 22rpx; color: var(--c-faint); }
+.clear-link { margin-top: 10rpx; min-height: 64rpx; line-height: 64rpx; font-size: 24rpx; color: var(--c-sub); }
+.clear-hover { opacity: 0.6; }
+
 /* 分类选择 */
 .cat-row { display: flex; gap: 14rpx; }
 .cat-item {

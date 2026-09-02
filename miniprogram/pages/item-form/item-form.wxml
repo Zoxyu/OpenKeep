@@ -148,6 +148,54 @@
     </view>
   </view>
 
+  <!-- 购买与保修（M1 可选，弱化展示，不增加首次录入压力） -->
+  <view class="form-card card">
+    <view class="opt-head">
+      <text class="opt-title">购买与保修</text>
+      <text class="opt-sub">可选</text>
+    </view>
+
+    <!-- 购买日期 -->
+    <view class="field">
+      <view class="field-label">购买日期</view>
+      <picker mode="date" value="{{purchaseDate}}" bindchange="onPurchaseDateChange">
+        <view class="input-base picker-row">
+          <text class="{{purchaseDate ? '' : 'ph-text'}}">{{purchaseDate || '请选择（可选）'}}</text>
+          <text class="picker-arrow">›</text>
+        </view>
+      </picker>
+      <view wx:if="{{purchaseDate}}" class="clear-link" hover-class="clear-hover" bindtap="onClearPurchaseDate">清除购买日期</view>
+      <view wx:if="{{errors.purchaseDate}}" class="err-text">{{errors.purchaseDate}}</view>
+    </view>
+
+    <!-- 购买价格 -->
+    <view class="field">
+      <view class="field-label">购买价格（元）</view>
+      <input
+        class="input-base"
+        type="digit"
+        value="{{purchasePrice}}"
+        placeholder="如：2999.00（可选）"
+        placeholder-class="ph-text"
+        bindinput="onPurchasePriceInput"
+      />
+      <view wx:if="{{errors.purchasePrice}}" class="err-text">{{errors.purchasePrice}}</view>
+    </view>
+
+    <!-- 保修结束日期 -->
+    <view class="field">
+      <view class="field-label">保修结束日期</view>
+      <picker mode="date" value="{{warrantyEnd}}" bindchange="onWarrantyEndChange">
+        <view class="input-base picker-row">
+          <text class="{{warrantyEnd ? '' : 'ph-text'}}">{{warrantyEnd || '请选择（可选）'}}</text>
+          <text class="picker-arrow">›</text>
+        </view>
+      </picker>
+      <view wx:if="{{warrantyEnd}}" class="clear-link" hover-class="clear-hover" bindtap="onClearWarrantyEnd">清除保修日期</view>
+      <view wx:if="{{errors.warrantyEnd}}" class="err-text">{{errors.warrantyEnd}}</view>
+    </view>
+  </view>
+
   <!-- 操作按钮 -->
   <view class="actions">
     <view class="btn btn-primary {{saving ? 'btn-disabled' : ''}}" hover-class="btn-hover" bindtap="onSave">
