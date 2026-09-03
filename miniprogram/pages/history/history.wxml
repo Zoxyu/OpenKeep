@@ -2,7 +2,7 @@
 
   <!-- 主体内容：scroll-view 承担纵向滚动（页面已 disableScroll，锁死 iOS 双向拖拽） -->
   <scroll-view
-    class="page-scroll"
+    class="page-scroll page-enter-{{enterKey}}"
     scroll-y
     enhanced
     show-scrollbar="{{false}}"

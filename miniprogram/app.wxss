@@ -83,13 +83,37 @@ page {
   width: 100%;
   height: 100vh;
   box-sizing: border-box;
-  /* 页面内容进入动画：仅做透明度渐入，不对 scroll-view 施加 transform。
-   * transform 作用在 100vh 滚动容器上、叠加系统转场时，部分机型会出现抖动/闪烁；
-   * 纯 opacity 渐入更稳、更克制。backwards 填充保证首帧即从 0 开始，不会先显示再淡出。 */
-  animation: page-enter 200ms ease-out backwards;
+}
+
+/* ====== 页面入场渐显 ======
+ * 只做透明度渐入，不对 scroll-view 施加 transform：transform 作用在 100vh 滚动容器上、
+ * 叠加系统转场时部分机型会出现抖动/闪烁，纯 opacity 更稳、更克制。
+ * backwards 填充保证首帧即从 0 开始，不会先显示再淡出。
+ *
+ * 为什么拆成 a / b 两个类，而不是把 animation 直接写在 .page-scroll 上：
+ * 微信不会销毁 tab 页实例，.page-scroll 节点常驻，而 CSS animation 默认只播一次，
+ * 所以切回已访问过的 tab 时动画根本不会重放；wx.switchTab 自身又没有原生转场，
+ * 两者叠加就是「硬切、毫无渐变」。
+ * 解法：各 tab 页在 onShow 里交替挂载 page-enter-a / page-enter-b。两个类的动画参数
+ * 完全一致，只有 animation-name 不同，而改变 animation-name 会让动画重新开始播放。
+ * 相比「先移除动画类、下一帧再加回来」的常见写法，交替命名全程都有一条动画在生效，
+ * 不存在没有动画的那一帧，因此不会出现内容先闪到不透明再淡入，也只需一次 setData。
+ *
+ * 非 tab 页（item-form / item-detail / calendar-import）每次 navigateTo 都会重建节点，
+ * 静态挂 page-enter-a 即可，无需参与交替。 */
+.page-scroll.page-enter-a {
+  animation: page-enter 260ms cubic-bezier(0.25, 0.46, 0.45, 0.94) backwards;
+}
+.page-scroll.page-enter-b {
+  animation: page-enter-alt 260ms cubic-bezier(0.25, 0.46, 0.45, 0.94) backwards;
 }
 
 @keyframes page-enter {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+/* 与 page-enter 逐帧完全相同，仅名称不同，专供上面的动画重放使用 */
+@keyframes page-enter-alt {
   from { opacity: 0; }
   to { opacity: 1; }
 }

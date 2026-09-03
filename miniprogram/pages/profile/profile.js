@@ -20,6 +20,7 @@ const THEME_OPTIONS = [
 Page({
   data: {
     dark: false,
+    enterKey: 'a',     // 入场渐显的交替标记（'a' / 'b'），用途见 app.wxss 说明
     warnOptions: WARN_OPTIONS,
     warningDays: 7,
     themeOptions: THEME_OPTIONS,
@@ -33,7 +34,14 @@ Page({
 
   onShow() {
     const settings = app.globalData.settings || storage.loadSettings();
-    this.setData({ dark: app.isDark(), warningDays: settings.warningDays, themePref: settings.theme });
+    // enterKey 每次取反：tab 页实例常驻、节点不重建，一次性 CSS 动画不会自动重放，
+    // 靠交替 animation-name 让入场渐显在每次切回本页时重新播放（详见 app.wxss）
+    this.setData({
+      dark: app.isDark(),
+      warningDays: settings.warningDays,
+      themePref: settings.theme,
+      enterKey: this.data.enterKey === 'a' ? 'b' : 'a'
+    });
     app.applyChrome();
     this.syncTabBar(3);
     this.refreshStats();

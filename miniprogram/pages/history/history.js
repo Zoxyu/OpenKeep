@@ -16,6 +16,7 @@ const SOURCE_TEXT = {
 Page({
   data: {
     dark: false,
+    enterKey: 'a',     // 入场渐显的交替标记（'a' / 'b'），用途见 app.wxss 说明
     loading: true,
     // scroll-view 下拉刷新状态（页面已 disableScroll，改用 refresher）
     refreshing: false,
@@ -38,7 +39,9 @@ Page({
   },
 
   onShow() {
-    this.setData({ dark: app.isDark() });
+    // enterKey 每次取反：tab 页实例常驻、节点不重建，一次性 CSS 动画不会自动重放，
+    // 靠交替 animation-name 让入场渐显在每次切回本页时重新播放（详见 app.wxss）
+    this.setData({ dark: app.isDark(), enterKey: this.data.enterKey === 'a' ? 'b' : 'a' });
     app.applyChrome();
     this.syncTabBar(2);
     this.load(false);
