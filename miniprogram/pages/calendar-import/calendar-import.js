@@ -60,6 +60,7 @@ Page({
 
   onShow() {
     this.setData({ dark: app.isDark() });
+    app.applyChrome();
     this.buildList();
   },
 
@@ -292,7 +293,7 @@ Page({
     if (cancelled) {
       wx.showToast({ title: '已停止，未导入的任务已取消', icon: 'none' });
     } else if (ok > 0) {
-      wx.showToast({ title: '已写入 ' + ok + ' 条到系统日历', icon: 'success' });
+      wx.showToast({ title: '已添加 ' + ok + ' 条提醒', icon: 'success' });
     }
     this.buildList(); // 刷新列表与「已导入」标记
   },

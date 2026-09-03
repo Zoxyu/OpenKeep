@@ -48,6 +48,7 @@ Page({
 
   onShow() {
     this.setData({ dark: app.isDark() });
+    app.applyChrome();
     this.refresh();
   },
 
@@ -190,7 +191,7 @@ Page({
       });
       storage.upsertRecord(updated);
       this.setData({ record: updated, writing: false });
-      wx.showToast({ title: '已写入日历', icon: 'success' });
+      wx.showToast({ title: '已添加提醒', icon: 'success' });
     }).catch(err => {
       this.setData({ writing: false });
       wx.showModal({

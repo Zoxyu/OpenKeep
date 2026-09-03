@@ -69,9 +69,12 @@ App({
     this.globalData.settings = s;
   },
 
-  // 注册主题变化监听，返回解绑函数
+  // 注册主题变化监听，返回解绑函数。
+  // 注册时立即用当前主题回调一次：让页面 / 组件在 onLoad / attached 阶段（首帧渲染前）
+  // 就拿到正确的 dark，避免默认 dark:false 造成的切换页面「一闪白」。
   onTheme(cb) {
     this.themeListeners.push(cb);
+    try { cb(this.isDark()); } catch (e) {}
     return () => {
       const i = this.themeListeners.indexOf(cb);
       if (i > -1) this.themeListeners.splice(i, 1);
@@ -83,18 +86,30 @@ App({
     this.themeListeners.forEach(cb => cb(dark));
   },
 
-  // 让导航栏与 tabBar 颜色跟随主题
+  // 让导航栏、原生窗口背景与 tabBar 颜色跟随主题（统一由 effectiveTheme 驱动，单一来源）
   applyChrome() {
     const dark = this.isDark();
+    const bg = dark ? '#141619' : '#F7F7F4';
     wx.setNavigationBarColor({
       frontColor: dark ? '#ffffff' : '#000000',
-      backgroundColor: dark ? '#141619' : '#F7F7F4'
+      backgroundColor: bg,
+      fail: () => {}
     });
+    // 同步原生窗口背景：避免深色模式下页面切换 / 下拉回弹时露出浅色底（白闪）
+    if (wx.setBackgroundColor) {
+      wx.setBackgroundColor({
+        backgroundColor: bg,
+        backgroundColorTop: bg,
+        backgroundColorBottom: bg,
+        fail: () => {}
+      });
+    }
     wx.setTabBarStyle({
       backgroundColor: dark ? '#1B1E22' : '#FFFFFF',
       color: dark ? '#7E8580' : '#8A8F8B',
       selectedColor: dark ? '#E8EAE6' : '#202421',
-      borderStyle: dark ? 'black' : 'white'
+      borderStyle: dark ? 'black' : 'white',
+      fail: () => {}
     });
   }
 });

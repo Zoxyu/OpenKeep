@@ -95,6 +95,7 @@ Page({
 
   onShow() {
     this.setData({ dark: app.isDark() });
+    app.applyChrome();
   },
 
   onUnload() {

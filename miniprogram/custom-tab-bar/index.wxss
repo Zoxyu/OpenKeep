@@ -3,12 +3,13 @@
  * 图标全部由 CSS 绘制（currentColor 跟随文字色），不依赖任何外部图片。 */
 
 .tabbar-shell {
-  --tb-bg: rgba(255, 255, 255, 0.94);
-  --tb-line: rgba(32, 36, 33, 0.06);
-  --tb-shadow: 0 14rpx 44rpx rgba(32, 36, 33, 0.14);
+  /* iOS 风格毛玻璃：半透明底 + 背景模糊 + 细边 + 极轻阴影；active 用柔和半透明胶囊而非实心大色块 */
+  --tb-bg: rgba(255, 255, 255, 0.75);
+  --tb-line: rgba(32, 36, 33, 0.07);
+  --tb-shadow: 0 8rpx 28rpx rgba(32, 36, 33, 0.10);
   --tb-sub: #8A8F8B;
-  --tb-active-bg: #202421;
-  --tb-active-text: #FFFFFF;
+  --tb-active-bg: rgba(32, 36, 33, 0.07);
+  --tb-active-text: #202421;
 
   position: fixed;
   left: 0;
@@ -19,12 +20,12 @@
 }
 
 .tabbar-shell.theme-dark {
-  --tb-bg: rgba(30, 33, 37, 0.94);
-  --tb-line: rgba(255, 255, 255, 0.08);
-  --tb-shadow: 0 14rpx 44rpx rgba(0, 0, 0, 0.45);
+  --tb-bg: rgba(28, 31, 35, 0.72);
+  --tb-line: rgba(255, 255, 255, 0.10);
+  --tb-shadow: 0 8rpx 28rpx rgba(0, 0, 0, 0.40);
   --tb-sub: #8F9691;
-  --tb-active-bg: #E8EAE6;
-  --tb-active-text: #141619;
+  --tb-active-bg: rgba(255, 255, 255, 0.12);
+  --tb-active-text: #E8EAE6;
 }
 
 /* 悬浮胶囊容器：flex 弹性布局，任意屏宽下三等分不变形 */
@@ -36,7 +37,8 @@
   background: var(--tb-bg);
   border: 1rpx solid var(--tb-line);
   box-shadow: var(--tb-shadow);
-  backdrop-filter: blur(20rpx);
+  -webkit-backdrop-filter: blur(30rpx) saturate(180%);
+  backdrop-filter: blur(30rpx) saturate(180%);
 }
 
 /* 单个入口：纵向图标 + 文字，最小触控高度 96rpx */

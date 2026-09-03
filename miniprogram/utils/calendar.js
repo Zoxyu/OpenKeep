@@ -147,7 +147,10 @@ function buildEvent(record, status, reminderDays) {
   };
 }
 
-// 写入单条日历事件（Promise 化）
+// 写入单条日历事件（Promise 化）。
+// 语义说明：resolve 仅表示 wx.addPhoneCalendar 成功返回（「已提交」）；
+// 微信只写不读、不返回事件 ID，无法确认系统日历中一定存在该事件，
+// 因此 UI 以「已添加提醒」表述，不承诺「系统日历已确认存在」。
 function addEvent(evt) {
   return new Promise((resolve, reject) => {
     wx.addPhoneCalendar({
