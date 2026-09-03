@@ -21,7 +21,8 @@ const REMINDER_OPTIONS = [
 
 Page({
   data: {
-    dark: false,
+    // 创建时即取真实主题：首帧就是正确深浅色，不依赖 onLoad / onShow 的 setData 追平
+    dark: app.isDark(),
     id: '',
     record: null,
     status: null,
@@ -43,12 +44,15 @@ Page({
       id: options.id || '',
       calSupported: calendarUtil.isSupported()
     });
-    this._untheme = app.onTheme(dark => this.setData({ dark }));
+    // 只处理「主题真的发生变化」；同值不 setData
+    this._untheme = app.onTheme(dark => {
+      if (this.data.dark !== dark) this.setData({ dark });
+    });
   },
 
   onShow() {
-    this.setData({ dark: app.isDark() });
-    app.applyChrome();
+    // 主题：只在真的变化时才 setData / 刷新原生 chrome（见 app.syncPageTheme）
+    app.syncPageTheme(this);
     this.refresh();
   },
 

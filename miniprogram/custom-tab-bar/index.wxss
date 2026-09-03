@@ -42,8 +42,11 @@
   backdrop-filter: blur(40rpx) saturate(180%);
 }
 
-/* 滑块指示器：随 thumbPos 平移（transform 过渡），iOS 质感的「按钮平移」动效。
- * 宽 = (容器内宽)/4，translateX(thumbPos*100%) 恰好移到对应 tab；置于图标下层（z-index 低于 tab-item）。 */
+/* 滑块指示器：位置 = selected × 100%（selected 是唯一状态来源，见 index.js）。
+ * 宽 = (容器内宽)/4，故 translateX(selected*100%) 恰好移到对应 tab；置于图标下层（z-index 低于 tab-item）。
+ * 过渡曲线刻意不带回弹：此前的 cubic-bezier(0.34, 1.15, ...) 会先冲过头再退回来，
+ * 本身就是一次「二次移动」。而重复切回同一 tab 时 selected 不变、不触发 setData，
+ * 过渡自然不会执行，因此无需 .no-anim 之类的开关。 */
 .tab-thumb {
   position: absolute;
   top: 10rpx;
@@ -52,12 +55,10 @@
   width: calc((100% - 20rpx) / 4);
   border-radius: 999rpx;
   background: var(--tb-active-bg);
-  transition: transform 0.32s cubic-bezier(0.34, 1.15, 0.5, 1);
+  transition: transform 0.28s cubic-bezier(0.25, 0.46, 0.45, 0.94);
   z-index: 0;
   pointer-events: none;
 }
-/* 同步 / 首帧时禁用过渡，让滑块瞬移到位（不产生错误方向的滑动） */
-.tab-thumb.no-anim { transition: none; }
 
 /* 单个入口：纵向图标 + 文字，最小触控高度 96rpx */
 .tab-item {

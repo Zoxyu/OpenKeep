@@ -12,8 +12,8 @@ const historyUtil = require('../../utils/history');
 
 Page({
   data: {
-    dark: false,
-    enterKey: 'a',           // 入场渐显的交替标记（'a' / 'b'），用途见 app.wxss 说明
+    // 创建时即取真实主题：首帧就是正确深浅色，不再靠 onLoad / onShow 的 setData 追平
+    dark: app.isDark(),
     showOnboarding: false,   // 首次启动：选择「体验示例数据 / 从空白开始」
     todayText: '',
     stats: { expired: 0, warning: 0, safe: 0 },
@@ -41,14 +41,16 @@ Page({
         text: preview.first || preview.second || ''
       }
     });
-    this._untheme = app.onTheme(dark => this.setData({ dark }));
+    // 只处理「主题真的发生变化」；同值不 setData
+    this._untheme = app.onTheme(dark => {
+      if (this.data.dark !== dark) this.setData({ dark });
+    });
   },
 
   onShow() {
-    // enterKey 每次取反：tab 页实例常驻、节点不重建，一次性 CSS 动画不会自动重放，
-    // 靠交替 animation-name 让入场渐显在每次切回本页时重新播放（详见 app.wxss）
-    this.setData({ dark: app.isDark(), enterKey: this.data.enterKey === 'a' ? 'b' : 'a' });
-    app.applyChrome();
+    // 主题：只在真的变化时才 setData / 刷新原生 chrome（见 app.syncPageTheme），
+    // 切 Tab 不再为了同一个 dark 值重渲染整页，也不再每次都发原生改色调用
+    app.syncPageTheme(this);
     this.syncTabBar(0);
     this.refresh();
   },

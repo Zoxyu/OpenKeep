@@ -1,7 +1,7 @@
 <view class="page-root {{dark ? 'theme-dark' : ''}}">
 
   <!-- 主体内容：scroll-view 承担纵向滚动（页面已 disableScroll，锁死 iOS 双向拖拽） -->
-  <scroll-view class="page-scroll page-enter-{{enterKey}}" scroll-y enhanced show-scrollbar="{{false}}">
+  <scroll-view class="page-scroll" scroll-y enhanced show-scrollbar="{{false}}">
 
   <!-- 搜索框 -->
   <view class="search-wrap">
@@ -67,18 +67,9 @@
     </view>
   </view>
 
-  <!-- 加载骨架 -->
-  <view wx:if="{{loading}}" class="skeleton-list">
-    <view class="skeleton-card" wx:for="{{[1,2,3]}}" wx:key="*this">
-      <view class="sk-cover"></view>
-      <view class="sk-lines">
-        <view class="sk-line w1"></view>
-        <view class="sk-line w2"></view>
-      </view>
-    </view>
-  </view>
-
-  <block wx:else>
+  <!-- 数据全部来自本地缓存、同步可得，onShow 内一次算完并一次 setData，
+       因此不存在加载等待期，也就没有骨架屏阶段 -->
+  <block>
     <!-- 完全没有记录 -->
     <empty-state
       wx:if="{{!hasAny}}"

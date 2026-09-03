@@ -93,33 +93,7 @@
 .fp-cell-on.fp-st-warning { background: var(--c-warn-bg); color: var(--c-warn); }
 .fp-cell-on.fp-st-safe { background: var(--c-safe-bg); color: var(--c-safe); }
 
-/* ====== 加载骨架 ====== */
-.skeleton-list { padding: 24rpx 40rpx; }
-.skeleton-card {
-  display: flex;
-  align-items: center;
-  background: var(--c-card);
-  border-radius: 24rpx;
-  border: 1rpx solid var(--c-line);
-  padding: 24rpx;
-  margin-bottom: 20rpx;
-}
-.sk-cover {
-  width: 132rpx;
-  height: 132rpx;
-  border-radius: 18rpx;
-  background: var(--c-card-2);
-  flex-shrink: 0;
-}
-.sk-lines { flex: 1; margin-left: 20rpx; }
-.sk-line {
-  height: 26rpx;
-  border-radius: 999rpx;
-  background: var(--c-card-2);
-  margin-bottom: 18rpx;
-}
-.sk-line.w1 { width: 55%; }
-.sk-line.w2 { width: 80%; margin-bottom: 0; }
+/* 骨架屏样式已删除：数据来自本地缓存、同步可得，不再存在加载等待期 */
 
 /* ====== 列表 ====== */
 /* 底部预留悬浮胶囊 tabBar 的高度，避免最后一项被遮挡 */

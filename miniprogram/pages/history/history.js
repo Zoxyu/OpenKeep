@@ -15,8 +15,9 @@ const SOURCE_TEXT = {
 
 Page({
   data: {
-    dark: false,
-    enterKey: 'a',     // 入场渐显的交替标记（'a' / 'b'），用途见 app.wxss 说明
+    // 创建时即取真实主题：首帧就是正确深浅色，不再靠 onLoad / onShow 的 setData 追平
+    dark: app.isDark(),
+    // 仅首次进入时为 true（数据真的尚未取到）；之后的切页不再重新置 true
     loading: true,
     // scroll-view 下拉刷新状态（页面已 disableScroll，改用 refresher）
     refreshing: false,
@@ -35,14 +36,15 @@ Page({
       day: now.getDate(),
       dateText: (now.getMonth() + 1) + ' 月 ' + now.getDate() + ' 日 · ' + dateUtil.weekdayCN(now)
     });
-    this._untheme = app.onTheme(dark => this.setData({ dark }));
+    // 只处理「主题真的发生变化」；同值不 setData
+    this._untheme = app.onTheme(dark => {
+      if (this.data.dark !== dark) this.setData({ dark });
+    });
   },
 
   onShow() {
-    // enterKey 每次取反：tab 页实例常驻、节点不重建，一次性 CSS 动画不会自动重放，
-    // 靠交替 animation-name 让入场渐显在每次切回本页时重新播放（详见 app.wxss）
-    this.setData({ dark: app.isDark(), enterKey: this.data.enterKey === 'a' ? 'b' : 'a' });
-    app.applyChrome();
+    // 主题：只在真的变化时才 setData / 刷新原生 chrome（见 app.syncPageTheme）
+    app.syncPageTheme(this);
     this.syncTabBar(2);
     this.load(false);
   },
@@ -59,7 +61,10 @@ Page({
   },
 
   load(force) {
-    this.setData({ loading: true });
+    // 刻意不再先 setData({ loading: true })：在线接口已关闭（API_CONFIG.enabled = false），
+    // 数据走本地模块、微任务即返回。先置 loading 再置回，等于每次切到本页都
+    // 多渲染一趟「加载态 → 内容」，就是二次刷新感的来源之一。
+    // 首次进入的加载态由 data.loading 的初值承担；下拉刷新的反馈由 refreshing 承担。
     historyUtil.getTodayEvents(force).then(res => {
       this.setData({
         loading: false,

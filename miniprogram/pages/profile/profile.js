@@ -19,8 +19,8 @@ const THEME_OPTIONS = [
 
 Page({
   data: {
-    dark: false,
-    enterKey: 'a',     // 入场渐显的交替标记（'a' / 'b'），用途见 app.wxss 说明
+    // 创建时即取真实主题：首帧就是正确深浅色，不再靠 onLoad / onShow 的 setData 追平
+    dark: app.isDark(),
     warnOptions: WARN_OPTIONS,
     warningDays: 7,
     themeOptions: THEME_OPTIONS,
@@ -29,20 +29,20 @@ Page({
   },
 
   onLoad() {
-    this._untheme = app.onTheme(dark => this.setData({ dark }));
+    // 只处理「主题真的发生变化」；同值不 setData
+    this._untheme = app.onTheme(dark => {
+      if (this.data.dark !== dark) this.setData({ dark });
+    });
   },
 
   onShow() {
     const settings = app.globalData.settings || storage.loadSettings();
-    // enterKey 每次取反：tab 页实例常驻、节点不重建，一次性 CSS 动画不会自动重放，
-    // 靠交替 animation-name 让入场渐显在每次切回本页时重新播放（详见 app.wxss）
-    this.setData({
-      dark: app.isDark(),
-      warningDays: settings.warningDays,
-      themePref: settings.theme,
-      enterKey: this.data.enterKey === 'a' ? 'b' : 'a'
-    });
-    app.applyChrome();
+    // 主题：只在真的变化时才 setData / 刷新原生 chrome（见 app.syncPageTheme）
+    app.syncPageTheme(this);
+    // 设置项可能在其它处被改过（如清空数据后恢复默认），仅在值真的不同时写
+    if (this.data.warningDays !== settings.warningDays || this.data.themePref !== settings.theme) {
+      this.setData({ warningDays: settings.warningDays, themePref: settings.theme });
+    }
     this.syncTabBar(3);
     this.refreshStats();
   },
@@ -80,8 +80,11 @@ Page({
   onThemeTap(e) {
     const v = e.currentTarget.dataset.v;
     if (v === this.data.themePref) return;
+    // setThemePref 内部已经 applyChrome + notifyTheme，而 notifyTheme 会驱动本页的
+    // onTheme 监听把 dark 写到位，因此这里只需写 themePref，不再重复设置同一个 dark
     app.setThemePref(v);
-    this.setData({ themePref: v, dark: app.isDark() });
+    this._chromeDark = app.isDark();  // 本页（当前可见页）chrome 已应用，免下次 onShow 重复调用
+    this.setData({ themePref: v });
   },
 
   goCalendarImport() {
@@ -119,11 +122,12 @@ Page({
             app.globalData.settings = storage.loadSettings();
             app.resolveTheme(app.globalData.settings.theme);
             app.applyChrome();
+            this._chromeDark = app.isDark();  // 本页 chrome 已应用，免下次 onShow 重复调用
+            // notifyTheme 会驱动本页 onTheme 监听更新 dark，这里不再重复写入同一个值
             app.notifyTheme();
             this.setData({
               warningDays: app.globalData.settings.warningDays,
-              themePref: app.globalData.settings.theme,
-              dark: app.isDark()
+              themePref: app.globalData.settings.theme
             });
             this.refreshStats();
             wx.showToast({ title: '已清空全部数据', icon: 'none' });

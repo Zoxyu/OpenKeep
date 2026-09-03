@@ -10,9 +10,8 @@ const imageUtil = require('../../utils/image');
 
 Page({
   data: {
-    dark: false,
-    enterKey: 'a',     // 入场渐显的交替标记（'a' / 'b'），用途见 app.wxss 说明
-    loading: true,
+    // 创建时即取真实主题：首帧就是正确深浅色，不再靠 onLoad / onShow 的 setData 追平
+    dark: app.isDark(),
     keyword: '',
     category: 'all',
     status: 'all',
@@ -42,14 +41,15 @@ Page({
       cats.push({ key: k, label: recordUtil.CATEGORIES[k].label });
     });
     this.setData({ categoryOptions: cats });
-    this._untheme = app.onTheme(dark => this.setData({ dark }));
+    // 只处理「主题真的发生变化」；同值不 setData
+    this._untheme = app.onTheme(dark => {
+      if (this.data.dark !== dark) this.setData({ dark });
+    });
   },
 
   onShow() {
-    // enterKey 每次取反：tab 页实例常驻、节点不重建，一次性 CSS 动画不会自动重放，
-    // 靠交替 animation-name 让入场渐显在每次切回本页时重新播放（详见 app.wxss）
-    this.setData({ dark: app.isDark(), enterKey: this.data.enterKey === 'a' ? 'b' : 'a' });
-    app.applyChrome();
+    // 主题：只在真的变化时才 setData / 刷新原生 chrome（见 app.syncPageTheme）
+    app.syncPageTheme(this);
     this.syncTabBar(1);
     this.load();
   },
@@ -63,33 +63,30 @@ Page({
 
   onUnload() {
     if (this._untheme) this._untheme();
-    if (this._loadTimer) clearTimeout(this._loadTimer);
   },
 
-  // 从本地缓存加载并计算状态（骨架屏短暂展示加载态）
+  // 从本地缓存加载并计算状态。
+  // 本地读取是同步的，此前却先 setData({loading:true}) 再 setTimeout 160ms 才写真实数据，
+  // 等于每次切到本页都人为制造一趟「骨架屏 → 内容」的二次刷新。现改为同步计算，
+  // 并与 buildView 的结果合并成一次 setData（不再「先写 allItems、再写 list」两趟渲染）。
   load() {
-    this.setData({ loading: true });
-    this._loadTimer = setTimeout(() => {
-      const settings = app.globalData.settings || storage.loadSettings();
-      const items = recordUtil.withStatus(storage.loadRecords(), settings.warningDays);
-      items.forEach(it => {
-        it.photoOk = !!it.photoPath && imageUtil.isPhotoValid(it.photoPath);
-      });
-      this.setData({
-        allItems: items,
-        hasAny: items.length > 0,
-        loading: false
-      });
-      this.applyView();
-    }, 160);
+    const settings = app.globalData.settings || storage.loadSettings();
+    const allItems = recordUtil.withStatus(storage.loadRecords(), settings.warningDays);
+    allItems.forEach(it => {
+      it.photoOk = !!it.photoPath && imageUtil.isPhotoValid(it.photoPath);
+    });
+    this.setData(Object.assign(
+      { allItems: allItems, hasAny: allItems.length > 0 },
+      this.buildView(allItems)
+    ));
   },
 
-  // 叠加应用搜索、分类、状态筛选与排序
-  applyView() {
-    const { keyword, category, status, sort, allItems } = this.data;
+  // 依据当前搜索 / 分类 / 状态 / 排序，从给定 items 算出可见列表（纯计算，不 setData）
+  buildView(items) {
+    const { keyword, category, status, sort } = this.data;
     const kw = keyword.trim().toLowerCase();
 
-    let list = allItems.filter(it => {
+    const list = items.filter(it => {
       if (category !== 'all' && it.category !== category) return false;
       if (status !== 'all' && it.status.level !== status) return false;
       if (kw) {
@@ -107,10 +104,12 @@ Page({
       list.sort((a, b) => a.name.localeCompare(b.name, 'zh-Hans-CN'));
     }
 
-    this.setData({
-      list,
-      filtered: !!kw || category !== 'all' || status !== 'all'
-    });
+    return { list: list, filtered: !!kw || category !== 'all' || status !== 'all' };
+  },
+
+  // 搜索 / 筛选 / 排序变化时只重算视图（数据未变，不必重读缓存）
+  applyView() {
+    this.setData(this.buildView(this.data.allItems));
   },
 
   onKeywordInput(e) {

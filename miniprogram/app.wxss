@@ -13,6 +13,20 @@ page {
   font-family: -apple-system, BlinkMacSystemFont, "Helvetica Neue", "PingFang SC", "Microsoft YaHei", sans-serif;
 }
 
+/* 原生 page 元素必须自己跟随深色，否则会出现「先浅色、再深色」的首帧闪烁：
+ * .page-root 的深色靠 data.dark 驱动（JS 状态），而 page 元素在它之外、更早绘制，
+ * 此前被硬编码成浅色，深色模式下任何一帧没被 .page-root 盖住就会露出浅底。
+ * app.json 已开启 darkmode: true，故这里用官方的 prefers-color-scheme 媒体查询，
+ * 让 page 在系统深色时首帧即深色，与 theme.json 的 @bg 保持一致（同为 #141619）。
+ * 说明：该查询跟随「系统」主题；用户在设置里手动锁定主题时，以铺满视口的
+ * .page-root（min-height: 100vh）的变量为准，视觉上仍然正确。 */
+@media (prefers-color-scheme: dark) {
+  page {
+    background-color: #141619;
+    color: #E8EAE6;
+  }
+}
+
 /* ====== 页面根容器：承载主题变量 ====== */
 .page-root {
   --c-bg: #F7F7F4;
@@ -83,39 +97,10 @@ page {
   width: 100%;
   height: 100vh;
   box-sizing: border-box;
-}
-
-/* ====== 页面入场渐显 ======
- * 只做透明度渐入，不对 scroll-view 施加 transform：transform 作用在 100vh 滚动容器上、
- * 叠加系统转场时部分机型会出现抖动/闪烁，纯 opacity 更稳、更克制。
- * backwards 填充保证首帧即从 0 开始，不会先显示再淡出。
- *
- * 为什么拆成 a / b 两个类，而不是把 animation 直接写在 .page-scroll 上：
- * 微信不会销毁 tab 页实例，.page-scroll 节点常驻，而 CSS animation 默认只播一次，
- * 所以切回已访问过的 tab 时动画根本不会重放；wx.switchTab 自身又没有原生转场，
- * 两者叠加就是「硬切、毫无渐变」。
- * 解法：各 tab 页在 onShow 里交替挂载 page-enter-a / page-enter-b。两个类的动画参数
- * 完全一致，只有 animation-name 不同，而改变 animation-name 会让动画重新开始播放。
- * 相比「先移除动画类、下一帧再加回来」的常见写法，交替命名全程都有一条动画在生效，
- * 不存在没有动画的那一帧，因此不会出现内容先闪到不透明再淡入，也只需一次 setData。
- *
- * 非 tab 页（item-form / item-detail / calendar-import）每次 navigateTo 都会重建节点，
- * 静态挂 page-enter-a 即可，无需参与交替。 */
-.page-scroll.page-enter-a {
-  animation: page-enter 260ms cubic-bezier(0.25, 0.46, 0.45, 0.94) backwards;
-}
-.page-scroll.page-enter-b {
-  animation: page-enter-alt 260ms cubic-bezier(0.25, 0.46, 0.45, 0.94) backwards;
-}
-
-@keyframes page-enter {
-  from { opacity: 0; }
-  to { opacity: 1; }
-}
-/* 与 page-enter 逐帧完全相同，仅名称不同，专供上面的动画重放使用 */
-@keyframes page-enter-alt {
-  from { opacity: 0; }
-  to { opacity: 1; }
+  /* 刻意不在这里挂任何入场动画：.page-scroll 是整页 100vh 的滚动容器，
+   * 对它做 opacity / transform 动画会牵动整页重绘；而 tab 页实例常驻、节点不重建，
+   * 要让它重播就得在每次 onShow 换 animation-name，结果就是「每次切 Tab 整页闪一下」
+   * 的二次刷新感。navigateTo 的页面自带系统转场，也不需要再叠一层。 */
 }
 
 /* ====== 通用卡片与分区 ====== */

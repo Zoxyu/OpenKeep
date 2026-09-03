@@ -8,8 +8,7 @@ const storage = require('./utils/storage');
 App({
   globalData: {
     settings: null,          // { warningDays: 3|7|14, theme: 'system'|'light'|'dark' }
-    effectiveTheme: 'light', // 解析后的实际生效主题
-    tabFrom: 0               // 自定义 tabBar：最近离开的 tab 序号，供目标页滑块从此处平移进入
+    effectiveTheme: 'light'  // 解析后的实际生效主题（主题状态的唯一来源）
   },
 
   themeListeners: [],
@@ -71,15 +70,28 @@ App({
   },
 
   // 注册主题变化监听，返回解绑函数。
-  // 注册时立即用当前主题回调一次：让页面 / 组件在 onLoad / attached 阶段（首帧渲染前）
-  // 就拿到正确的 dark，避免默认 dark:false 造成的切换页面「一闪白」。
+  // 注意：注册时「不」立即回调。页面 / 组件的 data.dark 已在创建时直接取 app.isDark()，
+  // 首帧就是正确主题；再立即回调一次只会多一次同值 setData。本监听只负责
+  // 「主题真的发生变化」这一条通道，回调内也应先比对再 setData（见各页 / 组件）。
   onTheme(cb) {
     this.themeListeners.push(cb);
-    try { cb(this.isDark()); } catch (e) {}
     return () => {
       const i = this.themeListeners.indexOf(cb);
       if (i > -1) this.themeListeners.splice(i, 1);
     };
+  },
+
+  // 页面在 onShow 调用：把该页的主题相关状态一次性对齐到当前生效主题。
+  // - dark 只在真的不同时才 setData：避免每次切 Tab 都为了同一个值重渲染整页；
+  // - 原生导航栏 / 窗口背景是「每页一份」的，所以「已应用的主题」必须记在页面实例上
+  //   （page._chromeDark），不能记在 app 上，否则新页面会被误判为已应用而漏设。
+  syncPageTheme(page) {
+    const dark = this.isDark();
+    if (page.data.dark !== dark) page.setData({ dark: dark });
+    if (page._chromeDark !== dark) {
+      page._chromeDark = dark;
+      this.applyChrome();
+    }
   },
 
   notifyTheme() {
@@ -87,8 +99,14 @@ App({
     this.themeListeners.forEach(cb => cb(dark));
   },
 
-  // 让导航栏、原生窗口背景与 tabBar 颜色跟随主题（统一由 effectiveTheme 驱动，单一来源）
+  // 覆盖原生导航栏与窗口背景色（统一由 effectiveTheme 驱动，单一来源）。
+  // 「跟随系统」时这两个值已由 app.json 的 window.* = @navBg / @bg 配合 theme.json
+  // 声明式给出，首帧即正确、无需任何 JS 调用；只有用户手动锁定浅色 / 深色、
+  // 与系统不一致时才需要运行时覆盖。因此默认配置下本函数是空操作，
+  // 切换 Tab 不再产生 setNavigationBarColor / setBackgroundColor 跨线程调用。
   applyChrome() {
+    const s = this.globalData.settings;
+    if (!s || s.theme === 'system') return;
     const dark = this.isDark();
     const bg = dark ? '#141619' : '#F7F7F4';
     wx.setNavigationBarColor({
