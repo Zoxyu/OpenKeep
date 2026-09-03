@@ -155,7 +155,7 @@ Page({
 
     wx.showModal({
       title: '导入到手机日历',
-      content: '将创建 ' + selected.length + ' 个系统日历事件（到期日上午 9:00）。已添加的日程请在系统日历中管理，本应用无法删除或修改它们。',
+      content: '将为选中的 ' + selected.length + ' 件物品添加到期提醒（到期日上午 9:00）。提醒只写入、不读取你的已有日程；已添加的提醒请在系统日历中管理，本应用无法删除或修改。',
       confirmText: '开始导入',
       cancelText: '取消',
       success: r => {
@@ -172,9 +172,9 @@ Page({
           // 吞掉（甚至误报成功，导致第一条被标为已导入但实际未写入），
           // 改为弹确认框由用户点击重新发起，确保第一条真正写入
           wx.showModal({
-            title: '已获得日历权限',
-            content: '即将写入 ' + selected.length + ' 条到期提醒（到期日上午 9:00），点击开始写入。',
-            confirmText: '开始写入',
+            title: '日历权限已开启',
+            content: '请再次点击，为选中的 ' + selected.length + ' 件物品添加到期提醒（到期日上午 9:00）。',
+            confirmText: '开始添加',
             cancelText: '取消',
             success: r2 => {
               if (r2.confirm) this.startImport(selected);

@@ -100,7 +100,7 @@
       </view>
       <view wx:if="{{!calSupported}}" class="cal-note">当前微信版本或设备不支持写入系统日历，物品管理功能不受影响。</view>
       <block wx:else>
-        <view class="cal-desc">将在到期日上午 9:00 创建日程，并按所选时间提前提醒。</view>
+        <view class="cal-desc">将在到期日上午 9:00 添加提醒，并按所选时间提前通知。</view>
         <picker mode="selector" range="{{reminderOptions}}" value="{{reminderIndex}}" bindchange="onReminderChange">
           <view class="cal-picker">
             <text>{{reminderOptions[reminderIndex]}}</text>
@@ -111,8 +111,8 @@
           class="btn {{record.calendarImported ? 'btn-plain' : 'btn-safe'}} {{writing ? 'btn-disabled' : ''}} cal-btn"
           hover-class="btn-hover"
           bindtap="onAddCalendar"
-        >{{writing ? '写入中…' : (record.calendarImported ? '重新导入日历' : '添加到手机日历')}}</view>
-        <view wx:if="{{record.calendarImported}}" class="cal-note">重新导入可能产生重复日程。微信不提供日程事件 ID，已添加的日程请在系统日历中管理，本应用无法删除或修改它们。</view>
+        >{{writing ? '添加中…' : (record.calendarImported ? '重新添加' : '添加到手机日历')}}</view>
+        <view wx:if="{{record.calendarImported}}" class="cal-note">重新添加可能产生重复提醒。微信不提供日程事件 ID，已添加的提醒请在系统日历中管理，本应用无法删除或修改。</view>
         <view wx:else class="cal-note">只写入你主动选择的提醒，不会读取你的已有日程。</view>
       </block>
     </view>

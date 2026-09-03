@@ -42,7 +42,7 @@ Page({
   // 同步自定义 tabBar 选中态
   syncTabBar(index) {
     if (typeof this.getTabBar === 'function' && this.getTabBar()) {
-      this.getTabBar().setData({ selected: index });
+      this.getTabBar().setActive(index);
     }
   },
 

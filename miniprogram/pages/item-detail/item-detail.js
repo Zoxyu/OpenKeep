@@ -143,9 +143,9 @@ Page({
         // 首次授权：权限同步存在延迟，紧接着的写入可能被系统吞掉
         // （甚至误报成功），改为弹确认框由用户点击重新发起
         wx.showModal({
-          title: '已获得日历权限',
-          content: '点击开始写入这条到期提醒（到期日上午 9:00）。',
-          confirmText: '开始写入',
+          title: '日历权限已开启',
+          content: '请再次点击，添加这条到期提醒（到期日上午 9:00）。',
+          confirmText: '添加提醒',
           cancelText: '取消',
           success: r => {
             if (r.confirm) this.writeCalendar();
@@ -157,9 +157,9 @@ Page({
     // 已导入过：重新导入前明确提示可能产生重复日程
     if (this.data.record.calendarImported) {
       wx.showModal({
-        title: '重新导入',
-        content: '这条记录已写入过日历。再次导入会在系统日历中产生重复日程，确定继续吗？',
-        confirmText: '继续导入',
+        title: '重新添加',
+        content: '这条记录已添加过提醒。再次添加会在系统日历中产生重复提醒，确定继续吗？',
+        confirmText: '继续添加',
         cancelText: '取消',
         success: r => { if (r.confirm) doWrite(); }
       });

@@ -10,6 +10,8 @@ const app = getApp();
 Component({
   data: {
     selected: 0,
+    thumbPos: 0,             // 滑块位置：可与 selected 短暂不同，用于「从来源平移到目标」的动画
+    noAnim: true,            // 滑块禁用过渡：页面同步/首帧瞬移；仅用户点击切 tab 时才平移
     dark: false,
     list: [
       { pagePath: '/pages/dashboard/dashboard', text: '看板', icon: 'board' },
@@ -40,10 +42,30 @@ Component({
   },
 
   methods: {
+    // 由所属 tab 页在 onShow 调用：把滑块定位到当前页序号。
+    // 若来自其它 tab 的切换（tabFrom≠目标），先瞬移到来源位置，再动画滑到目标，
+    // 形成方向正确的平移（如 物品→我的 直接向右滑），避免从默认 0 位「乱跳 / 左到右」。
+    setActive(index) {
+      const from = app.globalData.tabFrom;
+      // 选中高亮（文字/图标）立即到位；滑块 thumbPos 从来源平移到目标，方向正确不乱跳
+      if (from !== undefined && from !== index) {
+        this.setData({ selected: index, thumbPos: from, noAnim: true }, () => {
+          this.setData({ noAnim: false }, () => {
+            this.setData({ thumbPos: index });
+          });
+        });
+      } else {
+        this.setData({ selected: index, thumbPos: index, noAnim: true });
+      }
+      app.globalData.tabFrom = index;
+    },
+
     switchTab(e) {
       const index = e.currentTarget.dataset.index;
       const item = this.data.list[index];
       if (!item || index === this.data.selected) return;
+      // 记录来源 tab，供目标页滑块从此处平移进入；不在本页 setData，避免与目标页动画叠加
+      app.globalData.tabFrom = this.data.selected;
       wx.switchTab({ url: item.pagePath });
     }
   }

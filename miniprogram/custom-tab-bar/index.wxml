@@ -1,5 +1,7 @@
 <view class="tabbar-shell {{dark ? 'theme-dark' : ''}}">
   <view class="tabbar">
+    <!-- 滑块指示器：随 thumbPos 平移（selected 决定文字/图标高亮），iOS 质感的按钮平移动效，置于图标下层 -->
+    <view class="tab-thumb {{noAnim ? 'no-anim' : ''}}" style="transform: translateX({{thumbPos * 100}}%);"></view>
     <view
       wx:for="{{list}}"
       wx:key="pagePath"

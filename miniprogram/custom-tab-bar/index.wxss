@@ -3,12 +3,12 @@
  * 图标全部由 CSS 绘制（currentColor 跟随文字色），不依赖任何外部图片。 */
 
 .tabbar-shell {
-  /* iOS 风格毛玻璃：半透明底 + 背景模糊 + 细边 + 极轻阴影；active 用柔和半透明胶囊而非实心大色块 */
-  --tb-bg: rgba(255, 255, 255, 0.75);
-  --tb-line: rgba(32, 36, 33, 0.07);
-  --tb-shadow: 0 8rpx 28rpx rgba(32, 36, 33, 0.10);
+  /* iOS 风格毛玻璃：更明显的半透明 + 强模糊 + 顶部高光细边 + 轻阴影；active 为可平移的柔和胶囊 */
+  --tb-bg: rgba(255, 255, 255, 0.62);
+  --tb-line: rgba(32, 36, 33, 0.06);
+  --tb-shadow: 0 10rpx 30rpx rgba(32, 36, 33, 0.12), inset 0 1rpx 0 rgba(255, 255, 255, 0.55);
   --tb-sub: #8A8F8B;
-  --tb-active-bg: rgba(32, 36, 33, 0.07);
+  --tb-active-bg: rgba(32, 36, 33, 0.08);
   --tb-active-text: #202421;
 
   position: fixed;
@@ -20,16 +20,17 @@
 }
 
 .tabbar-shell.theme-dark {
-  --tb-bg: rgba(28, 31, 35, 0.72);
-  --tb-line: rgba(255, 255, 255, 0.10);
-  --tb-shadow: 0 8rpx 28rpx rgba(0, 0, 0, 0.40);
+  --tb-bg: rgba(26, 29, 33, 0.60);
+  --tb-line: rgba(255, 255, 255, 0.12);
+  --tb-shadow: 0 10rpx 30rpx rgba(0, 0, 0, 0.45), inset 0 1rpx 0 rgba(255, 255, 255, 0.08);
   --tb-sub: #8F9691;
-  --tb-active-bg: rgba(255, 255, 255, 0.12);
+  --tb-active-bg: rgba(255, 255, 255, 0.14);
   --tb-active-text: #E8EAE6;
 }
 
 /* 悬浮胶囊容器：flex 弹性布局，任意屏宽下三等分不变形 */
 .tabbar {
+  position: relative;
   display: flex;
   align-items: center;
   padding: 10rpx;
@@ -37,12 +38,31 @@
   background: var(--tb-bg);
   border: 1rpx solid var(--tb-line);
   box-shadow: var(--tb-shadow);
-  -webkit-backdrop-filter: blur(30rpx) saturate(180%);
-  backdrop-filter: blur(30rpx) saturate(180%);
+  -webkit-backdrop-filter: blur(40rpx) saturate(180%);
+  backdrop-filter: blur(40rpx) saturate(180%);
 }
+
+/* 滑块指示器：随 thumbPos 平移（transform 过渡），iOS 质感的「按钮平移」动效。
+ * 宽 = (容器内宽)/4，translateX(thumbPos*100%) 恰好移到对应 tab；置于图标下层（z-index 低于 tab-item）。 */
+.tab-thumb {
+  position: absolute;
+  top: 10rpx;
+  bottom: 10rpx;
+  left: 10rpx;
+  width: calc((100% - 20rpx) / 4);
+  border-radius: 999rpx;
+  background: var(--tb-active-bg);
+  transition: transform 0.32s cubic-bezier(0.34, 1.15, 0.5, 1);
+  z-index: 0;
+  pointer-events: none;
+}
+/* 同步 / 首帧时禁用过渡，让滑块瞬移到位（不产生错误方向的滑动） */
+.tab-thumb.no-anim { transition: none; }
 
 /* 单个入口：纵向图标 + 文字，最小触控高度 96rpx */
 .tab-item {
+  position: relative;
+  z-index: 1;
   flex: 1;
   display: flex;
   flex-direction: column;
@@ -51,13 +71,12 @@
   min-height: 96rpx;
   border-radius: 999rpx;
   color: var(--tb-sub);
-  transition: color 0.2s ease, background-color 0.2s ease;
+  transition: color 0.24s ease;
 }
 .tab-hover { opacity: 0.75; }
 
-/* 选中态：墨黑 / 暖白胶囊，文字加粗 */
+/* 选中态：背景由滑块 .tab-thumb 承担，这里只强化图标/文字颜色 */
 .tab-active {
-  background: var(--tb-active-bg);
   color: var(--tb-active-text);
 }
 .tab-active .tab-text { font-weight: 600; }

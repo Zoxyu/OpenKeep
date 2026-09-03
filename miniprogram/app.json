@@ -9,11 +9,11 @@
     "pages/profile/profile"
   ],
   "window": {
-    "navigationBarBackgroundColor": "#F7F7F4",
-    "navigationBarTextStyle": "black",
+    "navigationBarBackgroundColor": "@navBg",
+    "navigationBarTextStyle": "@navText",
     "navigationBarTitleText": "到期那天",
-    "backgroundColor": "#F7F7F4",
-    "backgroundTextStyle": "dark"
+    "backgroundColor": "@bg",
+    "backgroundTextStyle": "@bgText"
   },
   "tabBar": {
     "custom": true,
@@ -48,5 +48,6 @@
   "lazyCodeLoading": "requiredComponents",
   "sitemapLocation": "sitemap.json",
   "style": "v2",
-  "darkmode": true
+  "darkmode": true,
+  "themeLocation": "theme.json"
 }

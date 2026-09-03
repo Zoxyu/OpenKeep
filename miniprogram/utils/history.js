@@ -52,13 +52,16 @@ function pad(n) {
   return n < 10 ? '0' + n : '' + n;
 }
 
-// 读取本地精选数据；2/29 无数据时回退 2/28
+// 读取本地精选数据；2/29 无数据时回退 2/28。
+// 注意：数据文件的「日」键不带前导零（'1'~'31'），而调用方传入的 day 可能是补零的
+// （'01'~'09'）。此前仅用补零键查询，导致每月 1~9 号取不到数据（真机表现为「那年今日」空白）。
+// 现同时尝试补零与去零两种键，彻底修复。
 function loadLocalEvents(month, day) {
   const file = LOCAL_DATA[month];
   let list = [];
   if (file) {
-    list = file[String(day)] || [];
-    if (!list.length && month === '02' && day === 29) {
+    list = file[String(day)] || file[String(Number(day))] || [];
+    if (!list.length && month === '02' && Number(day) === 29) {
       list = file['28'] || [];
     }
   }

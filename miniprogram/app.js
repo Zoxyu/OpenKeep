@@ -8,7 +8,8 @@ const storage = require('./utils/storage');
 App({
   globalData: {
     settings: null,          // { warningDays: 3|7|14, theme: 'system'|'light'|'dark' }
-    effectiveTheme: 'light'  // 解析后的实际生效主题
+    effectiveTheme: 'light', // 解析后的实际生效主题
+    tabFrom: 0               // 自定义 tabBar：最近离开的 tab 序号，供目标页滑块从此处平移进入
   },
 
   themeListeners: [],
@@ -104,12 +105,8 @@ App({
         fail: () => {}
       });
     }
-    wx.setTabBarStyle({
-      backgroundColor: dark ? '#1B1E22' : '#FFFFFF',
-      color: dark ? '#7E8580' : '#8A8F8B',
-      selectedColor: dark ? '#E8EAE6' : '#202421',
-      borderStyle: dark ? 'black' : 'white',
-      fail: () => {}
-    });
+    // 说明：本项目使用自定义 tabBar（app.json custom:true），原生 wx.setTabBarStyle
+    // 对自定义 tabBar 无效，且每次 onShow 调用可能触发底部原生重绘闪烁，故移除。
+    // tabBar 的深浅色由组件自身 dark 类驱动（见 custom-tab-bar/index.wxss）。
   }
 });
