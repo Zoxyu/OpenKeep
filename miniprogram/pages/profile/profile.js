@@ -18,15 +18,16 @@ const THEME_OPTIONS = [
 ];
 
 Page({
-  data: {
-    // 创建时即取真实主题：首帧就是正确深浅色，不再靠 onLoad / onShow 的 setData 追平
-    dark: app.isDark(),
+  // dark 由 app.withTheme 注入并持续同步（详见 app.js）：data 字面量只在模块加载时求值一次，
+  // 写成 dark: app.isDark() 只是「启动那一刻」的快照；用户之后改主题，尚未创建的页面实例
+  // 仍会克隆到旧值，首次进入就先渲染旧主题一帧再由 setData 纠正 —— 即真机看到的旧主题闪烁。
+  data: app.withTheme({
     warnOptions: WARN_OPTIONS,
     warningDays: 7,
     themeOptions: THEME_OPTIONS,
     themePref: 'system',
     stats: { total: 0, expired: 0, warning: 0, safe: 0 }
-  },
+  }),
 
   onLoad() {
     // 只处理「主题真的发生变化」；同值不 setData

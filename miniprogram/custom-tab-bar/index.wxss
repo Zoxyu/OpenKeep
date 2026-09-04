@@ -44,9 +44,12 @@
 
 /* 滑块指示器：位置 = selected × 100%（selected 是唯一状态来源，见 index.js）。
  * 宽 = (容器内宽)/4，故 translateX(selected*100%) 恰好移到对应 tab；置于图标下层（z-index 低于 tab-item）。
- * 过渡曲线刻意不带回弹：此前的 cubic-bezier(0.34, 1.15, ...) 会先冲过头再退回来，
- * 本身就是一次「二次移动」。而重复切回同一 tab 时 selected 不变、不触发 setData，
- * 过渡自然不会执行，因此无需 .no-anim 之类的开关。 */
+ *
+ * 刻意不设 transition：每个 tab 页各有一个独立的 tabBar 实例，实例的 selected 只等于
+ * 它所属页面的序号，因此「从来源滑到目标」这种跨实例动画在本架构下无法成立。
+ * 一旦设了 transition，只要实例初值与目标值不同（例如首次进入时克隆到的初值偏旧）
+ * 就会播出一段本不该存在的滑动 —— 真机表现为「首次点击 Tab 时滑块从看板位置滑过去」。
+ * 去掉过渡后，任何位置纠正都是瞬时的，绝不会表现为一段动画。 */
 .tab-thumb {
   position: absolute;
   top: 10rpx;
@@ -55,7 +58,6 @@
   width: calc((100% - 20rpx) / 4);
   border-radius: 999rpx;
   background: var(--tb-active-bg);
-  transition: transform 0.28s cubic-bezier(0.25, 0.46, 0.45, 0.94);
   z-index: 0;
   pointer-events: none;
 }
@@ -72,7 +74,8 @@
   min-height: 96rpx;
   border-radius: 999rpx;
   color: var(--tb-sub);
-  transition: color 0.24s ease;
+  /* 不设颜色过渡：与滑块保持一致（同为瞬时）。否则兜底纠正时会出现
+   * 「胶囊已瞬移到位、图标文字还在渐变色」的不一致观感。 */
 }
 .tab-hover { opacity: 0.75; }
 

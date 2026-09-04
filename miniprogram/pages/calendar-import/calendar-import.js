@@ -34,9 +34,10 @@ const STEP_INTERVAL = 800;
 const IS_ANDROID = (wx.getSystemInfoSync() || {}).platform === 'android';
 
 Page({
-  data: {
-    // 创建时即取真实主题：首帧就是正确深浅色，不依赖 onLoad / onShow 的 setData 追平
-    dark: app.isDark(),
+  // dark 由 app.withTheme 注入并持续同步（详见 app.js）：data 字面量只在模块加载时求值一次，
+  // 写成 dark: app.isDark() 只是「启动那一刻」的快照。本页每次 navigateTo 都新建实例，
+  // 所以用户改过主题后，每次打开都会先渲染旧主题一帧再由 setData 纠正 —— 即可见的闪烁。
+  data: app.withTheme({
     supported: true,
     items: [],               // [{ record, checked, disabled }]
     hasCandidates: false,
@@ -52,7 +53,7 @@ Page({
     resultSuccess: 0,
     resultFail: 0,
     failList: []
-  },
+  }),
 
   onLoad() {
     this.setData({ supported: calendarUtil.isSupported() });

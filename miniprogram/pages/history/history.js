@@ -14,9 +14,10 @@ const SOURCE_TEXT = {
 };
 
 Page({
-  data: {
-    // 创建时即取真实主题：首帧就是正确深浅色，不再靠 onLoad / onShow 的 setData 追平
-    dark: app.isDark(),
+  // dark 由 app.withTheme 注入并持续同步（详见 app.js）：data 字面量只在模块加载时求值一次，
+  // 写成 dark: app.isDark() 只是「启动那一刻」的快照；用户之后改主题，尚未创建的页面实例
+  // 仍会克隆到旧值，首次进入就先渲染旧主题一帧再由 setData 纠正 —— 即真机看到的旧主题闪烁。
+  data: app.withTheme({
     // 仅首次进入时为 true（数据真的尚未取到）；之后的切页不再重新置 true
     loading: true,
     // scroll-view 下拉刷新状态（页面已 disableScroll，改用 refresher）
@@ -27,7 +28,7 @@ Page({
     events: [],
     source: 'local',
     sourceText: SOURCE_TEXT.local
-  },
+  }),
 
   onLoad() {
     const now = dateUtil.todayStart();
