@@ -1,7 +1,17 @@
 <view wx:if="{{themeReady}}" class="page-root {{dark ? 'theme-dark' : ''}}">
 
-  <!-- 主体内容：scroll-view 承担纵向滚动（页面已 disableScroll，锁死 iOS 双向拖拽） -->
-  <scroll-view class="page-scroll" scroll-y enhanced show-scrollbar="{{false}}">
+  <!-- 主体内容：scroll-view 承担纵向滚动（页面已 disableScroll，锁死 iOS 双向拖拽）；
+       下拉刷新走 refresher（页面级下拉已被 disableScroll 锁死），与首页 / 今天页一致 -->
+  <scroll-view
+    class="page-scroll"
+    scroll-y
+    enhanced
+    show-scrollbar="{{false}}"
+    refresher-enabled
+    refresher-default-style="black"
+    refresher-triggered="{{refreshing}}"
+    bindrefresherrefresh="onScrollRefresh"
+  >
 
   <!-- 搜索框 -->
   <view class="search-wrap">

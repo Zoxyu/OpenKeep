@@ -1,7 +1,7 @@
 /**
  * 物品页 · 全部记录
  * 搜索（名称 / 分类 / 备注模糊匹配）+ 分类筛选 + 状态筛选 + 三种排序，可叠加。
- * 包含加载骨架、空状态、无搜索结果状态。
+ * 包含下拉刷新、空状态、无搜索结果状态。
  */
 const app = getApp();
 const storage = require('../../utils/storage');
@@ -21,6 +21,9 @@ Page({
     // 不变量：必须与它所守卫的列表数据在同一次 setData 里原子翻转——本页由 onShow 的 load()
     // 与 allItems/hasAny/list 同批置真，绝不在 onLoad 提前置真。
     contentReady: false,
+    // scroll-view 下拉刷新指示器状态（页面已 disableScroll，故用 refresher 而非页面级下拉）。
+    // 同样遵守原子翻转：由 load() 与内容同批翻回 false，异常路径也翻，指示器不会卡住不收。
+    refreshing: false,
     keyword: '',
     category: 'all',
     status: 'all',
@@ -83,7 +86,9 @@ Page({
   // 并与 buildView 的结果合并成一次 setData（不再「先写 allItems、再写 list」两趟渲染）。
   load() {
     // try/catch 兜底：本函数承载 contentReady:true，若计算意外抛异常则 contentReady 永不置真、
-    // 列表整块缺失且不自愈；catch 里置 contentReady 保证门开后可自愈（本页无 loading/refreshing 字段）。
+    // 列表整块缺失且不自愈；catch 里置 contentReady 保证门开后可自愈。
+    // refreshing 也在这里一并翻回 false（成功与异常两条路径都要），与内容同批原子翻转，
+    // 避免下拉指示器因异常而卡住不收。
     try {
       const settings = app.globalData.settings || storage.loadSettings();
       const allItems = recordUtil.withStatus(storage.loadRecords(), settings.warningDays);
@@ -91,12 +96,12 @@ Page({
         it.photoOk = !!it.photoPath && imageUtil.isPhotoValid(it.photoPath);
       });
       this.setData(Object.assign(
-        { allItems: allItems, hasAny: allItems.length > 0, contentReady: true },
+        { allItems: allItems, hasAny: allItems.length > 0, contentReady: true, refreshing: false },
         this.buildView(allItems)
       ));
     } catch (e) {
       console.error('[items] load failed', e);
-      this.setData({ contentReady: true });
+      this.setData({ contentReady: true, refreshing: false });
     }
   },
 
@@ -129,6 +134,17 @@ Page({
   // 搜索 / 筛选 / 排序变化时只重算视图（数据未变，不必重读缓存）
   applyView() {
     this.setData(this.buildView(this.data.allItems));
+  },
+
+  // 下拉刷新（scroll-view refresher）：仅重读本地缓存并按「今天」重算红黄绿状态，不发任何网络请求。
+  // 日常路径（增删改后返回、切 Tab、改临期阈值）onShow 的 load() 已全覆盖，此处内容通常不变；
+  // 真实收益是「小程序长时间停在前台跨过零点」——这种场景不会触发 onShow，列表里的到期状态
+  // 仍是昨天的，用户可手动重算自救（与首页下拉刷新同一性质）。
+  // 只发两次 setData：先起指示器，再由 load() 与内容同批收回。
+  onScrollRefresh() {
+    this.setData({ refreshing: true });
+    this.load();
+    wx.showToast({ title: '已刷新本地状态', icon: 'none' });
   },
 
   onKeywordInput(e) {
