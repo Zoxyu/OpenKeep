@@ -50,7 +50,12 @@ Page({
     quickOk: false,           // 快捷输入是否推算成功（控制提示文案颜色）
     notes: '',
     errors: {},
-    saving: false
+    saving: false,
+    // 键盘避让（本项目 disableScroll + scroll-view(100vh)，微信 adjust-position 整页上推会与
+    // scroll-view 冲突导致安卓输入框漂移/文字错位）：input 全部关闭 adjust-position，改由本页
+    // 监听键盘高度动态收缩 scroll-view 可视区（kbHeight）+ scroll-into-view 滚到聚焦字段（scrollIntoId）。
+    kbHeight: 0,
+    scrollIntoId: ''
   },
 
   onLoad(options) {
@@ -75,6 +80,16 @@ Page({
     this._untheme = app.onTheme(dark => {
       if (this.data.dark !== dark) this.setData({ dark });
     });
+
+    // 键盘避让：监听键盘高度动态收缩 scroll-view 可视区（见 data.kbHeight 注释）。
+    // onKeyboardHeightChange 主要负责「弹起时」高度（补充 focus 的 e.detail.height，应对切换输入法高度变化）；
+    // 「收起时」归零不能只靠它——安卓数字键盘（type=digit/number）收起常不回调 height=0，
+    // 会导致 scroll-view 卡在收缩高度、底部留白遮挡内容，故由 onFieldBlur 延迟兜底归零。onUnload 注销避免泄漏。
+    this._onKbHeight = res => {
+      const h = (res && res.height) || 0;
+      if (this.data.kbHeight !== h) this.setData({ kbHeight: h });
+    };
+    wx.onKeyboardHeightChange(this._onKbHeight);
 
     // 编辑模式：开门之后再读记录（有风险的存储读取后移），第二次 setData 写入编辑字段。
     // 新建模式无需第二段：上方开门 setData 已含全部默认字段。
@@ -123,6 +138,8 @@ Page({
 
   onUnload() {
     if (this._untheme) this._untheme();
+    if (this._onKbHeight) wx.offKeyboardHeightChange(this._onKbHeight);
+    if (this._blurTimer) clearTimeout(this._blurTimer);
   },
 
   // ====== 照片 ======
@@ -171,6 +188,37 @@ Page({
         }
       }
     });
+  },
+
+  // ====== 键盘避让：聚焦字段滚入可视区 + 收起后恢复满高 ======
+  // input/textarea 已关闭 adjust-position（不整页上推），聚焦时把所在字段滚到 scroll-view 顶部；
+  // 键盘弹起后 scroll-view 已按 kbHeight 收缩，顶部字段必在键盘上方、始终可见。
+  onFieldFocus(e) {
+    this._focusing = true;
+    // 框间切换：旧框 blur 可能先于新框 focus 触发并挂了延迟归零，这里取消它，
+    // 让 kbHeight 从旧值直接切到新值，避免 scroll-view 先弹回满高再收缩的抖动。
+    if (this._blurTimer) { clearTimeout(this._blurTimer); this._blurTimer = null; }
+    const id = (e.currentTarget && e.currentTarget.dataset && e.currentTarget.dataset.target) || '';
+    // e.detail.height 是键盘高度：聚焦即收缩，不完全依赖 onKeyboardHeightChange（安卓数字键盘可能不回调）
+    const h = (e.detail && e.detail.height) || 0;
+    const patch = {};
+    if (id && this.data.scrollIntoId !== id) patch.scrollIntoId = id;
+    if (h && this.data.kbHeight !== h) patch.kbHeight = h;
+    if (Object.keys(patch).length) this.setData(patch);
+  },
+  // 失焦：延迟归零 kbHeight 并清空 scrollIntoId（清空使下次聚焦同一字段仍能触发滚动）。
+  // 延迟 120ms 是为兼容框间切换的 blur/focus 顺序不定：若期间 focus 了新框，onFieldFocus 会取消归零；
+  // 若确无新焦点（真正收起键盘），延迟后归零恢复满高，消除底部空白遮挡。
+  // 关键：安卓数字键盘收起时 onKeyboardHeightChange 常不回调 height=0，必须靠本 blur 兜底。
+  onFieldBlur() {
+    this._focusing = false;
+    if (this._blurTimer) clearTimeout(this._blurTimer);
+    this._blurTimer = setTimeout(() => {
+      this._blurTimer = null;
+      if (!this._focusing && (this.data.scrollIntoId || this.data.kbHeight)) {
+        this.setData({ scrollIntoId: '', kbHeight: 0 });
+      }
+    }, 120);
   },
 
   // ====== 表单输入 ======

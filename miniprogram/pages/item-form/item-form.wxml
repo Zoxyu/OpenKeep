@@ -1,7 +1,15 @@
 <view wx:if="{{themeReady}}" class="page-root {{dark ? 'theme-dark' : ''}}">
 
   <!-- 主体内容：scroll-view 承担纵向滚动（页面已 disableScroll，锁死 iOS 双向拖拽） -->
-  <scroll-view class="page-scroll" scroll-y enhanced show-scrollbar="{{false}}">
+  <scroll-view
+    class="page-scroll"
+    style="height: calc(100vh - {{kbHeight}}px);"
+    scroll-y
+    enhanced
+    show-scrollbar="{{false}}"
+    scroll-into-view="{{scrollIntoId}}"
+    scroll-with-animation
+  >
 
   <!-- 封面照片 -->
   <view class="photo-area" hover-class="photo-hover" bindtap="onPhotoTap">
@@ -18,7 +26,7 @@
 
   <view class="form-card card">
     <!-- 名称 -->
-    <view class="field">
+    <view class="field" id="f-name">
       <view class="field-label"><text class="req">*</text>物品名称（最多 30 字）</view>
       <input
         class="input-base"
@@ -26,6 +34,10 @@
         maxlength="30"
         placeholder="例如：鲜牛奶、眼药水"
         placeholder-class="ph-text"
+        adjust-position="{{false}}"
+        data-target="f-name"
+        bindfocus="onFieldFocus"
+        bindblur="onFieldBlur"
         bindinput="onNameInput"
       />
       <view wx:if="{{errors.name}}" class="err-text">{{errors.name}}</view>
@@ -62,7 +74,7 @@
     </view>
 
     <!-- 已开封 X 天 快捷输入 -->
-    <view class="field">
+    <view class="field" id="f-quick">
       <view class="field-label">快捷输入 · 已开封 X 天（可选）</view>
       <input
         class="input-base"
@@ -70,6 +82,10 @@
         value="{{quickOpenedInput}}"
         placeholder="输入天数，自动反推开封日期"
         placeholder-class="ph-text"
+        adjust-position="{{false}}"
+        data-target="f-quick"
+        bindfocus="onFieldFocus"
+        bindblur="onFieldBlur"
         bindinput="onQuickOpenedInput"
       />
       <view wx:if="{{quickHint && quickOk}}" class="hint-text">{{quickHint}}</view>
@@ -78,7 +94,7 @@
     </view>
 
     <!-- 保质期（必填，可选天/个月/年） -->
-    <view class="field">
+    <view class="field" id="f-shelf">
       <view class="field-label"><text class="req">*</text>保质期（包装标注）</view>
       <view class="shelf-row">
         <input
@@ -87,6 +103,10 @@
           value="{{shelfLifeValue}}"
           placeholder="如：12"
           placeholder-class="ph-text"
+          adjust-position="{{false}}"
+          data-target="f-shelf"
+          bindfocus="onFieldFocus"
+          bindblur="onFieldBlur"
           bindinput="onShelfValueInput"
         />
         <view class="unit-seg">
@@ -104,7 +124,7 @@
     </view>
 
     <!-- 开封后可保存天数（可选修正项） -->
-    <view class="field">
+    <view class="field" id="f-opened">
       <view class="field-label">开封后可保存天数（可选，填了优先按它算到期）</view>
       <input
         class="input-base"
@@ -112,6 +132,10 @@
         value="{{openedDays}}"
         placeholder="如：30（不填则按保质期提醒）"
         placeholder-class="ph-text"
+        adjust-position="{{false}}"
+        data-target="f-opened"
+        bindfocus="onFieldFocus"
+        bindblur="onFieldBlur"
         bindinput="onOpenedDaysInput"
       />
       <view wx:if="{{errors.openedDays}}" class="err-text">{{errors.openedDays}}</view>
@@ -119,7 +143,7 @@
     </view>
 
     <!-- 存放位置（可选，用于日历提醒文案） -->
-    <view class="field">
+    <view class="field" id="f-location">
       <view class="field-label">存放位置（可选，最多 20 字）</view>
       <input
         class="input-base"
@@ -127,13 +151,17 @@
         maxlength="20"
         placeholder="如：冰箱冷冻室、药箱、梳妆台"
         placeholder-class="ph-text"
+        adjust-position="{{false}}"
+        data-target="f-location"
+        bindfocus="onFieldFocus"
+        bindblur="onFieldBlur"
         bindinput="onLocationInput"
       />
       <view wx:if="{{errors.location}}" class="err-text">{{errors.location}}</view>
     </view>
 
     <!-- 备注 -->
-    <view class="field">
+    <view class="field" id="f-notes">
       <view class="field-label">备注（可选，最多 100 字）</view>
       <textarea
         class="input-base notes-input"
@@ -141,6 +169,10 @@
         maxlength="100"
         placeholder="例如：开封后需冷藏"
         placeholder-class="ph-text"
+        adjust-position="{{false}}"
+        data-target="f-notes"
+        bindfocus="onFieldFocus"
+        bindblur="onFieldBlur"
         bindinput="onNotesInput"
       />
       <view class="notes-count">{{notes.length}} / 100</view>
@@ -169,7 +201,7 @@
     </view>
 
     <!-- 购买价格 -->
-    <view class="field">
+    <view class="field" id="f-price">
       <view class="field-label">购买价格（元）</view>
       <input
         class="input-base"
@@ -177,6 +209,10 @@
         value="{{purchasePrice}}"
         placeholder="如：2999.00（可选）"
         placeholder-class="ph-text"
+        adjust-position="{{false}}"
+        data-target="f-price"
+        bindfocus="onFieldFocus"
+        bindblur="onFieldBlur"
         bindinput="onPurchasePriceInput"
       />
       <view wx:if="{{errors.purchasePrice}}" class="err-text">{{errors.purchasePrice}}</view>
