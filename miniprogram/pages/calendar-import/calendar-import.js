@@ -39,6 +39,9 @@ Page({
     // 本页每次 navigateTo 都新建实例，用户改过主题后该值会偏旧，
     // 真正的初始化由下面 onLoad 的通道 A 负责。
     dark: app.isDark(),
+    // themeReady 门控：onLoad 的通道 A setData 就绪前，wxml 根节点 wx:if 挡住整个 .page-root，
+    // 确保改主题后首次进入本页时旧主题内容绝不进入视觉（门控期间仅显示 page 元素背景色）。
+    themeReady: false,
     supported: true,
     items: [],               // [{ record, checked, disabled }]
     hasCandidates: false,
@@ -58,7 +61,7 @@ Page({
 
   onLoad() {
     // 通道 A · 首次主题初始化：并入本页原有的 onLoad setData，不额外增加渲染次数
-    this.setData({ dark: app.isDark(), supported: calendarUtil.isSupported() });
+    this.setData({ dark: app.isDark(), themeReady: true, supported: calendarUtil.isSupported() });
     // 通道 B · 运行时主题变化：只负责已存在实例的后续变化；同值不 setData
     this._untheme = app.onTheme(dark => {
       if (this.data.dark !== dark) this.setData({ dark });

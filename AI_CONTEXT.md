@@ -190,6 +190,22 @@ wx.setStorage 本地缓存（版本化 key） + USER_DATA_PATH 文件（照片�
 
 **影响 / Impact:** 新增页面必须沿用此模式；fixed 元素（悬浮按钮、弹层、底部操作栏）需放在 `scroll-view` 之外。
 
+## 决策 6：主题首帧用 `themeReady` 门控，杜绝旧主题闪现
+
+**日期 / Date:** 2026-09-04
+
+**决定 / Decision:** 7 个页面（dashboard / items / history / profile / item-form / item-detail / calendar-import）统一采用 `themeReady` 门控：页面 `data` 新增 `themeReady: false`，WXML 根节点 `.page-root` 加 `wx:if="{{themeReady}}"`，`onLoad` 的通道 A `setData` 并入 `themeReady: true`（与 `dark` 同一条消息）。原有「通道 A（`onLoad` 同步读 `app.isDark()`）+ 通道 B（`app.onTheme` 监听已存在实例）」架构保持不变。
+
+**原因 / Reason:** `Page({data:{...}})` 的 data 字面量只在模块求值时（无分包＝启动时）构造一次，新建实例的 `dark` 初值是「启动那一刻」的旧快照；`setData` 又是跨线程异步消息，无法保证并入首帧渲染。因此改主题后首次进入未访问页面，会先渲染旧主题一帧再纠正。门控是唯一能保证「错误主题内容绝不进入视觉」的手段。
+
+**影响 / Impact:**
+- **profile 页须无条件写 `themeReady`**：其 `onLoad` 原为守卫式（`if (this.data.dark !== dark) setData(...)`），若保留守卫，「启动后未改主题」时条件为假 → 不 `setData` → `themeReady` 永远 false → 白屏。已改为无条件 `this.setData({ dark: dark, themeReady: true })`。
+- **门控期间视口仅显示 `page` 元素背景色**（跟随系统主题），这是「绝不允许错误主题内容进入视觉」的既定权衡，属正常表现，非缺陷。
+- **custom-tab-bar 不门控**：tabBar 渲染在 `.page-root` 之外，加 `wx:if` 会导致切页时底部导航消失再现，体验更差；tabBar 已有 `attached` 通道 A。
+- **4 个组件不门控**：item-card / empty-state / filter-bar / status-badge 均渲染在页面 `.page-root` 内部，随页面门控自动覆盖。
+- `onShow` 职责不变（仅 `app.syncPageChrome(this)` 处理原生标题栏/窗口背景），不得在此加 `dark` / `themeReady` 纠正。
+- 首帧/渲染时序无法用 Node 或模拟器验证，最终以真机为准。
+
 
 ---
 
@@ -208,6 +224,7 @@ wx.setStorage 本地缓存（版本化 key） + USER_DATA_PATH 文件（照片�
 
 # 8. 最近的重要变化 / Recent Significant Changes
 
+- 2026-09-04 — 7 个页面新增 `themeReady` 门控（见决策 6），修复「深浅模式切换后首次进入页面闪现旧主题」顽固 bug；profile 页 `onLoad` 改为无条件写 `themeReady` 防白屏。
 - 2026-08-26 — 初始化 `AI_CONTEXT.md`（本次）；根目录新增 `AGENTS.md` / `AI_CONTEXT.md`（未提交）。
 - 2026-08-21 前后 — 修复安卓日历导入三连问题（手势链逐条确认、首次授权吞第一条、全选/取消全选破坏列表数据结构）；全页面 `disableScroll` + `scroll-view` 改造锁定 iOS 滚动。
 - 2026-08 中旬 — 保质期体系重构（保质期为主、开封天数为可选修正、存放位置、日历文案「你放在XX的XX快要到期啦」）；物品页筛选改固定网格。

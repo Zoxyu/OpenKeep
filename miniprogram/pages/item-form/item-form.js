@@ -20,6 +20,9 @@ Page({
     // 本页每次 navigateTo 都新建实例，用户改过主题后该值会偏旧，
     // 真正的初始化由下面 onLoad 的通道 A 负责。
     dark: app.isDark(),
+    // themeReady 门控：onLoad 的通道 A setData 就绪前，wxml 根节点 wx:if 挡住整个 .page-root，
+    // 确保改主题后首次进入本页时旧主题内容绝不进入视觉（门控期间仅显示 page 元素背景色）。
+    themeReady: false,
     isEdit: false,
     id: '',
     origin: null,             // 编辑模式下的原始记录
@@ -55,6 +58,7 @@ Page({
     // 通道 A · 首次主题初始化：并入本页原有的 onLoad setData，不额外增加渲染次数
     this.setData({
       dark: app.isDark(),
+      themeReady: true,
       categoryOptions: cats,
       openedAt: dateUtil.todayStr(),
       refHint: this.buildRefHint('fridge')

@@ -1,4 +1,4 @@
-<view class="page-root {{dark ? 'theme-dark' : ''}}">
+<view wx:if="{{themeReady}}" class="page-root {{dark ? 'theme-dark' : ''}}">
 
   <!-- 首次启动引导：用户主动选择，不擅自写入演示数据 -->
   <view wx:if="{{showOnboarding}}" class="onboard-mask">

@@ -19,6 +19,9 @@ Page({
     // 能让绝大多数首次进入直接首帧正确、无需任何纠正。
     // 它不是保证 —— 用户改过主题后这个值就偏旧，真正的初始化由下面 onLoad 的通道 A 负责。
     dark: app.isDark(),
+    // themeReady 门控：onLoad 的通道 A setData 就绪前，wxml 根节点 wx:if 挡住整个 .page-root，
+    // 确保改主题后首次进入本页时旧主题内容绝不进入视觉（门控期间仅显示 page 元素背景色）。
+    themeReady: false,
     // 仅首次进入时为 true（数据真的尚未取到）；之后的切页不再重新置 true
     loading: true,
     // scroll-view 下拉刷新状态（页面已 disableScroll，改用 refresher）
@@ -36,6 +39,7 @@ Page({
     // 通道 A · 首次主题初始化：并入本页原有的 onLoad setData，不额外增加渲染次数
     this.setData({
       dark: app.isDark(),
+      themeReady: true,
       month: now.getMonth() + 1,
       day: now.getDate(),
       dateText: (now.getMonth() + 1) + ' 月 ' + now.getDate() + ' 日 · ' + dateUtil.weekdayCN(now)
