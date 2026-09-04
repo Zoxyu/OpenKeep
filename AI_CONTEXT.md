@@ -59,7 +59,7 @@ wx.setStorage 本地缓存（版本化 key） + USER_DATA_PATH 文件（照片�
 | ------------- | -------------- | ----------------- |
 | `miniprogram/app.js` | 全局设置、主题单一事实来源（`resolveTheme` / `effectiveTheme` / `isDark`）、主题变化监听（`onTheme`）、原生 chrome（`applyChrome` / `syncPageChrome`） | 稳定 |
 | `pages/dashboard` | 首页看板：问候、三色统计、主提醒卡、近期保修卡（30 天内过保）、筛选、列表、悬浮添加按钮、历史预览卡、引导页 | 稳定 |
-| `pages/items` | 全部物品：搜索 + 分类/状态/排序固定网格筛选（非横滑） | 稳定 |
+| `pages/items` | 全部物品：搜索 + 分类/状态/排序固定网格筛选（非横滑）、下拉刷新（仅本地重算） | 稳定；下拉刷新待真机验证 |
 | `pages/item-form` | 新增/编辑：封面照片持久化、保质期（天/月/年）、可选开封天数、存放位置、快捷反推 | 稳定 |
 | `pages/item-detail` | 详情、编辑/删除、单条写入日历 | 稳定 |
 | `pages/calendar-import` | 批量导入日历：勾选、全选、跳过已导入、逐条串行写入、进度与结果统计 | 稳定（含安卓手势链方案） |
@@ -113,6 +113,7 @@ wx.setStorage 本地缓存（版本化 key） + USER_DATA_PATH 文件（照片�
 - 历史上的今天（本地 366 天数据，来自开源项目 PrintNow/TodayInHistory，经敏感词过滤）
 - 首次启动引导（体验示例数据 / 从空白开始）
 - 主题切换首帧闪烁修复（门控 + 开门前置 + contentReady 原子守卫 + 白屏加固，见决策 6），已通过静态评审，待真机验证
+- 物品页补下拉刷新（`refresher`，与首页 / 今天页同一套属性），设计依据见决策 5.1；已通过静态评审 + Node 状态机实测，待真机验证
 - README、隐私政策（`privacy-policy.txt`）、小程序图标；项目已在 Git 管理（main 分支，远端 `Zoxyu/OpenKeep`），`AGENTS.md`（a284035）与 `AI_CONTEXT.md`（c1b38a1）**均已纳入版本控制**
 
 ## 进行中 / In Progress
@@ -135,16 +136,17 @@ wx.setStorage 本地缓存（版本化 key） + USER_DATA_PATH 文件（照片�
 
 # 5. 当前任务 / Active Tasks
 
-**主题切换首帧闪烁修复：代码已实施、已通过静态评审（`node --check`、结构 grep、越界核查、零回归），待真机验证。**
+**主题切换首帧闪烁修复 + 物品页下拉刷新：代码已实施、已通过静态评审（`node --check`、结构 grep、越界核查、零回归），待真机验证。**
 
-真机验证清单（Node / 模拟器无法验证渲染时序，必须以真机为准；下列 1–4 均为本轮**必做**项，覆盖主题首帧 + history 健壮性 + tabBar 死代码三类改动）：
+真机验证清单（Node / 模拟器无法验证渲染时序与手势，必须以真机为准；下列 1–5 均为**必做**项，覆盖主题首帧 + history 健壮性 + tabBar 死代码 + 物品页下拉刷新四类改动）：
 
 1. 跟随系统浅↔深切换后，首次进入各页应**完全无闪**。
 2. 手动锁定主题≠系统时，旧主题内容不再闪；残留的系统色纯底已压到最短，确认观感是否可接受。
 3. 回归：profile 无白屏；列表 / 表单 / 详情不再闪「暂无数据 / 共 0 件」；item-form 编辑模式不闪「新建默认值」帧；tab 二次进入不再被门控。
 4. history 健壮性 + tabBar 死代码清理：history 下拉刷新可用且指示器能收起、iOS 页面拖拽已锁死、history/dashboard 数据正常无白屏无骨架卡死、tab 切换滑块瞬时到位无异常滑动、tabBar 主题深浅正常、标题栏永久深色不回退。
+5. **物品页下拉刷新**（Node 只能验状态机与 setData 批次，手势与指示器视觉必须真机）：① 从搜索框 + 筛选面板一带下拉能触发、指示器能正常收回、toast「已刷新本地状态」出现；② **先设筛选条件（如只看「临期」）再下拉，筛选条件应保持不变**（`load()` 会带着当前 keyword/category/status/sort 走 `buildView()`）；③ 异常时指示器不卡死（`refreshing:false` 已并入 `load()` 的成功与 catch 两条路径，已 Node 实测）。
 
-可选后续（非本轮范围，需用户确认）：见第 9 节第 3、4 条（在线接口、体积优化等真正可选项）。
+可选后续（非本轮范围，需用户确认）：见第 9 节第 3、4、5 条。
 
 
 ---
@@ -193,13 +195,21 @@ wx.setStorage 本地缓存（版本化 key） + USER_DATA_PATH 文件（照片�
 
 ## 决策 5：全页面 `disableScroll` + `scroll-view` 滚动锁死
 
-**日期 / Date:** 2026-08-21
+**日期 / Date:** 2026-08-21（滚动锁死）；2026-09-04（物品页补下拉刷新）
 
-**决定 / Decision:** 页面配置 `"disableScroll": true`，主体内容放入 `scroll-view.page-scroll`（`100vh`）；首页与「今天」页下拉刷新改用 `refresher`。**全部 7 个页面均已落地。**
+**决定 / Decision:** 页面配置 `"disableScroll": true`，主体内容放入 `scroll-view.page-scroll`（`100vh`）；下拉刷新改用 `scroll-view` 的 `refresher`（页面级下拉已被 `disableScroll` 锁死）。**全部 7 个页面均已落地滚动锁死；`refresher` 落地于首页、「今天」、物品三页。**
 
 **原因 / Reason:** iOS WebView 页面整体可上下左右拖拽、内容偏移、双向滚动条，真机实锤；锁死后横向位移彻底消失。
 
 **影响 / Impact:** 新增页面必须沿用此模式；fixed 元素（悬浮按钮、弹层、底部操作栏）需放在 `scroll-view` 之外。
+
+### 5.1 下拉刷新的覆盖范围（权威表述，勿再当作缺陷反复排查）
+
+- **首页 / 今天 / 物品三页有，「我的」页刻意没有**：它是设置页，在设置页下拉刷新统计不符合用户心智。这是有意为之，不是遗漏。
+- **真实价值不是「拉新数据」**：三页数据全部本地同步可得，日常路径（增删改后返回、切 Tab、改临期阈值）`onShow` 已全覆盖重算，下拉刷新在内容上通常是 no-op。它真正解决的是**小程序长时间停在前台跨过零点**：红黄绿状态依赖「今天」（决策 2），而这种场景不会触发 `onShow`，状态会停在昨天，用户需手动重算自救。「今天」页另有一层语义：`load(true)` 强制跳过当天缓存。
+- **历史沿革**：`enablePullDownRefresh` 自初始提交 `fbde576` 起只存在于首页，「今天」页在 `f525ef9` 引入时也带；物品页与「我的」页从未有过。`1b19fdd` 做 `disableScroll` 改造时只是把「原本就有」的两页迁移到 `refresher`，物品页直到 2026-09-04 才首次补上。
+- **实现约束**：`refreshing:false` 必须并入 `load()` 那次合并 `setData`（成功与 catch 两条路径都要），与 `contentReady` / 列表数据同批原子翻转，否则异常时指示器会卡住不收。
+- **遗留死配置**：`dashboard.json` / `history.json` 里的 `backgroundTextStyle: "dark"` 只服务于页面级下拉的 loading 三点颜色，`disableScroll` 后已无作用，属可清理项（见第 9 节第 3 条）。
 
 ## 决策 6：主题首帧用 `themeReady` 门控 + `contentReady` 原子守卫
 
@@ -269,6 +279,7 @@ wx.setStorage 本地缓存（版本化 key） + USER_DATA_PATH 文件（照片�
 
 # 8. 最近的重要变化 / Recent Significant Changes
 
+- 2026-09-04 — **物品页补下拉刷新**（提交 `5903e81`；设计依据见决策 5.1）：`items.wxml` 的 `scroll-view` 展开为多行并加 4 个 `refresher` 属性（与首页 / 今天页逐字节一致）；`items.js` 新增 `refreshing` 字段与 `onScrollRefresh()`，并把 `refreshing:false` 并入 `load()` 的合并 `setData`（含 catch 路径）以遵守 `contentReady` 原子翻转不变量；下拉刷新仅 **2 批** `setData`（首页现为 3 批）。`items.json` 无需改动（refresher 是组件属性，非页面配置）。改动文件：items.js、items.wxml。状态＝已提交 + 已通过静态评审与 Node 状态机实测（含异常路径），**待真机验证**。
 - 2026-09-04 — **history 健壮性加固 + 死代码清理**：① `history.json` 补 `disableScroll:true` 并移除冗余 `enablePullDownRefresh`（全 7 页对齐）；② `utils/history.js` 根治 never-settle（内层链补 `.catch` 恒 settle）+ `getLocalPreview` 顶层 try/catch 绝不抛异常 + `loadLocalEvents` 畸形数据安全过滤 + 诊断 `console.warn`；③ 移除 tabBar 选中态快照死代码（`app.tabBarSnapshot` / `prepareTabSwitch` / `SHARED_DATA.selected` 预置及误导注释）。改动文件：history.json、utils/history.js、app.js、custom-tab-bar/index.js、dashboard.js、pages/history/history.js（注释）。状态＝已通过评审 + 静态实测，**待真机验证**。
 - 2026-09-04 — **主题切换首帧闪烁修复**（设计细节见决策 6，此处不重述）：两次提交 `841744e`（themeReady 门控落地）+ `5caae4d`（开门前置 / contentReady 原子收口），累计改动 **7 页 js + 7 页 wxml + AI_CONTEXT.md**。状态＝待真机验证。
 - 2026-08-27 — 新增并已提交两份 agent 协作文档：`AI_CONTEXT.md`（`c1b38a1`）与 `AGENTS.md`（`a284035`）；其中 AI_CONTEXT.md 后续随主题修复更新（`841744e` / `5caae4d`），AGENTS.md 自 a284035 后未再变更。
@@ -283,12 +294,13 @@ wx.setStorage 本地缓存（版本化 key） + USER_DATA_PATH 文件（照片�
 
 # 9. 下一步建议 / Next Recommended Actions
 
-> 第 1–2 条属本轮范围内（第 1 条为**必做**真机验证）；第 3–4 条为可选后续，需用户确认后再做。
+> 第 1–2 条属本轮范围内（第 1 条为**必做**真机验证）；第 3–5 条为可选后续，需用户确认后再做。
 
-1. **真机验证（本轮必做）**：清单以第 5 节为准（已含主题首帧、history 健壮性、tabBar 死代码三类改动的全部验证点）；若报新缺陷，优先核对本文件「已知问题」与决策 4/5/6 的结论，尤其先判断是否属决策 6.4 的平台硬限制、勿重走已证伪路径。
-2. 本轮对 `AI_CONTEXT.md` / `README.md` 的文档修订尚未提交（工作区 `modified`），由用户决定何时 commit。
-3. 可选优化方向（需用户确认后再做）：考虑把 `tools/history_in_today.json`（6MB）移出仓库或加入忽略；为「历史上的今天」补充更多日期事件需重新运行 `node tools/convert.js`。
-4. 若未来开放在线接口，需在小程序后台配置合法域名并更新隐私协议；目前 `utils/history.js` 中 `API_CONFIG.enabled = false`。
+1. **真机验证（必做）**：清单以第 5 节为准（已含主题首帧、history 健壮性、tabBar 死代码、物品页下拉刷新四类改动的全部验证点）；若报新缺陷，优先核对本文件「已知问题」与决策 4/5/6 的结论，尤其先判断是否属决策 6.4 的平台硬限制、勿重走已证伪路径。
+2. 工作区尚有未提交改动：仅本次 `AI_CONTEXT.md` / `README.md` 文档修订（物品页下拉刷新的代码已随 `5903e81` 提交，上一轮文档修订已随 `67c11f1` 提交），由用户决定何时 commit。
+3. 可选清理（均为几行改动，需用户确认）：① `dashboard.js` 的 `onScrollRefresh` 由 3 批 `setData` 对齐为 2 批（把 `refreshing:false` 并入 `refresh()` 的内容批，与物品页同模式）；② 删除 `dashboard.json` / `history.json` 中已失效的 `backgroundTextStyle: "dark"`（见决策 5.1）。
+4. 可选优化方向（需用户确认后再做）：考虑把 `tools/history_in_today.json`（6MB）移出仓库或加入忽略；为「历史上的今天」补充更多日期事件需重新运行 `node tools/convert.js`。
+5. 若未来开放在线接口，需在小程序后台配置合法域名并更新隐私协议；目前 `utils/history.js` 中 `API_CONFIG.enabled = false`。
 
 
 ---
