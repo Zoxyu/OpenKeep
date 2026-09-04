@@ -36,7 +36,9 @@ Page({
     // 「历史上的今天」首页预览（本地数据，不触发网络请求）
     historyPreview: null,
     // scroll-view 下拉刷新状态（页面已 disableScroll，改用 refresher）
-    refreshing: false
+    refreshing: false,
+    // 自定义下拉刷新区域文案（refresher-default-style="none" + slot="refresher"）
+    refresherText: '下拉刷新'
   },
 
   onLoad() {
@@ -128,6 +130,10 @@ Page({
     this.setData({
       // contentReady 与它守卫的列表数据同批原子翻转：门开帧不显示误导性的 0/0/0、共 0 件
       contentReady: true,
+      // refreshing 并入本批（成功与下面 catch 两条路径都翻回 false），与内容同批原子翻转：
+      // 使下拉刷新只发 2 趟 setData、异常时指示器也不卡住不收（与物品页 load() 同模式）。
+      refreshing: false,
+      refresherText: '下拉刷新',
       showOnboarding: !storage.isOnboarded(),
       stats,
       urgent: urgentItem,
@@ -144,7 +150,7 @@ Page({
     });
     } catch (e) {
       console.error('[dashboard] refresh failed', e);
-      this.setData({ contentReady: true, refreshing: false });
+      this.setData({ contentReady: true, refreshing: false, refresherText: '下拉刷新' });
     }
   },
 
@@ -190,11 +196,25 @@ Page({
     this.refresh();
   },
 
-  // 下拉刷新（scroll-view refresher）：仅重新计算本地状态，不发起任何网络请求
+  // 下拉刷新（scroll-view refresher）：仅重新计算本地状态，不发起任何网络请求。
+  // 只发两次 setData：先起指示器，再由 refresh() 与内容同批收回（成功 / 异常两条路径都翻回 false）。
   onScrollRefresh() {
-    this.setData({ refreshing: true });
+    this.setData({ refreshing: true, refresherText: '正在刷新…' });
     this.refresh();
-    this.setData({ refreshing: false });
     wx.showToast({ title: '已刷新本地状态', icon: 'none' });
+  },
+
+  // 自定义下拉刷新文案（slot="refresher"）：下拉达阈值（45px）提示「松开立即刷新」
+  onRefresherPulling(e) {
+    const dy = (e && e.detail && Math.abs(e.detail.dy)) || 0;
+    const t = dy >= 45 ? '松开立即刷新' : '下拉刷新';
+    if (this.data.refresherText !== t) this.setData({ refresherText: t });
+  },
+  // 复位（刷新完成收起后）/ 中止（未达阈值松手）：文案回到初始
+  onRefresherRestore() {
+    if (this.data.refresherText !== '下拉刷新') this.setData({ refresherText: '下拉刷新' });
+  },
+  onRefresherAbort() {
+    if (this.data.refresherText !== '下拉刷新') this.setData({ refresherText: '下拉刷新' });
   }
 });

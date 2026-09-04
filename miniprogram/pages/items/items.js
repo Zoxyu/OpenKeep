@@ -24,6 +24,8 @@ Page({
     // scroll-view 下拉刷新指示器状态（页面已 disableScroll，故用 refresher 而非页面级下拉）。
     // 同样遵守原子翻转：由 load() 与内容同批翻回 false，异常路径也翻，指示器不会卡住不收。
     refreshing: false,
+    // 自定义下拉刷新区域文案（refresher-default-style="none" + slot="refresher"）
+    refresherText: '下拉刷新',
     keyword: '',
     category: 'all',
     status: 'all',
@@ -96,12 +98,12 @@ Page({
         it.photoOk = !!it.photoPath && imageUtil.isPhotoValid(it.photoPath);
       });
       this.setData(Object.assign(
-        { allItems: allItems, hasAny: allItems.length > 0, contentReady: true, refreshing: false },
+        { allItems: allItems, hasAny: allItems.length > 0, contentReady: true, refreshing: false, refresherText: '下拉刷新' },
         this.buildView(allItems)
       ));
     } catch (e) {
       console.error('[items] load failed', e);
-      this.setData({ contentReady: true, refreshing: false });
+      this.setData({ contentReady: true, refreshing: false, refresherText: '下拉刷新' });
     }
   },
 
@@ -142,9 +144,23 @@ Page({
   // 仍是昨天的，用户可手动重算自救（与首页下拉刷新同一性质）。
   // 只发两次 setData：先起指示器，再由 load() 与内容同批收回。
   onScrollRefresh() {
-    this.setData({ refreshing: true });
+    this.setData({ refreshing: true, refresherText: '正在刷新…' });
     this.load();
     wx.showToast({ title: '已刷新本地状态', icon: 'none' });
+  },
+
+  // 自定义下拉刷新文案（slot="refresher"）：下拉达阈值（45px）提示「松开立即刷新」
+  onRefresherPulling(e) {
+    const dy = (e && e.detail && Math.abs(e.detail.dy)) || 0;
+    const t = dy >= 45 ? '松开立即刷新' : '下拉刷新';
+    if (this.data.refresherText !== t) this.setData({ refresherText: t });
+  },
+  // 复位（刷新完成收起后）/ 中止（未达阈值松手）：文案回到初始
+  onRefresherRestore() {
+    if (this.data.refresherText !== '下拉刷新') this.setData({ refresherText: '下拉刷新' });
+  },
+  onRefresherAbort() {
+    if (this.data.refresherText !== '下拉刷新') this.setData({ refresherText: '下拉刷新' });
   },
 
   onKeywordInput(e) {

@@ -30,6 +30,8 @@ Page({
     loading: true,
     // scroll-view 下拉刷新状态（页面已 disableScroll，改用 refresher）
     refreshing: false,
+    // 自定义下拉刷新区域文案（refresher-default-style="none" + slot="refresher"）
+    refresherText: '下拉刷新',
     month: '',
     day: '',
     dateText: '',
@@ -83,25 +85,43 @@ Page({
     historyUtil.getTodayEvents(force).then(res => {
       this.setData({
         loading: false,
-        // 数据返回后同时收起下拉刷新指示器
+        // 数据返回后同时收起下拉刷新指示器，并把下拉文案复位（与 refreshing 同批）
         refreshing: false,
+        refresherText: '下拉刷新',
         events: res.events || [],
         source: res.source,
         sourceText: SOURCE_TEXT[res.source] || SOURCE_TEXT.local,
         // contentReady 与它守卫的 events/loading:false 同批原子翻转
         contentReady: true
       });
+      // 仅下拉刷新（force=true）给反馈；onShow 的 load(false) 静默，避免每次切页都弹 toast
+      if (force) wx.showToast({ title: '内容已刷新', icon: 'none' });
     }).catch(() => {
       // utils/history.js 内层链已补 .catch 保证 getTodayEvents 恒 settle（不会 never-settle）；
       // 此处页面级 .catch 仅作为 executor 同步抛异常（→ 外层 reject）的末位防线，
       // 收起骨架并置 contentReady 防白屏卡死。
-      this.setData({ loading: false, refreshing: false, contentReady: true });
+      this.setData({ loading: false, refreshing: false, refresherText: '下拉刷新', contentReady: true });
+      if (force) wx.showToast({ title: '刷新未完成，请稍后再试', icon: 'none' });
     });
   },
 
   // 下拉刷新（scroll-view refresher）：强制重新获取，跳过当天缓存
   onScrollRefresh() {
-    this.setData({ refreshing: true });
+    this.setData({ refreshing: true, refresherText: '正在刷新…' });
     this.load(true);
+  },
+
+  // 自定义下拉刷新文案（slot="refresher"）：下拉达阈值（45px）提示「松开立即刷新」
+  onRefresherPulling(e) {
+    const dy = (e && e.detail && Math.abs(e.detail.dy)) || 0;
+    const t = dy >= 45 ? '松开立即刷新' : '下拉刷新';
+    if (this.data.refresherText !== t) this.setData({ refresherText: t });
+  },
+  // 复位（刷新完成收起后）/ 中止（未达阈值松手）：文案回到初始
+  onRefresherRestore() {
+    if (this.data.refresherText !== '下拉刷新') this.setData({ refresherText: '下拉刷新' });
+  },
+  onRefresherAbort() {
+    if (this.data.refresherText !== '下拉刷新') this.setData({ refresherText: '下拉刷新' });
   }
 });

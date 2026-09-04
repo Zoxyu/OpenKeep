@@ -8,10 +8,19 @@
     enhanced
     show-scrollbar="{{false}}"
     refresher-enabled
-    refresher-default-style="black"
+    refresher-default-style="none"
+    refresher-background="transparent"
     refresher-triggered="{{refreshing}}"
     bindrefresherrefresh="onScrollRefresh"
+    bindrefresherpulling="onRefresherPulling"
+    bindrefresherrestore="onRefresherRestore"
+    bindrefresherabort="onRefresherAbort"
   >
+  <!-- 自定义下拉刷新区域（refresher-default-style="none"，slot 节点须有高度，见 app.wxss .rf） -->
+  <view slot="refresher" class="rf">
+    <view class="rf-dot {{refreshing ? 'rf-loading' : ''}}"></view>
+    <text class="rf-text">{{refresherText}}</text>
+  </view>
 
   <!-- 搜索框 -->
   <view class="search-wrap">
@@ -23,6 +32,7 @@
         placeholder="搜索名称、分类或备注"
         placeholder-class="ph-text"
         confirm-type="search"
+        adjust-position="{{false}}"
         bindinput="onKeywordInput"
       />
       <view wx:if="{{keyword}}" class="search-clear" hover-class="clear-hover" bindtap="onKeywordClear">×</view>

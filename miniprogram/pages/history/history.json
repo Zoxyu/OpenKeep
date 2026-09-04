@@ -1,7 +1,6 @@
 {
   "navigationBarTitleText": "历史上的今天",
   "disableScroll": true,
-  "backgroundTextStyle": "dark",
   "usingComponents": {
     "empty-state": "/components/empty-state/empty-state"
   }

@@ -103,6 +103,29 @@ page {
    * 的二次刷新感。navigateTo 的页面自带系统转场，也不需要再叠一层。 */
 }
 
+/* ====== 自定义下拉刷新区域（scroll-view slot="refresher"）======
+ * 三页（首页 / 今天 / 物品）refresher-default-style="none" 后由本区域承担下拉反馈。
+ * slot 节点必须有明确高度，否则微信不渲染；文案随下拉状态切换：
+ * 下拉刷新 → 松开立即刷新 → 正在刷新…（由各页 onRefresherPulling / onScrollRefresh 驱动）。 */
+.rf {
+  height: 88rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.rf-dot {
+  width: 26rpx;
+  height: 26rpx;
+  margin-right: 12rpx;
+  border-radius: 50%;
+  border: 3rpx solid var(--c-faint);
+  border-top-color: var(--c-sub);
+  box-sizing: border-box;
+}
+.rf-loading { animation: rf-spin 0.7s linear infinite; }
+@keyframes rf-spin { to { transform: rotate(360deg); } }
+.rf-text { font-size: 24rpx; color: var(--c-sub); }
+
 /* ====== 通用卡片与分区 ====== */
 .card {
   background: var(--c-card);

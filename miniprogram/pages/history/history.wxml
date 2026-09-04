@@ -7,10 +7,20 @@
     enhanced
     show-scrollbar="{{false}}"
     refresher-enabled
-    refresher-default-style="black"
+    refresher-default-style="none"
+    refresher-background="transparent"
     refresher-triggered="{{refreshing}}"
     bindrefresherrefresh="onScrollRefresh"
+    bindrefresherpulling="onRefresherPulling"
+    bindrefresherrestore="onRefresherRestore"
+    bindrefresherabort="onRefresherAbort"
   >
+  <!-- 自定义下拉刷新区域（refresher-default-style="none"，slot 节点须有高度，见 app.wxss .rf） -->
+  <view slot="refresher" class="rf">
+    <view class="rf-dot {{refreshing ? 'rf-loading' : ''}}"></view>
+    <text class="rf-text">{{refresherText}}</text>
+  </view>
+
   <!-- 日期头卡 -->
   <view class="h-hero">
     <view class="h-date">
