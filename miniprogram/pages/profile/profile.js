@@ -18,28 +18,33 @@ const THEME_OPTIONS = [
 ];
 
 Page({
-  // dark 由 app.withTheme 注入并持续同步（详见 app.js）：data 字面量只在模块加载时求值一次，
-  // 写成 dark: app.isDark() 只是「启动那一刻」的快照；用户之后改主题，尚未创建的页面实例
-  // 仍会克隆到旧值，首次进入就先渲染旧主题一帧再由 setData 纠正 —— 即真机看到的旧主题闪烁。
-  data: app.withTheme({
+  data: {
+    // 模块加载时（≈小程序启动时）的主题快照：只在「启动后没改过主题」时恰好正确，
+    // 能让绝大多数首次进入直接首帧正确、无需任何纠正。
+    // 它不是保证 —— 用户改过主题后这个值就偏旧，真正的初始化由下面 onLoad 的通道 A 负责。
+    dark: app.isDark(),
     warnOptions: WARN_OPTIONS,
     warningDays: 7,
     themeOptions: THEME_OPTIONS,
     themePref: 'system',
     stats: { total: 0, expired: 0, warning: 0, safe: 0 }
-  }),
+  },
 
   onLoad() {
-    // 只处理「主题真的发生变化」；同值不 setData
-    this._untheme = app.onTheme(dark => {
-      if (this.data.dark !== dark) this.setData({ dark });
+    // 通道 A · 首次主题初始化：本页 onLoad 原本没有 setData，故按守卫式单独写一次
+    // （data 里的初值只是模块加载时的快照，用户改过主题后会偏旧）
+    const dark = app.isDark();
+    if (this.data.dark !== dark) this.setData({ dark: dark });
+    // 通道 B · 运行时主题变化：只负责已存在实例的后续变化；同值不 setData
+    this._untheme = app.onTheme(d => {
+      if (this.data.dark !== d) this.setData({ dark: d });
     });
   },
 
   onShow() {
     const settings = app.globalData.settings || storage.loadSettings();
-    // 主题：只在真的变化时才 setData / 刷新原生 chrome（见 app.syncPageTheme）
-    app.syncPageTheme(this);
+    // onShow 只管原生 chrome（每页一份的标题栏 / 窗口背景），不再负责 DOM 主题纠正
+    app.syncPageChrome(this);
     // 设置项可能在其它处被改过（如清空数据后恢复默认），仅在值真的不同时写
     if (this.data.warningDays !== settings.warningDays || this.data.themePref !== settings.theme) {
       this.setData({ warningDays: settings.warningDays, themePref: settings.theme });

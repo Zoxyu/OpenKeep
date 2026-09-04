@@ -28,10 +28,12 @@
  */
 const app = getApp();
 
-// 模块级 data 快照：微信为每个实例克隆一份。
-// - dark 由 app.withTheme 注入并随主题变化持续同步，保证新建实例首帧即正确深浅色
-// - selected 由 switchTab / setActive 就地更新，保证新建实例首帧即停在正确序号
-const SHARED_DATA = app.withTheme({
+// 模块级 data：微信为每个实例克隆一份。
+// - dark 是「模块加载时（≈启动时）」的主题快照，只在启动后没改过主题时恰好正确；
+//   真正的初始化由下面 attached 里的通道 A 负责（组件没有 onLoad，attached 是等价时机）
+// - selected 的初值与滑块逻辑保持原样，本次未作任何改动
+const SHARED_DATA = {
+  dark: app.isDark(),
   selected: 0,
   list: [
     { pagePath: '/pages/dashboard/dashboard', text: '看板', icon: 'board' },
@@ -39,7 +41,7 @@ const SHARED_DATA = app.withTheme({
     { pagePath: '/pages/history/history', text: '今天', icon: 'today' },
     { pagePath: '/pages/profile/profile', text: '我的', icon: 'me' }
   ]
-});
+};
 
 // 把快照写入器登记到 app：供页面以编程方式 wx.switchTab 之前预置目标序号
 // （例如首页「查看更多」直接跳「今天」）。只登记一个写入口，
@@ -51,9 +53,13 @@ Component({
 
   lifetimes: {
     attached() {
-      // dark 已由模块级快照（app.withTheme）保证首帧正确，这里只需订阅后续变化。
-      // 组件不在页面 DOM 内、无法继承页面变量，必须自行订阅；
-      // 这是主题到达本组件的唯一通道，因此不需要 pageLifetimes.show 里的重复校准。
+      // 通道 A · 首次主题初始化：组件没有 onLoad，attached 是等价的最早时机。
+      // data 里的 dark 只是模块加载时的快照，而实例可能在用户改过主题之后才创建，
+      // 所以这里必须同步读一次当前 effectiveTheme 并按守卫写入。
+      const dark = app.isDark();
+      if (this.data.dark !== dark) this.setData({ dark: dark });
+      // 通道 B · 运行时主题变化：组件不在页面 DOM 内、无法继承页面变量，必须自行订阅。
+      // 这是主题变化到达本组件的唯一通道，因此不需要 pageLifetimes.show 里的重复校准。
       this._untheme = app.onTheme(d => {
         if (this.data.dark !== d) this.setData({ dark: d });
       });

@@ -9,8 +9,14 @@
  *   globalData.effectiveTheme（真正生效：light | dark）
  *        ↑ 唯一事实来源，一律通过 app.isDark() 读取
  *        ↓
- *   ├─ 页面 / 自定义 tabBar 的 DOM 深浅色：data.dark（由 withTheme 注入并持续同步）
- *   └─ 原生标题栏 / 窗口背景：applyChrome()
+ *   ├─ 页面 / 自定义 tabBar 的 DOM 深浅色：data.dark，走两条互不混淆的通道
+ *   │     通道 A（首次初始化）：页面 onLoad / 组件 attached 内同步读 app.isDark() 后 setData
+ *   │     通道 B（运行时变化）：app.onTheme 监听，只负责「已存在实例」的后续变化
+ *   └─ 原生标题栏 / 窗口背景：applyChrome()（由 syncPageChrome 按页面实例守卫调用）
+ *
+ * 严禁依赖「修改模块级 data 对象去影响未来创建的实例」：Page() / Component() 注册时的
+ * data 与之后各实例的 this.data 不是同一份，就地改模块级对象无法保证新实例首帧拿到新值
+ * （本项目已在真机上证伪）。首帧正确性只能由通道 A 承担，onTheme 不承担首次初始化。
  *
  * CSS 层的 @media (prefers-color-scheme: dark)（app.wxss 里的 page 元素）与
  * app.json + theme.json 的 @navBg / @bg，都只是「JS 尚未执行时的首帧兜底」，
@@ -94,10 +100,10 @@ App({
     this.globalData.settings = s;
   },
 
-  // 注册主题变化监听，返回解绑函数。
-  // 注意：注册时「不」立即回调。页面 / 组件的 data.dark 已在创建时直接取 app.isDark()，
-  // 首帧就是正确主题；再立即回调一次只会多一次同值 setData。本监听只负责
-  // 「主题真的发生变化」这一条通道，回调内也应先比对再 setData（见各页 / 组件）。
+  // 通道 B：注册「主题发生变化」的监听，返回解绑函数。
+  // 职责严格限定为「已存在实例的运行时主题变化」，不承担首次初始化 ——
+  // 首次初始化由页面 onLoad / 组件 attached 同步完成（通道 A）。因此注册时「不」立即回调，
+  // 回调内也应先比对再 setData，避免为同一个值重复渲染。
   onTheme(cb) {
     this.themeListeners.push(cb);
     return () => {
@@ -106,34 +112,15 @@ App({
     };
   },
 
-  // 把页面 / 组件的「模块级 data 快照」与当前生效主题绑定，并返回该对象供 Page()/Component() 使用。
+  // 页面在 onShow 调用：只负责原生 chrome（标题栏 / 窗口背景），不负责 DOM 主题。
+  // DOM 主题走通道 A（onLoad 初始化）与通道 B（onTheme 变化），onShow 不参与，
+  // 避免「页面显示以后再纠正」造成肉眼可见的旧主题残留。
   //
-  // 为什么不能写 data: { dark: app.isDark() }：
-  // 该表达式只在「页面脚本模块被求值时」执行一次，而不是每次页面实例创建时。
-  // 本项目无分包，所有页面 JS 在小程序启动时就已求值，所以它只是「启动那一刻」的主题快照。
-  // 用户之后改了主题，尚未创建的页面实例仍会克隆到旧值，于是首次进入该页时
-  // 先按旧主题渲染一帧、再靠 onShow 的 setData 纠正 —— 这就是真机看到的旧主题闪烁。
-  //（已访问过的页不闪，是因为实例常驻、主题监听已把它的 data.dark 同步过了。）
-  //
-  // 微信为每个页面 / 组件实例克隆一份 config.data，因此就地持有并更新这个对象，
-  // 就能保证之后新建的实例克隆到的初值即当前主题，首帧无需任何纠正。
-  // 注：本监听是模块级的、故意不解绑（模块与小程序同生命周期），
-  // 回调只修改一个普通对象，不触发任何渲染。
-  withTheme(data) {
-    data.dark = this.isDark();
-    this.onTheme(dark => { data.dark = dark; });
-    return data;
-  },
-
-  // 页面在 onShow 调用：把该页的主题相关状态一次性对齐到当前生效主题。
-  // 它只承担「兜底纠正」：首帧正确性由 withTheme 保证，这里负责两件事：
-  // - 实例已存在、但快照未能及时同步时的兜底纠正（dark 只在真的不同时才 setData）；
-  // - 原生 chrome：导航栏 / 窗口背景是「每页一份」的，所以「已应用的主题」必须记在
-  //   页面实例上（page._chromeDark），不能记在 app 上，否则新页面会被误判为已应用而漏设。
-  //   同一主题下每个实例只调一次，因此单纯切 Tab 不会重复发原生调用。
-  syncPageTheme(page) {
+  // 导航栏 / 窗口背景是「每页一份」的运行时覆盖，所以「已应用的主题」必须记在页面实例上
+  // （page._chromeDark），不能记在 app 上，否则新页面会被误判为已应用而漏设。
+  // 同一主题下每个实例只调一次，因此单纯切 Tab 不会重复发原生调用。
+  syncPageChrome(page) {
     const dark = this.isDark();
-    if (page.data.dark !== dark) page.setData({ dark: dark });
     if (page._chromeDark !== dark) {
       page._chromeDark = dark;
       this.applyChrome();
@@ -154,7 +141,7 @@ App({
   // 永久停在深色（这正是真机反馈的「标题栏一直保持深色」）。
   // 因此这里无条件按 effectiveTheme 写入，保证四个层面同源：
   //   page 内容 / 原生标题栏 / 原生窗口背景 / 自定义 tabBar
-  // 调用频率由 syncPageTheme 的 page._chromeDark 守卫控制，不在本函数内再做主题偏好判断。
+  // 调用频率由 syncPageChrome 的 page._chromeDark 守卫控制，不在本函数内再做主题偏好判断。
   applyChrome() {
     const dark = this.isDark();
     const bg = dark ? '#141619' : '#F7F7F4';

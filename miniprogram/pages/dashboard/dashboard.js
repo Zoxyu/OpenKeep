@@ -11,10 +11,11 @@ const dateUtil = require('../../utils/date');
 const historyUtil = require('../../utils/history');
 
 Page({
-  // dark 由 app.withTheme 注入并持续同步（详见 app.js）：data 字面量只在模块加载时求值一次，
-  // 写成 dark: app.isDark() 只是「启动那一刻」的快照；用户之后改主题，尚未创建的页面实例
-  // 仍会克隆到旧值，首次进入就先渲染旧主题一帧再由 setData 纠正 —— 即真机看到的旧主题闪烁。
-  data: app.withTheme({
+  data: {
+    // 模块加载时（≈小程序启动时）的主题快照：只在「启动后没改过主题」时恰好正确，
+    // 能让绝大多数首次进入直接首帧正确、无需任何纠正。
+    // 它不是保证 —— 用户改过主题后这个值就偏旧，真正的初始化由下面 onLoad 的通道 A 负责。
+    dark: app.isDark(),
     showOnboarding: false,   // 首次启动：选择「体验示例数据 / 从空白开始」
     todayText: '',
     stats: { expired: 0, warning: 0, safe: 0 },
@@ -29,12 +30,15 @@ Page({
     historyPreview: null,
     // scroll-view 下拉刷新状态（页面已 disableScroll，改用 refresher）
     refreshing: false
-  }),
+  },
 
   onLoad() {
     const now = dateUtil.todayStart();
     const preview = historyUtil.getLocalPreview();
+    // 通道 A · 首次主题初始化：实例创建后立刻同步读 effectiveTheme，
+    // 并入本页原有的 onLoad setData，不额外增加渲染次数，也不依赖 onShow 事后纠正
     this.setData({
+      dark: app.isDark(),
       todayText: (now.getMonth() + 1) + ' 月 ' + now.getDate() + ' 日 · ' + dateUtil.weekdayCN(now),
       historyPreview: {
         month: preview.month,
@@ -42,16 +46,15 @@ Page({
         text: preview.first || preview.second || ''
       }
     });
-    // 只处理「主题真的发生变化」；同值不 setData
+    // 通道 B · 运行时主题变化：只负责已存在实例的后续变化；同值不 setData
     this._untheme = app.onTheme(dark => {
       if (this.data.dark !== dark) this.setData({ dark });
     });
   },
 
   onShow() {
-    // 主题：只在真的变化时才 setData / 刷新原生 chrome（见 app.syncPageTheme），
-    // 切 Tab 不再为了同一个 dark 值重渲染整页，也不再每次都发原生改色调用
-    app.syncPageTheme(this);
+    // onShow 只管原生 chrome（每页一份的标题栏 / 窗口背景），不再负责 DOM 主题纠正
+    app.syncPageChrome(this);
     this.syncTabBar(0);
     this.refresh();
   },

@@ -15,10 +15,11 @@ const imageUtil = require('../../utils/image');
 const dateUtil = require('../../utils/date');
 
 Page({
-  // dark 由 app.withTheme 注入并持续同步（详见 app.js）：data 字面量只在模块加载时求值一次，
-  // 写成 dark: app.isDark() 只是「启动那一刻」的快照。本页每次 navigateTo 都新建实例，
-  // 所以用户改过主题后，每次打开都会先渲染旧主题一帧再由 setData 纠正 —— 即可见的闪烁。
-  data: app.withTheme({
+  data: {
+    // 模块加载时（≈小程序启动时）的主题快照：只在「启动后没改过主题」时恰好正确。
+    // 本页每次 navigateTo 都新建实例，用户改过主题后该值会偏旧，
+    // 真正的初始化由下面 onLoad 的通道 A 负责。
+    dark: app.isDark(),
     isEdit: false,
     id: '',
     origin: null,             // 编辑模式下的原始记录
@@ -47,16 +48,18 @@ Page({
     notes: '',
     errors: {},
     saving: false
-  }),
+  },
 
   onLoad(options) {
     const cats = Object.keys(recordUtil.CATEGORIES).map(k => recordUtil.CATEGORIES[k]);
+    // 通道 A · 首次主题初始化：并入本页原有的 onLoad setData，不额外增加渲染次数
     this.setData({
+      dark: app.isDark(),
       categoryOptions: cats,
       openedAt: dateUtil.todayStr(),
       refHint: this.buildRefHint('fridge')
     });
-    // 只处理「主题真的发生变化」；同值不 setData
+    // 通道 B · 运行时主题变化：只负责已存在实例的后续变化；同值不 setData
     this._untheme = app.onTheme(dark => {
       if (this.data.dark !== dark) this.setData({ dark });
     });
@@ -99,8 +102,8 @@ Page({
   },
 
   onShow() {
-    // 主题：只在真的变化时才 setData / 刷新原生 chrome（见 app.syncPageTheme）
-    app.syncPageTheme(this);
+    // onShow 只管原生 chrome（每页一份的标题栏 / 窗口背景），不再负责 DOM 主题纠正
+    app.syncPageChrome(this);
   },
 
   onUnload() {
