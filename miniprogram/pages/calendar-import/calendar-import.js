@@ -42,6 +42,10 @@ Page({
     // themeReady 门控：onLoad 的通道 A setData 就绪前，wxml 根节点 wx:if 挡住整个 .page-root，
     // 确保改主题后首次进入本页时旧主题内容绝不进入视觉（门控期间仅显示 page 元素背景色）。
     themeReady: false,
+    // contentReady：守卫空状态 UI，避免中间帧闪「暂无需要提醒的物品」。
+    // 不变量：必须与它所守卫的候选列表在同一次 setData 里原子翻转——本页由 onShow 的 buildList()
+    // 与 items/hasCandidates 同批置真，绝不在 onLoad 提前置真。
+    contentReady: false,
     supported: true,
     items: [],               // [{ record, checked, disabled }]
     hasCandidates: false,
@@ -60,9 +64,12 @@ Page({
   },
 
   onLoad() {
-    // 通道 A · 首次主题初始化：并入本页原有的 onLoad setData，不额外增加渲染次数
+    // 开门 setData：onLoad 第一条 setData、无条件执行（其前只允许纯非抛异常计算）。themeReady 尽早翻起缩短系统色空帧；
+    // supported=calendarUtil.isSupported() 为纯 wx.canIUse 判断（不读存储、不抛异常），一并写入；
+    // contentReady 交由 onShow buildList() 与候选列表数据原子置真。
     this.setData({ dark: app.isDark(), themeReady: true, supported: calendarUtil.isSupported() });
-    // 通道 B · 运行时主题变化：只负责已存在实例的后续变化；同值不 setData
+
+    // 通道 B · 运行时主题变化：只负责已存在实例的后续变化；同值不 setData（不碰 themeReady/contentReady）
     this._untheme = app.onTheme(dark => {
       if (this.data.dark !== dark) this.setData({ dark });
     });
@@ -81,20 +88,29 @@ Page({
 
   // 构建候选列表：已过期与未来 90 天内到期
   buildList() {
-    const settings = app.globalData.settings || storage.loadSettings();
-    const all = recordUtil.withStatus(storage.loadRecords(), settings.warningDays);
-    const candidates = recordUtil.sortUrgent(all.filter(it => it.status.daysLeft <= 90));
-    const skip = this.data.skipImported;
-    const items = candidates.map(it => ({
-      record: it,
-      checked: !it.calendarImported,
-      disabled: skip && it.calendarImported
-    }));
-    this.setData({
-      items,
-      hasCandidates: items.length > 0,
-      checkedCount: items.filter(i => i.checked).length
-    });
+    // try/catch 兜底：本函数承载 contentReady:true，若计算意外抛异常则 contentReady 永不置真、
+    // 候选列表整块缺失且不自愈；catch 里置 contentReady 保证门开后可自愈（本页无 loading 字段）。
+    try {
+      const settings = app.globalData.settings || storage.loadSettings();
+      const all = recordUtil.withStatus(storage.loadRecords(), settings.warningDays);
+      const candidates = recordUtil.sortUrgent(all.filter(it => it.status.daysLeft <= 90));
+      const skip = this.data.skipImported;
+      const items = candidates.map(it => ({
+        record: it,
+        checked: !it.calendarImported,
+        disabled: skip && it.calendarImported
+      }));
+      this.setData({
+        // contentReady 与它守卫的候选列表同批原子翻转
+        contentReady: true,
+        items,
+        hasCandidates: items.length > 0,
+        checkedCount: items.filter(i => i.checked).length
+      });
+    } catch (e) {
+      console.error('[calendar-import] buildList failed', e);
+      this.setData({ contentReady: true });
+    }
   },
 
   // ====== 选择控制 ======

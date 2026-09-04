@@ -22,6 +22,10 @@ Page({
     // themeReady 门控：onLoad 的通道 A setData 就绪前，wxml 根节点 wx:if 挡住整个 .page-root，
     // 确保改主题后首次进入本页时旧主题内容绝不进入视觉（门控期间仅显示 page 元素背景色）。
     themeReady: false,
+    // contentReady：守卫空状态（wx:elif）不在中间帧误闪；本页中间帧由 loading 骨架承担。
+    // 不变量：必须与它所守卫的内容在同一次 setData 里原子翻转——本页由 onShow load() 的 .then
+    // 与 events/loading:false 同批置真（.catch 也兜底置真），绝不在 onLoad 提前置真。
+    contentReady: false,
     // 仅首次进入时为 true（数据真的尚未取到）；之后的切页不再重新置 true
     loading: true,
     // scroll-view 下拉刷新状态（页面已 disableScroll，改用 refresher）
@@ -35,8 +39,10 @@ Page({
   },
 
   onLoad() {
+    // 开门 setData：onLoad 第一条 setData、无条件执行（其前只允许纯非抛异常计算）。themeReady 尽早翻起缩短系统色空帧；
+    // month/day/dateText 均为纯日期计算（不读存储、不抛异常），一并写入使门开瞬间
+    // 日期头卡即完整；contentReady 交由 onShow load() 的 .then 与 events 原子置真。
     const now = dateUtil.todayStart();
-    // 通道 A · 首次主题初始化：并入本页原有的 onLoad setData，不额外增加渲染次数
     this.setData({
       dark: app.isDark(),
       themeReady: true,
@@ -44,7 +50,8 @@ Page({
       day: now.getDate(),
       dateText: (now.getMonth() + 1) + ' 月 ' + now.getDate() + ' 日 · ' + dateUtil.weekdayCN(now)
     });
-    // 通道 B · 运行时主题变化：只负责已存在实例的后续变化；同值不 setData
+
+    // 通道 B · 运行时主题变化：只负责已存在实例的后续变化；同值不 setData（不碰 themeReady/contentReady）
     this._untheme = app.onTheme(dark => {
       if (this.data.dark !== dark) this.setData({ dark });
     });
@@ -80,8 +87,15 @@ Page({
         refreshing: false,
         events: res.events || [],
         source: res.source,
-        sourceText: SOURCE_TEXT[res.source] || SOURCE_TEXT.local
+        sourceText: SOURCE_TEXT[res.source] || SOURCE_TEXT.local,
+        // contentReady 与它守卫的 events/loading:false 同批原子翻转
+        contentReady: true
       });
+    }).catch(() => {
+      // 此 .catch 仅覆盖 executor 同步抛异常导致的 reject；getTodayEvents 内层链若同步抛异常
+      // 会导致 promise 永不 settle（.then/.catch 均不触发），属 utils 层既有限制，
+      // 需另行在 utils 内层补 catch 才能根治（本轮不改 utils）。此处收起骨架并置 contentReady 防白屏卡死。
+      this.setData({ loading: false, refreshing: false, contentReady: true });
     });
   },
 

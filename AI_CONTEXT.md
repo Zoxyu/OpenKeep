@@ -206,6 +206,30 @@ wx.setStorage 本地缓存（版本化 key） + USER_DATA_PATH 文件（照片�
 - `onShow` 职责不变（仅 `app.syncPageChrome(this)` 处理原生标题栏/窗口背景），不得在此加 `dark` / `themeReady` 纠正。
 - 首帧/渲染时序无法用 Node 或模拟器验证，最终以真机为准。
 
+**补充（2026-09-04 修正版，取代当日早先的「开门前置两段式」描述）：开门 setData 含廉价纯字段 + `contentReady` 与内容在 onShow 原子翻转**
+
+门控放行前那一瞬视口显示 `page` 元素背景（只跟随系统主题）；手动锁定主题≠系统时会露一帧系统色纯底。经查证这是微信平台硬限制（新建页首帧只认系统色/快照，运行时改色都在首帧之后），**颜色无法根治**。用户批准的优化：尽量缩短该空帧可见时长并顺带加固白屏，且不得改变「跟随系统」场景观感。早先的「两段式」把廉价静态字段推迟到第二段、又把 `contentReady` 放在 onLoad，三维度评审发现两大缺陷（门开空壳帧 + contentReady 与列表数据非原子导致仍闪空状态），现修正为下述最终设计：
+
+- **最终设计（一句话）**：开门 setData（onLoad **第一条 setData**、无条件；其前只允许已核实的纯非抛异常计算，禁止存储读取或任何可能抛异常的表达式）= `themeReady` + 所有「纯计算、不读存储、不依赖记录」的廉价静态字段；有风险的存储读取一律后移到开门之后；`contentReady` 与它守卫的内容数据在 **onShow** 的同一次 setData 里原子翻转。
+- **`contentReady` 不变量（核心）**：`contentReady` 必须在「写入其所守卫内容」的**同一次 setData** 里原子置真——列表页即 onShow 的 `load()` / `refresh()` / `buildList()`（与 allItems/list/stats/total/items/events 等同批）。**绝不允许在 onLoad 提前置真而数据由 onShow 填充**：二者非原子会留下「contentReady 已 true、列表仍为默认空值」的窗口，使空状态守卫 `contentReady && !hasAny` 误判为真、仍闪「暂无数据 / 共 0 件」。本项目已多次证伪「onLoad 与 onShow 两次 setData 同帧落地」假设，故不得依赖它。为兜底，dashboard `refresh()` / items `load()` / calendar-import `buildList()` 均包 try/catch，catch 分支置 `contentReady:true`（及该页适用的收口字段如 dashboard `refreshing:false`），保证计算意外抛异常时 contentReady 仍会置真、内容区可自愈（与 history 的 `.catch` 同理）。
+- **开门 setData 各页内容**（onLoad 第一条、无条件，themeReady 前只允许纯非抛异常计算）：
+  - **dashboard**：`{ dark, themeReady:true, todayText, historyPreview }`（todayText 纯日期计算；historyPreview=`getLocalPreview()` 查已缓存 require 模块、纯且廉价、不抛异常）。onLoad 无第二段；list/stats/total 由 onShow `refresh()` 负责并置 contentReady。
+  - **items**：`{ dark, themeReady:true, categoryOptions }`（`Object.keys(...).map` 纯计算）。contentReady 由 onShow `load()` 置真。
+  - **history**：`{ dark, themeReady:true, month, day, dateText }`（纯日期计算）。contentReady 由 onShow `load()` 的 `.then` 与 events/loading:false 同批置真；**并补 `.catch` 也置 contentReady:true**——但该 `.catch` 仅覆盖 `getTodayEvents` executor 同步抛异常导致的 reject；其内层 `.then` 链无 catch，若内层回调同步抛异常会导致外层 promise 永不 settle（`.then`/`.catch` 均不触发），属 utils 层既有限制，需另行在 utils 内层补 catch 才能根治（本轮不改 utils）。
+  - **calendar-import**：`{ dark, themeReady:true, supported }`（`calendarUtil.isSupported()` 纯 `wx.canIUse`）。contentReady 由 onShow `buildList()` 置真。
+  - **item-detail**：`{ dark, themeReady:true, id, calSupported }`（id 来自 options、calSupported 纯判断）。record 由 onShow `refresh()` 读取。
+  - **item-form**：`{ dark, themeReady:true, categoryOptions, isEdit, openedAt, refHint }`，按 `editIntent=!!(options&&options.id)` 分支——categoryOptions（`Object.keys.map`）恒为纯计算；新建模式 openedAt=今日、refHint=冰箱提示、isEdit=false；编辑模式 openedAt/refHint 留空、isEdit=true（isEdit 驱动保存按钮文案与删除按钮显隐，故门开帧模式相关 UI 即正确，不会先闪「今日日期+冰箱提示+『保存物品』+无删除按钮」的错误新建态）。**门开帧即为完整表单壳**（分类格已渲染）。开门之后再处理编辑模式：`if (options && options.id)` 时 `storage.getRecord(options.id)` + 第二次 setData 写入编辑真实字段（含 origin）+ `wx.setNavigationBarTitle('编辑物品')`；记录不存在则 toast+`setTimeout(navigateBack,800)`（原有业务逻辑）；新建模式无需第二段。保存分支用 `isEdit && origin` 判定，开门帧 origin 仍为 null、编辑值在第二段随 origin 一起写入，逻辑不变。
+  - **profile**：`{ dark, themeReady:true }`（本页 onLoad 无业务字段，设置/统计在 onShow）。仍须无条件写 themeReady 防白屏（守卫式会因未改主题时条件为假→themeReady 永不置真→白屏）。
+- **`contentReady` 只保留在 4 个列表页**（dashboard / items / history / calendar-import），均在 onShow 内容 setData 里与数据原子置真、在 wxml 里守卫空状态。**profile / item-detail / item-form 已彻底删除 contentReady 死字段**（此前只写不读）：item-detail 用 missing/record 分支、中间帧 record=null 干净空白；item-form 门开帧已是完整表单壳、编辑值随后填入（正确主题、可接受）；profile 为静态设置 UI、stats 默认 0 等同空账户，均无空状态误导。
+- **wxml 空状态守卫**（防中间帧闪「暂无数据」）：
+  - **dashboard**：三色统计卡 `wx:if="{{contentReady}}"`、list-head「共 N 件」`wx:if="{{contentReady}}"`、filter-bar `wx:if="{{contentReady}}"`（门开帧不显示误导性 0/0/0、共 0 件、空筛选栏）；引导卡 `wx:elif="{{contentReady && !hasRecords && !showOnboarding}}"`、empty-state `wx:if="{{contentReady && !list.length}}"`。todayText/historyPreview 在开门 setData 已有，正常显示不需守卫。
+  - **items**：empty-state/添加按钮 `wx:if="{{contentReady && !hasAny}}"`、搜索空态 `wx:elif="{{contentReady && !list.length}}"`、结果列表 `wx:elif="{{contentReady}}"`。
+  - **history**：empty-state `wx:elif="{{contentReady}}"`（中间帧主要由 `loading` 骨架承担，contentReady 为兜底）。
+  - **calendar-import**：empty-state `wx:elif="{{contentReady}}"`。
+  - 用 `wx:elif="{{contentReady}}"` 收尾分支链时须确保该页有骨架或分支可达，否则失败模式为「有壳无内容」。
+- **不变量**：7 个根节点 `wx:if="{{themeReady}}"` 原样保留；通道 B（`app.onTheme` 回调仅 `setData({dark})` 带同值守卫）不碰 themeReady/contentReady；onShow 仍只做 `syncPageChrome` + 业务刷新，**把 contentReady 并入 onShow 既有那次内容 setData 是允许的**（不新增渲染次数、contentReady 非 dark/themeReady）；未引入 setTimeout/动画补救；未改 app.js/app.wxss/theme.json/app.json/custom-tab-bar/4 组件主题逻辑；未删 prepareTabSwitch/tabBarSnapshot。
+- **白屏不变量（维护须知）**：themeReady 在开门 setData 无条件写入、位于 onLoad 第一条 setData；其前只允许纯非抛异常计算（评审已确认各页开门字段均纯计算不抛异常）；有风险的存储读取一律后移到开门之后。未来若有人在开门 setData 之前或其字面量内加入会抛异常的存储读取，onLoad 中断→永久白屏。
+
 
 ---
 
@@ -225,6 +249,7 @@ wx.setStorage 本地缓存（版本化 key） + USER_DATA_PATH 文件（照片�
 # 8. 最近的重要变化 / Recent Significant Changes
 
 - 2026-09-04 — 7 个页面新增 `themeReady` 门控（见决策 6），修复「深浅模式切换后首次进入页面闪现旧主题」顽固 bug；profile 页 `onLoad` 改为无条件写 `themeReady` 防白屏。
+- 2026-09-04 — 门控优化修正版（见决策 6 补充，取代当日早先「两段式」描述）：三维度评审发现「两段式」两大缺陷（门开空壳帧 + contentReady 与列表数据非原子仍闪空状态）。修正为：开门 setData（onLoad 第一条、无条件）= themeReady + 廉价纯字段（todayText/historyPreview/categoryOptions/month/day/dateText/supported/id/calSupported/openedAt/refHint），消除空壳帧；`contentReady` 从 onLoad 移到 onShow 的 load/refresh/buildList，与列表数据原子翻转；history 补 `.catch` 兜底置 contentReady；dashboard 三色统计/共 N 件/filter-bar 补 contentReady 守卫；删除 profile/item-detail/item-form 的 contentReady 死字段（只写不读）。contentReady 最终只保留在 4 个列表页。item-form 编辑模式门开帧已是完整表单壳、编辑值在开门后第二段填入。
 - 2026-08-26 — 初始化 `AI_CONTEXT.md`（本次）；根目录新增 `AGENTS.md` / `AI_CONTEXT.md`（未提交）。
 - 2026-08-21 前后 — 修复安卓日历导入三连问题（手势链逐条确认、首次授权吞第一条、全选/取消全选破坏列表数据结构）；全页面 `disableScroll` + `scroll-view` 改造锁定 iOS 滚动。
 - 2026-08 中旬 — 保质期体系重构（保质期为主、开封天数为可选修正、存放位置、日历文案「你放在XX的XX快要到期啦」）；物品页筛选改固定网格。

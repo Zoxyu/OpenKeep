@@ -34,13 +34,12 @@ Page({
   },
 
   onLoad() {
-    // 通道 A · 首次主题初始化 + themeReady 门控：本页 onLoad 原本没有 setData，
-    // 故单独写一次；且必须无条件写入 themeReady（不能再用 dark 比对守卫）。
-    // 否则「启动后未改主题」时 this.data.dark === dark 条件为假 → 不 setData →
-    // themeReady 永远为 false → wxml 根节点 wx:if 挡住整个页面 → profile 页白屏。
-    const dark = app.isDark();
-    this.setData({ dark: dark, themeReady: true });
-    // 通道 B · 运行时主题变化：只负责已存在实例的后续变化；同值不 setData
+    // 开门 setData（profile 特例：本页 onLoad 无业务计算——设置/统计在 onShow 刷新）。
+    // 必须无条件写入 themeReady（不能用 dark 比对守卫），否则「启动后未改主题」时
+    // 条件为假 → 不 setData → themeReady 永远 false → wxml 根节点 wx:if 挡住整页 → 白屏。
+    // 本页无 contentReady 死字段：wxml 从未读取，stats 默认 0（等同空账户）无空状态误导。
+    this.setData({ dark: app.isDark(), themeReady: true });
+    // 通道 B · 运行时主题变化：只负责已存在实例的后续变化；同值不 setData（不碰 themeReady）
     this._untheme = app.onTheme(d => {
       if (this.data.dark !== d) this.setData({ dark: d });
     });

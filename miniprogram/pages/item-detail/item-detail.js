@@ -45,14 +45,18 @@ Page({
   },
 
   onLoad(options) {
-    // 通道 A · 首次主题初始化：并入本页原有的 onLoad setData，不额外增加渲染次数
+    // 开门 setData：onLoad 第一条 setData、无条件执行（其前只允许纯非抛异常计算）。themeReady 尽早翻起
+    // 缩短系统色空帧；id（来自 options，防御式取值）与 calSupported（纯判断）均为廉价非抛异常计算，一并写入；
+    // 记录本体由 onShow refresh() 读取。本页无 contentReady 死字段：中间帧 record=null 时
+    // missing 与 record 块均不渲染（干净空白），wxml 无需守卫。
     this.setData({
       dark: app.isDark(),
       themeReady: true,
-      id: options.id || '',
+      id: (options && options.id) || '',
       calSupported: calendarUtil.isSupported()
     });
-    // 通道 B · 运行时主题变化：只负责已存在实例的后续变化；同值不 setData
+
+    // 通道 B · 运行时主题变化：只负责已存在实例的后续变化；同值不 setData（不碰 themeReady）
     this._untheme = app.onTheme(dark => {
       if (this.data.dark !== dark) this.setData({ dark });
     });

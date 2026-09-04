@@ -19,6 +19,10 @@ Page({
     // themeReady 门控：onLoad 的通道 A setData 就绪前，wxml 根节点 wx:if 挡住整个 .page-root，
     // 确保改主题后首次进入本页时旧主题内容绝不进入视觉（门控期间仅显示 page 元素背景色）。
     themeReady: false,
+    // contentReady：守卫空状态 UI，避免中间帧闪「暂无数据 / 共 0 件」误导文案（见 wxml）。
+    // 不变量：必须与它所守卫的列表数据在同一次 setData 里原子翻转——本页由 onShow 的 refresh()
+    // 与 stats/list/hasRecords/total 同批置真，绝不在 onLoad 提前置真（否则守卫失效、仍闪空状态）。
+    contentReady: false,
     showOnboarding: false,   // 首次启动：选择「体验示例数据 / 从空白开始」
     todayText: '',
     stats: { expired: 0, warning: 0, safe: 0 },
@@ -36,10 +40,13 @@ Page({
   },
 
   onLoad() {
+    // 开门 setData：onLoad 第一条 setData、无条件执行（其前只允许纯非抛异常计算）。themeReady 尽早翻起打开门控，缩短
+    // 「手动锁定主题≠系统」时新建页首帧的系统色空帧；todayText（纯日期计算）与 historyPreview
+    // （getLocalPreview 查已缓存模块、纯且廉价、不抛异常）一并写入，使门开瞬间即为完整正确主题的
+    // 静态壳。二者均为纯计算，故置于 themeReady 同批不引入白屏风险；contentReady 交由 onShow
+    // refresh() 与列表数据原子置真（本页 onLoad 无第二段，避免多一趟渲染）。
     const now = dateUtil.todayStart();
     const preview = historyUtil.getLocalPreview();
-    // 通道 A · 首次主题初始化：实例创建后立刻同步读 effectiveTheme，
-    // 并入本页原有的 onLoad setData，不额外增加渲染次数，也不依赖 onShow 事后纠正
     this.setData({
       dark: app.isDark(),
       themeReady: true,
@@ -50,7 +57,8 @@ Page({
         text: preview.first || preview.second || ''
       }
     });
-    // 通道 B · 运行时主题变化：只负责已存在实例的后续变化；同值不 setData
+
+    // 通道 B · 运行时主题变化：只负责已存在实例的后续变化；同值不 setData（不碰 themeReady/contentReady）
     this._untheme = app.onTheme(dark => {
       if (this.data.dark !== dark) this.setData({ dark });
     });
@@ -76,6 +84,9 @@ Page({
 
   // 从本地缓存读取记录，实时计算状态并刷新整个看板
   refresh() {
+    // try/catch 兜底：本函数承载 contentReady:true，若计算意外抛异常则 contentReady 永不置真、
+    // 内容区整块缺失且不自愈；catch 里置 contentReady 并收起刷新态，保证门开后可自愈。
+    try {
     const settings = app.globalData.settings || storage.loadSettings();
     const records = storage.loadRecords();
     const items = recordUtil.sortUrgent(recordUtil.withStatus(records, settings.warningDays));
@@ -115,6 +126,8 @@ Page({
     const list = filter === 'all' ? items : items.filter(it => it.status.level === filter);
 
     this.setData({
+      // contentReady 与它守卫的列表数据同批原子翻转：门开帧不显示误导性的 0/0/0、共 0 件
+      contentReady: true,
       showOnboarding: !storage.isOnboarded(),
       stats,
       urgent: urgentItem,
@@ -129,6 +142,10 @@ Page({
         { key: 'safe', label: '安全', count: stats.safe }
       ]
     });
+    } catch (e) {
+      console.error('[dashboard] refresh failed', e);
+      this.setData({ contentReady: true, refreshing: false });
+    }
   },
 
   onFilterChange(e) {

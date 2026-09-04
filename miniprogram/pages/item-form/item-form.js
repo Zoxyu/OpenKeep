@@ -54,20 +54,30 @@ Page({
   },
 
   onLoad(options) {
+    // 开门 setData：onLoad 第一条 setData、无条件执行（其前只允许纯非抛异常计算）。themeReady 尽早翻起
+    // 缩短系统色空帧；categoryOptions（Object.keys.map）为纯计算，一并写入使门开瞬间分类格即完整。
+    // 按编辑意图分支：编辑模式下 openedAt/refHint 留空、isEdit 置真，避免门开帧先呈现「今日日期+冰箱提示+
+    // 『保存物品』+无删除按钮」的错误新建态；isEdit 驱动保存按钮文案与删除按钮显隐（见 wxml），故开门帧即正确。
+    // 编辑真实值仍由开门之后的 storage.getRecord + 第二段 setData 填入（getRecord 勿前移，守白屏不变量）。
+    // themeReady 写在读记录之前，永不被 storage.getRecord 抛异常阻断。本页无 contentReady 死字段。
     const cats = Object.keys(recordUtil.CATEGORIES).map(k => recordUtil.CATEGORIES[k]);
-    // 通道 A · 首次主题初始化：并入本页原有的 onLoad setData，不额外增加渲染次数
+    const editIntent = !!(options && options.id);
     this.setData({
       dark: app.isDark(),
       themeReady: true,
       categoryOptions: cats,
-      openedAt: dateUtil.todayStr(),
-      refHint: this.buildRefHint('fridge')
+      isEdit: editIntent,
+      openedAt: editIntent ? '' : dateUtil.todayStr(),
+      refHint: editIntent ? '' : this.buildRefHint('fridge')
     });
-    // 通道 B · 运行时主题变化：只负责已存在实例的后续变化；同值不 setData
+
+    // 通道 B · 运行时主题变化：只负责已存在实例的后续变化；同值不 setData（不碰 themeReady）
     this._untheme = app.onTheme(dark => {
       if (this.data.dark !== dark) this.setData({ dark });
     });
 
+    // 编辑模式：开门之后再读记录（有风险的存储读取后移），第二次 setData 写入编辑字段。
+    // 新建模式无需第二段：上方开门 setData 已含全部默认字段。
     if (options && options.id) {
       const r = storage.getRecord(options.id);
       if (r) {
@@ -92,10 +102,11 @@ Page({
           quickOpenedInput: openedDiff >= 0 ? String(openedDiff) : ''
         });
         wx.setNavigationBarTitle({ title: '编辑物品' });
-      } else {
-        wx.showToast({ title: '记录不存在', icon: 'none' });
-        setTimeout(() => wx.navigateBack(), 800);
+        return;
       }
+      // 记录不存在：提示并返回（原有业务逻辑，非主题补救）；门开帧已是完整新建表单壳，800ms 内不白屏/破损
+      wx.showToast({ title: '记录不存在', icon: 'none' });
+      setTimeout(() => wx.navigateBack(), 800);
     }
   },
 

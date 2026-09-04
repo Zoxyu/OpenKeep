@@ -63,8 +63,9 @@
       </view>
     </view>
   </view>
+  <!-- 空状态：contentReady 前不渲染，避免中间帧（候选列表尚未由 onShow buildList 填入）闪「暂无需要提醒的物品」 -->
   <empty-state
-    wx:else
+    wx:elif="{{contentReady}}"
     type="calendar"
     title="暂无需要提醒的物品"
     desc="已过期与未来 90 天内到期的物品会自动出现在这里。"

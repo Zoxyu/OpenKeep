@@ -43,9 +43,9 @@
     </view>
   </view>
 
-  <!-- 空状态（理论上不会出现，本地数据全年覆盖） -->
+  <!-- 空状态（理论上不会出现，本地数据全年覆盖）；contentReady 前不渲染，中间帧由上方 loading 骨架承担 -->
   <empty-state
-    wx:else
+    wx:elif="{{contentReady}}"
     type="box"
     title="今天还没有收录内容"
     desc="换个日子再来看看吧。"

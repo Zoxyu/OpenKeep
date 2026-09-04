@@ -72,25 +72,25 @@
   <block>
     <!-- 完全没有记录 -->
     <empty-state
-      wx:if="{{!hasAny}}"
+      wx:if="{{contentReady && !hasAny}}"
       type="box"
       title="还没有任何物品"
       desc="添加第一件开封物品，开始你的保质期看板。"
     />
-    <view wx:if="{{!hasAny}}" class="empty-action">
+    <view wx:if="{{contentReady && !hasAny}}" class="empty-action">
       <view class="btn btn-primary empty-btn" hover-class="btn-hover" bindtap="goAdd">＋ 添加物品</view>
     </view>
 
     <!-- 有记录但筛选无结果 -->
     <empty-state
-      wx:elif="{{!list.length}}"
+      wx:elif="{{contentReady && !list.length}}"
       type="search"
       title="没有找到匹配的物品"
       desc="试试更换关键词，或放宽分类与状态筛选。"
     />
 
-    <!-- 结果列表 -->
-    <view wx:else class="list">
+    <!-- 结果列表（contentReady 前不渲染，避免中间帧闪「共 0 件」） -->
+    <view wx:elif="{{contentReady}}" class="list">
       <view class="list-count">共 {{list.length}} 件{{filtered ? '（已筛选）' : ''}}</view>
       <block wx:for="{{list}}" wx:key="id">
         <item-card item="{{item}}" dark="{{dark}}" bind:tapitem="onCardTap" />

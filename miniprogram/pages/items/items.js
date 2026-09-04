@@ -17,6 +17,10 @@ Page({
     // themeReady 门控：onLoad 的通道 A setData 就绪前，wxml 根节点 wx:if 挡住整个 .page-root，
     // 确保改主题后首次进入本页时旧主题内容绝不进入视觉（门控期间仅显示 page 元素背景色）。
     themeReady: false,
+    // contentReady：守卫空状态 UI，避免中间帧闪「暂无物品」。
+    // 不变量：必须与它所守卫的列表数据在同一次 setData 里原子翻转——本页由 onShow 的 load()
+    // 与 allItems/hasAny/list 同批置真，绝不在 onLoad 提前置真。
+    contentReady: false,
     keyword: '',
     category: 'all',
     status: 'all',
@@ -40,14 +44,16 @@ Page({
   },
 
   onLoad() {
-    // 筛选面板按组展示（分类/状态/排序），「全部」文案由组标签补充语义
+    // 开门 setData：onLoad 第一条 setData、无条件执行（其前只允许纯非抛异常计算）。themeReady 尽早翻起缩短系统色空帧；
+    // categoryOptions 由 Object.keys(...).map 纯计算（不读存储、不抛异常），一并写入
+    // 使门开瞬间筛选面板即完整；contentReady 交由 onShow load() 与列表数据原子置真。
     const cats = [{ key: 'all', label: '全部' }];
     Object.keys(recordUtil.CATEGORIES).forEach(k => {
       cats.push({ key: k, label: recordUtil.CATEGORIES[k].label });
     });
-    // 通道 A · 首次主题初始化：并入本页原有的 onLoad setData，不额外增加渲染次数
     this.setData({ dark: app.isDark(), themeReady: true, categoryOptions: cats });
-    // 通道 B · 运行时主题变化：只负责已存在实例的后续变化；同值不 setData
+
+    // 通道 B · 运行时主题变化：只负责已存在实例的后续变化；同值不 setData（不碰 themeReady/contentReady）
     this._untheme = app.onTheme(dark => {
       if (this.data.dark !== dark) this.setData({ dark });
     });
@@ -76,15 +82,22 @@ Page({
   // 等于每次切到本页都人为制造一趟「骨架屏 → 内容」的二次刷新。现改为同步计算，
   // 并与 buildView 的结果合并成一次 setData（不再「先写 allItems、再写 list」两趟渲染）。
   load() {
-    const settings = app.globalData.settings || storage.loadSettings();
-    const allItems = recordUtil.withStatus(storage.loadRecords(), settings.warningDays);
-    allItems.forEach(it => {
-      it.photoOk = !!it.photoPath && imageUtil.isPhotoValid(it.photoPath);
-    });
-    this.setData(Object.assign(
-      { allItems: allItems, hasAny: allItems.length > 0 },
-      this.buildView(allItems)
-    ));
+    // try/catch 兜底：本函数承载 contentReady:true，若计算意外抛异常则 contentReady 永不置真、
+    // 列表整块缺失且不自愈；catch 里置 contentReady 保证门开后可自愈（本页无 loading/refreshing 字段）。
+    try {
+      const settings = app.globalData.settings || storage.loadSettings();
+      const allItems = recordUtil.withStatus(storage.loadRecords(), settings.warningDays);
+      allItems.forEach(it => {
+        it.photoOk = !!it.photoPath && imageUtil.isPhotoValid(it.photoPath);
+      });
+      this.setData(Object.assign(
+        { allItems: allItems, hasAny: allItems.length > 0, contentReady: true },
+        this.buildView(allItems)
+      ));
+    } catch (e) {
+      console.error('[items] load failed', e);
+      this.setData({ contentReady: true });
+    }
   },
 
   // 依据当前搜索 / 分类 / 状态 / 排序，从给定 items 算出可见列表（纯计算，不 setData）
