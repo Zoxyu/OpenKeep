@@ -92,9 +92,9 @@ Page({
         contentReady: true
       });
     }).catch(() => {
-      // 此 .catch 仅覆盖 executor 同步抛异常导致的 reject；getTodayEvents 内层链若同步抛异常
-      // 会导致 promise 永不 settle（.then/.catch 均不触发），属 utils 层既有限制，
-      // 需另行在 utils 内层补 catch 才能根治（本轮不改 utils）。此处收起骨架并置 contentReady 防白屏卡死。
+      // utils/history.js 内层链已补 .catch 保证 getTodayEvents 恒 settle（不会 never-settle）；
+      // 此处页面级 .catch 仅作为 executor 同步抛异常（→ 外层 reject）的末位防线，
+      // 收起骨架并置 contentReady 防白屏卡死。
       this.setData({ loading: false, refreshing: false, contentReady: true });
     });
   },

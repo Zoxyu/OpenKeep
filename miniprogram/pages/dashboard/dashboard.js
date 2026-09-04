@@ -42,7 +42,7 @@ Page({
   onLoad() {
     // 开门 setData：onLoad 第一条 setData、无条件执行（其前只允许纯非抛异常计算）。themeReady 尽早翻起打开门控，缩短
     // 「手动锁定主题≠系统」时新建页首帧的系统色空帧；todayText（纯日期计算）与 historyPreview
-    // （getLocalPreview 查已缓存模块、纯且廉价、不抛异常）一并写入，使门开瞬间即为完整正确主题的
+    // （getLocalPreview 查已缓存模块、纯且廉价、内部 try/catch 保证不抛异常）一并写入，使门开瞬间即为完整正确主题的
     // 静态壳。二者均为纯计算，故置于 themeReady 同批不引入白屏风险；contentReady 交由 onShow
     // refresh() 与列表数据原子置真（本页 onLoad 无第二段，避免多一趟渲染）。
     const now = dateUtil.todayStart();
@@ -173,9 +173,6 @@ Page({
 
   // 跳转「历史上的今天」tab 页
   goHistory() {
-    // 与点击 tabBar 等效：先把目标序号（今天 = 2）写入 tabBar 快照，
-    // 使「今天」页新建的 tabBar 实例首帧就停在正确位置，不会先停在看板再纠正
-    app.prepareTabSwitch(2);
     wx.switchTab({ url: '/pages/history/history' });
   },
 

@@ -60,12 +60,18 @@ function loadLocalEvents(month, day) {
   const file = LOCAL_DATA[month];
   let list = [];
   if (file) {
-    list = file[String(day)] || file[String(Number(day))] || [];
+    const raw = file[String(day)] || file[String(Number(day))] || [];
+    list = Array.isArray(raw) ? raw : [];
     if (!list.length && month === '02' && Number(day) === 29) {
-      list = file['28'] || [];
+      const fb = file['28'] || [];
+      list = Array.isArray(fb) ? fb : [];
     }
   }
-  return list.map(e => ({ year: String(e[0]), text: String(e[1]) }));
+  const kept = list.filter(e => Array.isArray(e) && e.length >= 2);
+  if (kept.length !== list.length) {
+    console.warn('[history] 丢弃畸形条目', list.length - kept.length, month, day);
+  }
+  return kept.map(e => ({ year: e[0] == null ? '' : String(e[0]), text: e[1] == null ? '' : String(e[1]) }));
 }
 
 function readCache() {
@@ -146,29 +152,46 @@ function getTodayEvents(force) {
       }
     }
 
+    // 预计算本地兜底（loadLocalEvents 已防御化，正常不抛；万一抛出由此 try 兜底）
+    let localEvents = [];
+    try { localEvents = loadLocalEvents(month, day); } catch (e) {
+      console.warn('[history] loadLocalEvents 预计算异常', e);
+    }
+
     fetchRemoteEvents(month, day).then(remote => {
       if (remote && remote.length) {
         writeCache(dayKey, remote);
         resolve({ events: remote, source: 'remote', date: dayKey });
         return;
       }
-      resolve({ events: loadLocalEvents(month, day), source: 'local', date: dayKey });
+      resolve({ events: localEvents, source: 'local', date: dayKey });
+    }).catch(err => {
+      // 内层回调异常兜底：确保外层 Promise 恒 settle，避免页面永久骨架屏
+      console.warn('[history] getTodayEvents 内层异常，降级本地数据', err);
+      resolve({ events: localEvents, source: 'local', date: dayKey });
     });
   });
 }
 
 // 首页卡片用的本地预览：同步返回当天第一、二条（不触发任何网络请求）
+// 内部 try/catch 保证绝不抛异常（dashboard 开门 setData 之前同步调用此函数）
 function getLocalPreview() {
-  const now = dateUtil.todayStart();
-  const month = pad(now.getMonth() + 1);
-  const day = pad(now.getDate());
-  const events = loadLocalEvents(month, day);
-  return {
-    month: now.getMonth() + 1,
-    day: now.getDate(),
-    first: events[0] ? events[0].text : '',
-    second: events[1] ? events[1].text : ''
-  };
+  try {
+    const now = dateUtil.todayStart();
+    const month = pad(now.getMonth() + 1);
+    const day = pad(now.getDate());
+    const events = loadLocalEvents(month, day);
+    return {
+      month: now.getMonth() + 1,
+      day: now.getDate(),
+      first: events[0] ? events[0].text : '',
+      second: events[1] ? events[1].text : ''
+    };
+  } catch (e) {
+    console.warn('[history] getLocalPreview 降级', e);
+    const now = new Date();
+    return { month: now.getMonth() + 1, day: now.getDate(), first: '', second: '' };
+  }
 }
 
 module.exports = {

@@ -30,7 +30,7 @@
 - 数据库 / Database: 无。仅 `wx.setStorage` 本地缓存 + 文件系统（照片持久化到 `USER_DATA_PATH`）
 - 基础设施 / Infrastructure: 无。appid `wx391039438b36bcb8`（见 `project.config.json`）
 - 其他重要技术 / Other important technologies:
-  - 深浅色主题：`app.wxss` CSS 变量双套色板，`app.js` 主题广播（跟随系统 / 手动切换）
+  - 深浅色主题：单一事实来源 `settings.theme`（system/light/dark）→ `app.js resolveTheme()` → `globalData.effectiveTheme` → 一律经 `app.isDark()` 读取；`app.wxss` CSS 变量双套色板 + `theme.json` 只作 JS 生效前的首帧兜底（详见决策 6）
   - 自定义 tabBar（`custom: true`）悬浮胶囊样式，CSS 绘制图标
   - Node.js 构建脚本仅用于离线生成历史数据（`tools/`，不参与小程序运行）
 
@@ -57,8 +57,8 @@ wx.setStorage 本地缓存（版本化 key） + USER_DATA_PATH 文件（照片�
 
 | 模块 / Module | 作用 / Purpose | 当前状态 / Status |
 | ------------- | -------------- | ----------------- |
-| `miniprogram/app.js` | 全局设置、主题解析与广播（`isDark` / `onTheme` / `applyChrome`） | 稳定 |
-| `pages/dashboard` | 首页看板：问候、三色统计、主提醒卡、筛选、列表、悬浮添加按钮、历史预览卡、引导页 | 稳定 |
+| `miniprogram/app.js` | 全局设置、主题单一事实来源（`resolveTheme` / `effectiveTheme` / `isDark`）、主题变化监听（`onTheme`）、原生 chrome（`applyChrome` / `syncPageChrome`） | 稳定 |
+| `pages/dashboard` | 首页看板：问候、三色统计、主提醒卡、近期保修卡（30 天内过保）、筛选、列表、悬浮添加按钮、历史预览卡、引导页 | 稳定 |
 | `pages/items` | 全部物品：搜索 + 分类/状态/排序固定网格筛选（非横滑） | 稳定 |
 | `pages/item-form` | 新增/编辑：封面照片持久化、保质期（天/月/年）、可选开封天数、存放位置、快捷反推 | 稳定 |
 | `pages/item-detail` | 详情、编辑/删除、单条写入日历 | 稳定 |
@@ -70,7 +70,7 @@ wx.setStorage 本地缓存（版本化 key） + USER_DATA_PATH 文件（照片�
 | `utils/date.js` | 本地 00:00、parseDate、addDays/addMonths/addYears、diffDays | 稳定 |
 | `utils/calendar.js` | 日历能力检测、授权流程（含 `fresh` 首次授权标记）、事件构造、友好错误翻译 | 稳定 |
 | `utils/image.js` | 照片复制到 `USER_DATA_PATH`、删除、有效性检查 | 稳定 |
-| `utils/history.js` | 历史数据三级获取策略（`API_CONFIG.enabled = false`，在线功能默认关闭） | 稳定 |
+| `utils/history.js` | 历史数据三级获取策略（`API_CONFIG.enabled = false`，在线功能默认关闭）；已加防御兜底（getTodayEvents 恒 settle、getLocalPreview 绝不抛异常、loadLocalEvents 畸形数据安全过滤） | 稳定 |
 | `components/` | status-badge、item-card、empty-state、filter-bar | 稳定 |
 | `custom-tab-bar/` | 悬浮胶囊导航，4 个入口：看板 0 / 物品 1 / 今天 2 / 我的 3 | 稳定 |
 | `miniprogram/data/history/01.js~12.js` | 366 天 × 5~10 条历史事件数据（约 295KB，必须为 `.js` 模块） | 稳定 |
@@ -91,9 +91,9 @@ wx.setStorage 本地缓存（版本化 key） + USER_DATA_PATH 文件（照片�
 - **状态 / 日期 / 日历逻辑必须走对应 utils**，不要在页面内复制粘贴计算逻辑。
 - **新增数据字段必须在 `storage.js` 的 `normalizeRecord` 中做规范化与默认值兜底**，保证旧缓存不白屏。
 - **危险操作（删除记录、清空数据、重新导入日历）必须二次确认**；删除记录时同步删除本地照片文件。
-- 所有页面使用 `disableScroll: true` + 内部 `scroll-view`（`.page-scroll`），不要恢复页面级原生滚动。
+- **全部 7 个页面**使用 `disableScroll: true` + 内部 `scroll-view`（`.page-scroll`），不要恢复页面级原生滚动。
 - 日历权限仅在用户主动点击导入后申请；禁止后台 / 页面加载时静默申请。
-- 中文界面，文案克制温和；尺寸一律 `rpx`；点击区不小于 68rpx。
+- 中文界面，文案克制温和；尺寸一律 `rpx`；点击区域分层：主操作按钮 / 底部操作区 ≥88rpx，次级控件（分段选择 `.seg-item`、单位选择 `.unit-item`、底部取消 `.bb-cancel`）76–80rpx，筛选胶囊（`.chip` / `.fb-chip` / `.fp-cell`）与 `.clear-link` 64–68rpx（实测最小值，勿宣称「全部 ≥88rpx」）。
 
 
 ---
@@ -112,11 +112,12 @@ wx.setStorage 本地缓存（版本化 key） + USER_DATA_PATH 文件（照片�
 - 单条 + 批量手机日历导入（含安卓手势链兼容方案）
 - 历史上的今天（本地 366 天数据，来自开源项目 PrintNow/TodayInHistory，经敏感词过滤）
 - 首次启动引导（体验示例数据 / 从空白开始）
-- README、隐私政策（`privacy-policy.txt`）、小程序图标；项目已在 Git 管理（main 分支，共 7 个提交，工作区仅有未跟踪的 `AGENTS.md` / `AI_CONTEXT.md`）
+- 主题切换首帧闪烁修复（门控 + 开门前置 + contentReady 原子守卫 + 白屏加固，见决策 6），已通过静态评审，待真机验证
+- README、隐私政策（`privacy-policy.txt`）、小程序图标；项目已在 Git 管理（main 分支，远端 `Zoxyu/OpenKeep`），`AGENTS.md`（a284035）与 `AI_CONTEXT.md`（c1b38a1）**均已纳入版本控制**
 
 ## 进行中 / In Progress
 
-- 用户真机最终验证；等待用户反馈新问题。
+- 用户真机最终验证；等待反馈新问题。主题首帧修复的验证清单见第 5 节（本文件唯一权威表述）。
 
 ## 阻塞问题 / Blocked
 
@@ -124,6 +125,7 @@ wx.setStorage 本地缓存（版本化 key） + USER_DATA_PATH 文件（照片�
 
 ## 已知问题 / Known Issues
 
+- **主题「残留系统色一闪」＝微信平台硬限制，非本项目缺陷、非「没找到路径」**：详见决策 6「已知平台限制」小节（含三方证据、已证伪的 7 条路径、及「三选二」权衡）。跟随系统场景完全无闪；手动锁定主题≠系统时残留一瞬系统色纯底已压到平台下限。
 - 部分安卓机型首次批量导入后，第一条记录可能被误标「已导入」但系统日历中实际没有（历史数据问题，需用户关闭「跳过已导入记录」重新导入该条补写）。
 - 个别安卓厂商 ROM 每次日历写入都弹系统确认页，需逐条手动保存，属平台行为无法绕过（已在批量导入页文案中提示）。
 - `tools/history_in_today.json`（约 6MB 源数据）已随仓库提交，体积偏大但不影响小程序包体积（不在 `miniprogramRoot` 内）。
@@ -133,7 +135,16 @@ wx.setStorage 本地缓存（版本化 key） + USER_DATA_PATH 文件（照片�
 
 # 5. 当前任务 / Active Tasks
 
-无进行中任务。等待用户真机测试反馈。
+**主题切换首帧闪烁修复：代码已实施、已通过静态评审（`node --check`、结构 grep、越界核查、零回归），待真机验证。**
+
+真机验证清单（Node / 模拟器无法验证渲染时序，必须以真机为准；下列 1–4 均为本轮**必做**项，覆盖主题首帧 + history 健壮性 + tabBar 死代码三类改动）：
+
+1. 跟随系统浅↔深切换后，首次进入各页应**完全无闪**。
+2. 手动锁定主题≠系统时，旧主题内容不再闪；残留的系统色纯底已压到最短，确认观感是否可接受。
+3. 回归：profile 无白屏；列表 / 表单 / 详情不再闪「暂无数据 / 共 0 件」；item-form 编辑模式不闪「新建默认值」帧；tab 二次进入不再被门控。
+4. history 健壮性 + tabBar 死代码清理：history 下拉刷新可用且指示器能收起、iOS 页面拖拽已锁死、history/dashboard 数据正常无白屏无骨架卡死、tab 切换滑块瞬时到位无异常滑动、tabBar 主题深浅正常、标题栏永久深色不回退。
+
+可选后续（非本轮范围，需用户确认）：见第 9 节第 3、4 条（在线接口、体积优化等真正可选项）。
 
 
 ---
@@ -184,51 +195,61 @@ wx.setStorage 本地缓存（版本化 key） + USER_DATA_PATH 文件（照片�
 
 **日期 / Date:** 2026-08-21
 
-**决定 / Decision:** 所有 7 个页面配置 `"disableScroll": true`，主体内容放入 `scroll-view.page-scroll`（`100vh`）；首页与「今天」页下拉刷新改用 `refresher`。
+**决定 / Decision:** 页面配置 `"disableScroll": true`，主体内容放入 `scroll-view.page-scroll`（`100vh`）；首页与「今天」页下拉刷新改用 `refresher`。**全部 7 个页面均已落地。**
 
 **原因 / Reason:** iOS WebView 页面整体可上下左右拖拽、内容偏移、双向滚动条，真机实锤；锁死后横向位移彻底消失。
 
 **影响 / Impact:** 新增页面必须沿用此模式；fixed 元素（悬浮按钮、弹层、底部操作栏）需放在 `scroll-view` 之外。
 
-## 决策 6：主题首帧用 `themeReady` 门控，杜绝旧主题闪现
+## 决策 6：主题首帧用 `themeReady` 门控 + `contentReady` 原子守卫
 
-**日期 / Date:** 2026-09-04
+**日期 / Date:** 2026-09-04（提交 `841744e` 门控落地 + `5caae4d` 开门前置 / contentReady 收口）
 
-**决定 / Decision:** 7 个页面（dashboard / items / history / profile / item-form / item-detail / calendar-import）统一采用 `themeReady` 门控：页面 `data` 新增 `themeReady: false`，WXML 根节点 `.page-root` 加 `wx:if="{{themeReady}}"`，`onLoad` 的通道 A `setData` 并入 `themeReady: true`（与 `dark` 同一条消息）。原有「通道 A（`onLoad` 同步读 `app.isDark()`）+ 通道 B（`app.onTheme` 监听已存在实例）」架构保持不变。
+### 6.1 主题架构（单一事实来源，最终设计）
 
-**原因 / Reason:** `Page({data:{...}})` 的 data 字面量只在模块求值时（无分包＝启动时）构造一次，新建实例的 `dark` 初值是「启动那一刻」的旧快照；`setData` 又是跨线程异步消息，无法保证并入首帧渲染。因此改主题后首次进入未访问页面，会先渲染旧主题一帧再纠正。门控是唯一能保证「错误主题内容绝不进入视觉」的手段。
+- **唯一来源链**：`settings.theme`（system/light/dark）→ `app.js resolveTheme()` → `globalData.effectiveTheme`（真正生效的 light/dark）→ 一律经 `app.isDark()` 读取。`app.wxss` 的 `@media (prefers-color-scheme: dark)`（page 元素）与 `app.json` + `theme.json` 的 `@navBg` / `@bg` 只是「JS 尚未执行时的首帧兜底」、且只能跟随系统；一旦 JS 生效一律以 `effectiveTheme` 为准。**不得引入第五个主题判断来源。**
+- **DOM 深浅色走两条互不混淆的通道**：
+  - 通道 A（首次初始化）：页面 `onLoad` / 组件 `attached` 内同步读 `app.isDark()`。首帧正确性只由通道 A 承担。
+  - 通道 B（运行时变化）：`app.onTheme` **只服务已存在实例**，注册时**不立即回调**，回调内**先比对再** `setData({dark})`（同值不渲染）。不承担首次初始化。
+- **原生 chrome（标题栏 / 窗口背景）**：`applyChrome()` **无条件**按 `effectiveTheme` 写 `setNavigationBarColor` / `setBackgroundColor`（这两个是「每页一份」的运行时覆盖，一旦某页被显式设置过 theme.json 声明值对该页即失效，故必须无条件写，否则手动锁定过的页会永久停在旧色）；调用频率由挂在**页面实例**上的 `_chromeDark` 守卫控制（`syncPageChrome(page)`，守卫挂页面而非 app，否则新页会被误判为已应用而漏设）。自定义 tabBar **不用** `wx.setTabBarStyle`（对 `custom: true` 无效且触发底部重绘闪烁，已移除），由组件自身 `dark` 类驱动。
 
-**影响 / Impact:**
-- **profile 页须无条件写 `themeReady`**：其 `onLoad` 原为守卫式（`if (this.data.dark !== dark) setData(...)`），若保留守卫，「启动后未改主题」时条件为假 → 不 `setData` → `themeReady` 永远 false → 白屏。已改为无条件 `this.setData({ dark: dark, themeReady: true })`。
-- **门控期间视口仅显示 `page` 元素背景色**（跟随系统主题），这是「绝不允许错误主题内容进入视觉」的既定权衡，属正常表现，非缺陷。
-- **custom-tab-bar 不门控**：tabBar 渲染在 `.page-root` 之外，加 `wx:if` 会导致切页时底部导航消失再现，体验更差；tabBar 已有 `attached` 通道 A。
-- **4 个组件不门控**：item-card / empty-state / filter-bar / status-badge 均渲染在页面 `.page-root` 内部，随页面门控自动覆盖。
-- `onShow` 职责不变（仅 `app.syncPageChrome(this)` 处理原生标题栏/窗口背景），不得在此加 `dark` / `themeReady` 纠正。
-- 首帧/渲染时序无法用 Node 或模拟器验证，最终以真机为准。
+### 6.2 门控设计（决定）
 
-**补充（2026-09-04 修正版，取代当日早先的「开门前置两段式」描述）：开门 setData 含廉价纯字段 + `contentReady` 与内容在 onShow 原子翻转**
+- **`themeReady` 门控**：7 个页面（dashboard / items / history / profile / item-form / item-detail / calendar-import）的 `.page-root` 加 `wx:if="{{themeReady}}"`；**开门 setData 是 `onLoad` 第一条 setData、无条件执行**，内容为 `{ dark, themeReady:true, + 廉价纯计算静态字段 }`。`themeReady` 之前只允许**已核实的纯非抛异常计算**；有风险的存储读取（如 item-form 编辑模式的 `storage.getRecord`）一律**后移到开门之后**。
+- **`contentReady` 原子守卫**：`contentReady` 必须与它所守卫的列表内容在**同一次 setData** 里原子翻转——4 个列表页（dashboard / items / history / calendar-import）即 `onShow` 的 `refresh()` / `load()` / `buildList()`（history 在 `load()` 的 `.then`，且有 `.catch` 兜底）。**严禁在 `onLoad` 提前置真而数据由 `onShow` 填**：二者非原子会留下「contentReady 已 true、列表仍为默认空值」的窗口，使空状态守卫 `contentReady && !hasAny` 误判为真、闪「暂无数据 / 共 0 件」。空状态 / 三色统计 / 共 N 件 / 筛选栏 / 列表容器均由 `contentReady` 守卫。这三个内容函数（`dashboard.refresh` / `items.load` / `calendar-import.buildList`）已加 `try/catch` 兜底（抛异常也置 `contentReady:true` 及该页收口字段，避免内容区整块缺失、可自愈）。**item-form / item-detail / profile 无 `contentReady`**（其门开帧已完整 / 干净，无需守卫）。
+- **profile 不加守卫、dashboard 必须加守卫的判定依据**（勿按「一致性」互相拉齐）：dashboard 门开帧若不守卫会呈现**断言性空状态**（引导卡「从第一件物品开始」/ `empty-state`「暂无物品」），等于向用户断言一个可能为假的事实，属内容错误；profile 无 `empty-state` 组件、只有纯数字统计行，0 等同空账户的合法展示、不构成断言；且两者 `onLoad` / `onShow` 同 tick、统计很快被 `refreshStats()` 纠正，profile 又是常驻 tab 实例（门控仅首次进入生效）。
+- **已登记的守卫例外（此例外至今未改代码，属可选加固、尚未实施）**：calendar-import 底部操作条的「已选 N 条 / 导入 N 条到手机日历」只受 `wx:if="{{!importing}}"` 控制、**未加 `contentReady` 守卫**，门开帧会短暂显示「0 条」+ 禁用态，再由 `onShow` 的 `buildList()` 纠正——不含断言性空状态，属可接受例外；若要加守卫属代码改动，需另行确认。
+- **item-form 编辑模式**：开门 setData 按 `editIntent = !!(options && options.id)` 分支写 `isEdit` / `openedAt` / `refHint`（编辑模式 `openedAt`/`refHint` 留空、`isEdit=true`），避免门开帧先呈现「今日日期 + 冰箱提示 + 『保存物品』 + 无删除按钮」的错误新建态（`isEdit` 驱动保存按钮文案与删除按钮显隐）；编辑真实值由开门之后的第二段 setData（`storage.getRecord` + 含 `origin`）填入，保存分支用 `isEdit && origin` 判定，逻辑不变。item-detail 的 `id` 用防御式 `(options && options.id) || ''`。
+- **`onShow` 职责**：仅 `syncPageChrome` + 业务刷新（+ 内容 setData 里并入的 `contentReady`）；**绝不写 `dark` / `themeReady`**（把 contentReady 并入 onShow 既有那次内容 setData 是允许的，不新增渲染次数）。
 
-门控放行前那一瞬视口显示 `page` 元素背景（只跟随系统主题）；手动锁定主题≠系统时会露一帧系统色纯底。经查证这是微信平台硬限制（新建页首帧只认系统色/快照，运行时改色都在首帧之后），**颜色无法根治**。用户批准的优化：尽量缩短该空帧可见时长并顺带加固白屏，且不得改变「跟随系统」场景观感。早先的「两段式」把廉价静态字段推迟到第二段、又把 `contentReady` 放在 onLoad，三维度评审发现两大缺陷（门开空壳帧 + contentReady 与列表数据非原子导致仍闪空状态），现修正为下述最终设计：
+### 6.3 原因
 
-- **最终设计（一句话）**：开门 setData（onLoad **第一条 setData**、无条件；其前只允许已核实的纯非抛异常计算，禁止存储读取或任何可能抛异常的表达式）= `themeReady` + 所有「纯计算、不读存储、不依赖记录」的廉价静态字段；有风险的存储读取一律后移到开门之后；`contentReady` 与它守卫的内容数据在 **onShow** 的同一次 setData 里原子翻转。
-- **`contentReady` 不变量（核心）**：`contentReady` 必须在「写入其所守卫内容」的**同一次 setData** 里原子置真——列表页即 onShow 的 `load()` / `refresh()` / `buildList()`（与 allItems/list/stats/total/items/events 等同批）。**绝不允许在 onLoad 提前置真而数据由 onShow 填充**：二者非原子会留下「contentReady 已 true、列表仍为默认空值」的窗口，使空状态守卫 `contentReady && !hasAny` 误判为真、仍闪「暂无数据 / 共 0 件」。本项目已多次证伪「onLoad 与 onShow 两次 setData 同帧落地」假设，故不得依赖它。为兜底，dashboard `refresh()` / items `load()` / calendar-import `buildList()` 均包 try/catch，catch 分支置 `contentReady:true`（及该页适用的收口字段如 dashboard `refreshing:false`），保证计算意外抛异常时 contentReady 仍会置真、内容区可自愈（与 history 的 `.catch` 同理）。
-- **开门 setData 各页内容**（onLoad 第一条、无条件，themeReady 前只允许纯非抛异常计算）：
-  - **dashboard**：`{ dark, themeReady:true, todayText, historyPreview }`（todayText 纯日期计算；historyPreview=`getLocalPreview()` 查已缓存 require 模块、纯且廉价、不抛异常）。onLoad 无第二段；list/stats/total 由 onShow `refresh()` 负责并置 contentReady。
-  - **items**：`{ dark, themeReady:true, categoryOptions }`（`Object.keys(...).map` 纯计算）。contentReady 由 onShow `load()` 置真。
-  - **history**：`{ dark, themeReady:true, month, day, dateText }`（纯日期计算）。contentReady 由 onShow `load()` 的 `.then` 与 events/loading:false 同批置真；**并补 `.catch` 也置 contentReady:true**——但该 `.catch` 仅覆盖 `getTodayEvents` executor 同步抛异常导致的 reject；其内层 `.then` 链无 catch，若内层回调同步抛异常会导致外层 promise 永不 settle（`.then`/`.catch` 均不触发），属 utils 层既有限制，需另行在 utils 内层补 catch 才能根治（本轮不改 utils）。
-  - **calendar-import**：`{ dark, themeReady:true, supported }`（`calendarUtil.isSupported()` 纯 `wx.canIUse`）。contentReady 由 onShow `buildList()` 置真。
-  - **item-detail**：`{ dark, themeReady:true, id, calSupported }`（id 来自 options、calSupported 纯判断）。record 由 onShow `refresh()` 读取。
-  - **item-form**：`{ dark, themeReady:true, categoryOptions, isEdit, openedAt, refHint }`，按 `editIntent=!!(options&&options.id)` 分支——categoryOptions（`Object.keys.map`）恒为纯计算；新建模式 openedAt=今日、refHint=冰箱提示、isEdit=false；编辑模式 openedAt/refHint 留空、isEdit=true（isEdit 驱动保存按钮文案与删除按钮显隐，故门开帧模式相关 UI 即正确，不会先闪「今日日期+冰箱提示+『保存物品』+无删除按钮」的错误新建态）。**门开帧即为完整表单壳**（分类格已渲染）。开门之后再处理编辑模式：`if (options && options.id)` 时 `storage.getRecord(options.id)` + 第二次 setData 写入编辑真实字段（含 origin）+ `wx.setNavigationBarTitle('编辑物品')`；记录不存在则 toast+`setTimeout(navigateBack,800)`（原有业务逻辑）；新建模式无需第二段。保存分支用 `isEdit && origin` 判定，开门帧 origin 仍为 null、编辑值在第二段随 origin 一起写入，逻辑不变。
-  - **profile**：`{ dark, themeReady:true }`（本页 onLoad 无业务字段，设置/统计在 onShow）。仍须无条件写 themeReady 防白屏（守卫式会因未改主题时条件为假→themeReady 永不置真→白屏）。
-- **`contentReady` 只保留在 4 个列表页**（dashboard / items / history / calendar-import），均在 onShow 内容 setData 里与数据原子置真、在 wxml 里守卫空状态。**profile / item-detail / item-form 已彻底删除 contentReady 死字段**（此前只写不读）：item-detail 用 missing/record 分支、中间帧 record=null 干净空白；item-form 门开帧已是完整表单壳、编辑值随后填入（正确主题、可接受）；profile 为静态设置 UI、stats 默认 0 等同空账户，均无空状态误导。
-- **wxml 空状态守卫**（防中间帧闪「暂无数据」）：
-  - **dashboard**：三色统计卡 `wx:if="{{contentReady}}"`、list-head「共 N 件」`wx:if="{{contentReady}}"`、filter-bar `wx:if="{{contentReady}}"`（门开帧不显示误导性 0/0/0、共 0 件、空筛选栏）；引导卡 `wx:elif="{{contentReady && !hasRecords && !showOnboarding}}"`、empty-state `wx:if="{{contentReady && !list.length}}"`。todayText/historyPreview 在开门 setData 已有，正常显示不需守卫。
-  - **items**：empty-state/添加按钮 `wx:if="{{contentReady && !hasAny}}"`、搜索空态 `wx:elif="{{contentReady && !list.length}}"`、结果列表 `wx:elif="{{contentReady}}"`。
-  - **history**：empty-state `wx:elif="{{contentReady}}"`（中间帧主要由 `loading` 骨架承担，contentReady 为兜底）。
-  - **calendar-import**：empty-state `wx:elif="{{contentReady}}"`。
-  - 用 `wx:elif="{{contentReady}}"` 收尾分支链时须确保该页有骨架或分支可达，否则失败模式为「有壳无内容」。
-- **不变量**：7 个根节点 `wx:if="{{themeReady}}"` 原样保留；通道 B（`app.onTheme` 回调仅 `setData({dark})` 带同值守卫）不碰 themeReady/contentReady；onShow 仍只做 `syncPageChrome` + 业务刷新，**把 contentReady 并入 onShow 既有那次内容 setData 是允许的**（不新增渲染次数、contentReady 非 dark/themeReady）；未引入 setTimeout/动画补救；未改 app.js/app.wxss/theme.json/app.json/custom-tab-bar/4 组件主题逻辑；未删 prepareTabSwitch/tabBarSnapshot。
-- **白屏不变量（维护须知）**：themeReady 在开门 setData 无条件写入、位于 onLoad 第一条 setData；其前只允许纯非抛异常计算（评审已确认各页开门字段均纯计算不抛异常）；有风险的存储读取一律后移到开门之后。未来若有人在开门 setData 之前或其字面量内加入会抛异常的存储读取，onLoad 中断→永久白屏。
+`Page({ data:{...} })` 的 data 字面量只在模块求值时（无分包 ≈ 启动时）构造一次，新建实例的 `dark` 初值是「启动那一刻」的旧快照；`setData` 又是跨线程异步消息，无法保证并入首帧渲染。因此改主题后首次进入未访问页面，会先渲染旧主题一帧再纠正。门控是唯一能保证「错误主题内容绝不进入视觉」的手段；`contentReady` 与内容原子翻转则避免门开后闪空状态。
+
+### 6.4 已知平台限制（残留「系统色一闪」＝微信硬限制，非本项目缺陷、非「没找到路径」）
+
+- **现象与机理**：当用户手动锁定主题≠系统主题时，导航到**新建页面实例**，其首帧在 JS(`setData`) 生效前只能由「跟随系统」的表面着色决定（CSS page 背景的 `@media`、`theme.json` 的 `@bg`、data 快照、`initialRenderingCache` 全是快照 / 跟随系统），而运行时改色 API（`setBackgroundColor` / `setNavigationBarColor` / `page-meta`）都是「每页一份且首帧之后才落地」。
+- **三方证据**：微信官方社区同场景 bug（编号 `0008428094` / `0002ee2684`）自 2019 至 2025-12 未修；uni-app 官方文档承认「前端设背景色生效晚于首帧、是硬伤」；框架快照式首帧架构决定。
+- **结论**：**跟随系统场景＝完全无闪**；手动锁定≠系统时残留一瞬系统色纯底（远轻于旧主题内容闪现），当前设计已把它压到平台下限。
+- **影响范围（tab 页 vs navigateTo 页，据 `app.json` tabBar.list）**：tab 页（dashboard / items / history / profile）实例常驻，门控仅**首次进入**生效；item-form / item-detail / calendar-import 每次 `navigateTo` 都新建实例、门控**每次**生效。故「系统色一闪」只可能出现在这三个 navigateTo 页 + tab 页的首次进入。
+- **要真正零闪只能「三选二」**：① 保留手动锁定 + 保留原生导航 → 必有那一瞬系统色（**当前状态，用户已选此**）；② 放弃手动锁定（仅跟随系统）；③ 放弃原生导航（SPA）。
+- **已证伪、后续 agent 勿再尝试的路径**：
+  1. 迁移 Skyline（暗色仍跟随系统、且不支持 `initialRenderingCache`、迁移成本高）；
+  2. `wx.onAppRoute` / `onBeforePageLoad` 设首帧背景（时机晚于或够不到新页首帧）；
+  3. `page-meta` 的 `root-background-color` / `background-color`（data 驱动、首帧取旧快照）；
+  4. 透明化 page + 依赖窗口背景（新页窗口背景初始来自 theme.json 系统色，不继承上一页 `setBackgroundColor`）；
+  5. 模块级 data 快照 / `withTheme` 影响未来实例（已两次真机证伪、`withTheme` 已删）。同机制残留（`app.tabBarSnapshot` / `app.prepareTabSwitch`、`custom-tab-bar/index.js` 的 `SHARED_DATA.selected` 预置、`dashboard.js` 的 `app.prepareTabSwitch(2)`）**已于本轮清理移除**；tabBar 选中态的真实机制＝`setActive` 瞬时纠正 + `index.wxss` 刻意不设 `transition`（滑块瞬移而非滑动）；
+  6. 全量 SPA（能让导航零新建首帧，但安卓物理返回键会直接退出小程序、丢原生转场，代价远大于收益）；
+  7. tab 预热（微信无页面实例预创建 API）。
+
+### 6.5 不变量（维护须知）
+
+- `themeReady` / `contentReady` 必须**无条件写入、永不被前置计算或提前 return 阻断**；不用 `setTimeout` / 动画补救主题。
+- **profile 须无条件写 `themeReady`**：其 `onLoad` 若用 `dark` 比对守卫，「启动后未改主题」时条件为假 → 不 setData → `themeReady` 永远 false → 白屏。
+- 开门 setData 之前或其字面量内**不得加入会抛异常的存储读取**，否则 `onLoad` 中断 → 永久白屏。dashboard 的 `historyUtil.getLocalPreview()` 是唯一非纯内存计算的开门前置字段，其内部已加顶层 try/catch 保证绝不抛异常（数据损坏时降级返回 `{month, day, first:'', second:''}`），白屏隐患已消除。
+- **tabBar 与 4 个组件不做门控**：tabBar 渲染在 `.page-root` 之外，加 `wx:if` 会让切页时底部导航消失再现（tabBar 已有 `attached` 通道 A）；4 个组件（item-card / empty-state / filter-bar / status-badge）渲染在页面 `.page-root` 内部，随页面门控自动覆盖。
+- 门控放行前那一瞬视口仅显示 `page` 元素背景色（跟随系统），属既定权衡、非缺陷。
+- 首帧 / 渲染时序无法用 Node 或模拟器验证，最终以真机为准。
 
 
 ---
@@ -240,7 +261,7 @@ wx.setStorage 本地缓存（版本化 key） + USER_DATA_PATH 文件（照片�
 - 日历 API 只写不读、不返回事件 ID，无法删除/更新已写入日程；时间戳与 `alarmOffset` 均为**秒**；事件固定到期日上午 09:00；需显式传 `endTime`（+3600s）否则部分安卓异常；已过期物品的事件时间钳制到最近未来的 09:00。
 - `wx.setStorage` 总量约 10MB、单 key 约 1MB；照片走文件系统不占该额度。
 - 卸载微信 / 清缓存 / 换设备会丢数据，已在「本地数据说明」中向用户明示。
-- 模拟器与真机行为差异大（相机、日历），验证以真机为准；用户自行真机验证，Agent 无需代跑。
+- 模拟器与真机行为差异大（相机、日历、首帧渲染时序），验证以真机为准；用户自行真机验证，Agent 无需代跑。
 - 日历写入需隐私协议中声明「使用你的日历（仅写入）权限」。
 
 
@@ -248,10 +269,10 @@ wx.setStorage 本地缓存（版本化 key） + USER_DATA_PATH 文件（照片�
 
 # 8. 最近的重要变化 / Recent Significant Changes
 
-- 2026-09-04 — 7 个页面新增 `themeReady` 门控（见决策 6），修复「深浅模式切换后首次进入页面闪现旧主题」顽固 bug；profile 页 `onLoad` 改为无条件写 `themeReady` 防白屏。
-- 2026-09-04 — 门控优化修正版（见决策 6 补充，取代当日早先「两段式」描述）：三维度评审发现「两段式」两大缺陷（门开空壳帧 + contentReady 与列表数据非原子仍闪空状态）。修正为：开门 setData（onLoad 第一条、无条件）= themeReady + 廉价纯字段（todayText/historyPreview/categoryOptions/month/day/dateText/supported/id/calSupported/openedAt/refHint），消除空壳帧；`contentReady` 从 onLoad 移到 onShow 的 load/refresh/buildList，与列表数据原子翻转；history 补 `.catch` 兜底置 contentReady；dashboard 三色统计/共 N 件/filter-bar 补 contentReady 守卫；删除 profile/item-detail/item-form 的 contentReady 死字段（只写不读）。contentReady 最终只保留在 4 个列表页。item-form 编辑模式门开帧已是完整表单壳、编辑值在开门后第二段填入。
-- 2026-08-26 — 初始化 `AI_CONTEXT.md`（本次）；根目录新增 `AGENTS.md` / `AI_CONTEXT.md`（未提交）。
-- 2026-08-21 前后 — 修复安卓日历导入三连问题（手势链逐条确认、首次授权吞第一条、全选/取消全选破坏列表数据结构）；全页面 `disableScroll` + `scroll-view` 改造锁定 iOS 滚动。
+- 2026-09-04 — **history 健壮性加固 + 死代码清理**：① `history.json` 补 `disableScroll:true` 并移除冗余 `enablePullDownRefresh`（全 7 页对齐）；② `utils/history.js` 根治 never-settle（内层链补 `.catch` 恒 settle）+ `getLocalPreview` 顶层 try/catch 绝不抛异常 + `loadLocalEvents` 畸形数据安全过滤 + 诊断 `console.warn`；③ 移除 tabBar 选中态快照死代码（`app.tabBarSnapshot` / `prepareTabSwitch` / `SHARED_DATA.selected` 预置及误导注释）。改动文件：history.json、utils/history.js、app.js、custom-tab-bar/index.js、dashboard.js、pages/history/history.js（注释）。状态＝已通过评审 + 静态实测，**待真机验证**。
+- 2026-09-04 — **主题切换首帧闪烁修复**（设计细节见决策 6，此处不重述）：两次提交 `841744e`（themeReady 门控落地）+ `5caae4d`（开门前置 / contentReady 原子收口），累计改动 **7 页 js + 7 页 wxml + AI_CONTEXT.md**。状态＝待真机验证。
+- 2026-08-27 — 新增并已提交两份 agent 协作文档：`AI_CONTEXT.md`（`c1b38a1`）与 `AGENTS.md`（`a284035`）；其中 AI_CONTEXT.md 后续随主题修复更新（`841744e` / `5caae4d`），AGENTS.md 自 a284035 后未再变更。
+- 2026-08-21 前后 — 修复安卓日历导入三连问题（手势链逐条确认、首次授权吞第一条、全选/取消全选破坏列表数据结构）；各页面 `disableScroll` + `scroll-view` 改造锁定 iOS 滚动。
 - 2026-08 中旬 — 保质期体系重构（保质期为主、开封天数为可选修正、存放位置、日历文案「你放在XX的XX快要到期啦」）；物品页筛选改固定网格。
 - 2026-08 上旬 — 项目更名为「到期那天 In Time」；新增「历史上的今天」功能；自定义悬浮胶囊 tabBar。
 
@@ -262,8 +283,10 @@ wx.setStorage 本地缓存（版本化 key） + USER_DATA_PATH 文件（照片�
 
 # 9. 下一步建议 / Next Recommended Actions
 
-1. 等待用户真机验证反馈；若报新缺陷，优先核对本文件「已知问题」与决策 4/5 的兼容性结论。
-2. 用户验证通过后：将 `AGENTS.md` / `AI_CONTEXT.md` 纳入版本控制（由用户决定是否提交）。
+> 第 1–2 条属本轮范围内（第 1 条为**必做**真机验证）；第 3–4 条为可选后续，需用户确认后再做。
+
+1. **真机验证（本轮必做）**：清单以第 5 节为准（已含主题首帧、history 健壮性、tabBar 死代码三类改动的全部验证点）；若报新缺陷，优先核对本文件「已知问题」与决策 4/5/6 的结论，尤其先判断是否属决策 6.4 的平台硬限制、勿重走已证伪路径。
+2. 本轮对 `AI_CONTEXT.md` / `README.md` 的文档修订尚未提交（工作区 `modified`），由用户决定何时 commit。
 3. 可选优化方向（需用户确认后再做）：考虑把 `tools/history_in_today.json`（6MB）移出仓库或加入忽略；为「历史上的今天」补充更多日期事件需重新运行 `node tools/convert.js`。
 4. 若未来开放在线接口，需在小程序后台配置合法域名并更新隐私协议；目前 `utils/history.js` 中 `API_CONFIG.enabled = false`。
 

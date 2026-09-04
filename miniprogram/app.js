@@ -34,16 +34,6 @@ App({
 
   themeListeners: [],
 
-  // 自定义 tabBar 模块加载时会把「快照写入器」登记到这里（见 custom-tab-bar/index.js）。
-  // 它不保存任何状态，只是一个写入口：选中态的唯一来源仍是 tabBar 模块里的 SHARED_DATA。
-  // 用途：页面以编程方式 wx.switchTab 之前先把目标序号写进快照，
-  // 使目标页新建的 tabBar 实例首帧就停在正确位置（与用户点击 tabBar 等效）。
-  tabBarSnapshot: null,
-
-  prepareTabSwitch(index) {
-    if (this.tabBarSnapshot) this.tabBarSnapshot(index);
-  },
-
   onLaunch() {
     this.globalData.settings = storage.loadSettings();
     this.resolveTheme(this.globalData.settings.theme);
