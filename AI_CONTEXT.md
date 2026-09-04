@@ -59,7 +59,7 @@ wx.setStorage 本地缓存（版本化 key） + USER_DATA_PATH 文件（照片�
 | ------------- | -------------- | ----------------- |
 | `miniprogram/app.js` | 全局设置、主题单一事实来源（`resolveTheme` / `effectiveTheme` / `isDark`）、主题变化监听（`onTheme`）、原生 chrome（`applyChrome` / `syncPageChrome`） | 稳定 |
 | `pages/dashboard` | 首页看板：问候、三色统计、主提醒卡、近期保修卡（30 天内过保）、筛选、列表、悬浮添加按钮、历史预览卡、引导页 | 稳定 |
-| `pages/items` | 全部物品：搜索 + 分类/状态/排序固定网格筛选（非横滑）、下拉刷新（仅本地重算） | 稳定；下拉刷新待真机验证 |
+| `pages/items` | 全部物品：搜索 + 分类/状态/排序固定网格筛选（非横滑）、下拉刷新（自定义文案反馈）、搜索框键盘避让 | 稳定；已安卓真机验证 |
 | `pages/item-form` | 新增/编辑：封面照片持久化、保质期（天/月/年）、可选开封天数、存放位置、快捷反推 | 稳定 |
 | `pages/item-detail` | 详情、编辑/删除、单条写入日历 | 稳定 |
 | `pages/calendar-import` | 批量导入日历：勾选、全选、跳过已导入、逐条串行写入、进度与结果统计 | 稳定（含安卓手势链方案） |
@@ -113,12 +113,12 @@ wx.setStorage 本地缓存（版本化 key） + USER_DATA_PATH 文件（照片�
 - 历史上的今天（本地 366 天数据，来自开源项目 PrintNow/TodayInHistory，经敏感词过滤）
 - 首次启动引导（体验示例数据 / 从空白开始）
 - 主题切换首帧闪烁修复（门控 + 开门前置 + contentReady 原子守卫 + 白屏加固，见决策 6），已通过静态评审，待真机验证
-- 物品页补下拉刷新（`refresher`，与首页 / 今天页同一套属性），设计依据见决策 5.1；已通过静态评审 + Node 状态机实测，待真机验证
+- 物品页补下拉刷新（`refresher`，与首页 / 今天页同一套属性），设计依据见决策 5.1；已通过静态评审 + Node 状态机实测 + 安卓真机验证（2026-09-05）
 - README、隐私政策（`privacy-policy.txt`）、小程序图标；项目已在 Git 管理（main 分支，远端 `Zoxyu/OpenKeep`），`AGENTS.md`（a284035）与 `AI_CONTEXT.md`（c1b38a1）**均已纳入版本控制**
 
 ## 进行中 / In Progress
 
-- 用户真机最终验证；等待反馈新问题。主题首帧修复的验证清单见第 5 节（本文件唯一权威表述）。
+- 用户持续真机验证中。本轮下拉刷新反馈 + 输入框键盘避让已安卓真机验证通过（2026-09-05）并分批提交；主题首帧修复（决策 6，更早提交）仍待用户真机验证。验证清单见第 5 节。
 
 ## 阻塞问题 / Blocked
 
@@ -136,17 +136,20 @@ wx.setStorage 本地缓存（版本化 key） + USER_DATA_PATH 文件（照片�
 
 # 5. 当前任务 / Active Tasks
 
-**主题切换首帧闪烁修复 + 物品页下拉刷新：代码已实施、已通过静态评审（`node --check`、结构 grep、越界核查、零回归），待真机验证。**
+**本轮任务（三页下拉刷新自定义文案反馈 + 「今天」页补刷新 toast + 输入框键盘避让含数字键盘收起修复 + A①A② 清理）已完成、已通过安卓真机验证（2026-09-05），并分批提交入库。** 更早的主题首帧修复（决策 6，提交 `841744e`/`5caae4d`）仍待用户真机验证。
 
-真机验证清单（Node / 模拟器无法验证渲染时序与手势，必须以真机为准；下列 1–5 均为**必做**项，覆盖主题首帧 + history 健壮性 + tabBar 死代码 + 物品页下拉刷新四类改动）：
+真机验证清单（存档；Node / 模拟器无法验证渲染时序与手势，必须以真机为准。**第 5–8 项本轮安卓真机已验证通过**，第 1–4 项主题首帧仍待验证）：
 
 1. 跟随系统浅↔深切换后，首次进入各页应**完全无闪**。
 2. 手动锁定主题≠系统时，旧主题内容不再闪；残留的系统色纯底已压到最短，确认观感是否可接受。
 3. 回归：profile 无白屏；列表 / 表单 / 详情不再闪「暂无数据 / 共 0 件」；item-form 编辑模式不闪「新建默认值」帧；tab 二次进入不再被门控。
 4. history 健壮性 + tabBar 死代码清理：history 下拉刷新可用且指示器能收起、iOS 页面拖拽已锁死、history/dashboard 数据正常无白屏无骨架卡死、tab 切换滑块瞬时到位无异常滑动、tabBar 主题深浅正常、标题栏永久深色不回退。
 5. **物品页下拉刷新**（Node 只能验状态机与 setData 批次，手势与指示器视觉必须真机）：① 从搜索框 + 筛选面板一带下拉能触发、指示器能正常收回、toast「已刷新本地状态」出现；② **先设筛选条件（如只看「临期」）再下拉，筛选条件应保持不变**（`load()` 会带着当前 keyword/category/status/sort 走 `buildView()`）；③ 异常时指示器不卡死（`refreshing:false` 已并入 `load()` 的成功与 catch 两条路径，已 Node 实测）。
+6. **首页下拉刷新（本轮批次对齐回归）**：`dashboard.js` 的 `onScrollRefresh` 已由 3 批 `setData` 改为 2 批（`refreshing:false` 并入 `refresh()` 成功批，catch 批原已有，与物品页同模式），需回归验证：首页下拉能触发、指示器正常收回、toast「已刷新本地状态」出现、内容照常刷新；异常路径（`refresh()` catch）仍能收起指示器。
+7. **下拉刷新文案（本轮，安卓重点）**：三页改自定义 refresher（`refresher-default-style="none"` + `slot="refresher"`），下拉时依次显示「下拉刷新 → 松开立即刷新（拉够 45px）→ 正在刷新…」+ 转圈点；「今天」页下拉完成后应有 toast「内容已刷新」（此前无提示，本轮补）；深浅色下文案与转圈点均可见。
+8. **输入框键盘避让（安卓重点，见决策 7）**：item-form 7 个输入框（含多行备注）+ items 搜索框聚焦弹键盘时，页面**不再整体漂移**、输入文字**始终可见**（聚焦字段自动滚到键盘上方）；**尤其购买价格等数字键盘（type=digit/number）输入完收起后，页面须恢复满高、底部不再留白遮挡**（2026-09-05 修复）；框间切换无明显抖动；反复聚焦同一字段仍能正常滚动。
 
-可选后续（非本轮范围，需用户确认）：见第 9 节第 3、4、5 条。
+可选后续（非本轮范围，需用户确认）：见第 9 节第 4、5 条。
 
 
 ---
@@ -208,8 +211,9 @@ wx.setStorage 本地缓存（版本化 key） + USER_DATA_PATH 文件（照片�
 - **首页 / 今天 / 物品三页有，「我的」页刻意没有**：它是设置页，在设置页下拉刷新统计不符合用户心智。这是有意为之，不是遗漏。
 - **真实价值不是「拉新数据」**：三页数据全部本地同步可得，日常路径（增删改后返回、切 Tab、改临期阈值）`onShow` 已全覆盖重算，下拉刷新在内容上通常是 no-op。它真正解决的是**小程序长时间停在前台跨过零点**：红黄绿状态依赖「今天」（决策 2），而这种场景不会触发 `onShow`，状态会停在昨天，用户需手动重算自救。「今天」页另有一层语义：`load(true)` 强制跳过当天缓存。
 - **历史沿革**：`enablePullDownRefresh` 自初始提交 `fbde576` 起只存在于首页，「今天」页在 `f525ef9` 引入时也带；物品页与「我的」页从未有过。`1b19fdd` 做 `disableScroll` 改造时只是把「原本就有」的两页迁移到 `refresher`，物品页直到 2026-09-04 才首次补上。
-- **实现约束**：`refreshing:false` 必须并入 `load()` 那次合并 `setData`（成功与 catch 两条路径都要），与 `contentReady` / 列表数据同批原子翻转，否则异常时指示器会卡住不收。
-- **遗留死配置**：`dashboard.json` / `history.json` 里的 `backgroundTextStyle: "dark"` 只服务于页面级下拉的 loading 三点颜色，`disableScroll` 后已无作用，属可清理项（见第 9 节第 3 条）。
+- **实现约束**：`refreshing:false` 必须并入 `load()` 那次合并 `setData`（成功与 catch 两条路径都要），与 `contentReady` / 列表数据同批原子翻转，否则异常时指示器会卡住不收。`refresherText`（下拉文案）同样并入这些批次复位为「下拉刷新」。
+- **下拉反馈样式（2026-09-04 起为自定义文案）**：三页 `refresher-default-style="none"` + `slot="refresher"`（样式在 `app.wxss .rf`，节点须有固定高度否则微信不渲染），文案由 `onRefresherPulling`（下拉中，`e.detail.dy>=45` 切「松开立即刷新」）/ `onScrollRefresh`（「正在刷新…」）/ `onRefresherRestore`·`onRefresherAbort`（复位）驱动；`refresher-background="transparent"` 跟随主题背景。
+- **遗留死配置（已清理，2026-09-04）**：`dashboard.json` / `history.json` 里曾有的 `backgroundTextStyle: "dark"` 只服务于页面级下拉的 loading 三点颜色，`disableScroll` 后已无作用，已删除；`app.json` 全局 `window.backgroundTextStyle: "@bgText"` 属另一回事，保留不动。
 
 ## 决策 6：主题首帧用 `themeReady` 门控 + `contentReady` 原子守卫
 
@@ -261,6 +265,21 @@ wx.setStorage 本地缓存（版本化 key） + USER_DATA_PATH 文件（照片�
 - 门控放行前那一瞬视口仅显示 `page` 元素背景色（跟随系统），属既定权衡、非缺陷。
 - 首帧 / 渲染时序无法用 Node 或模拟器验证，最终以真机为准。
 
+## 决策 7：输入框键盘避让用 `adjust-position=false` + 动态收缩 scroll-view + `scroll-into-view`
+
+**日期 / Date:** 2026-09-04 实施（安卓真机反馈「输入框漂移、看不到输入内容」）；2026-09-05 修复「数字键盘收起后 scroll-view 卡在收缩高度、底部留白遮挡内容」，同日安卓真机验证通过并分批提交入库。
+
+**决定 / Decision:** item-form 的 7 个输入控件（6 `input` + 1 `textarea`）与 items 搜索框全部设 `adjust-position="{{false}}"`，关闭微信「键盘弹起整页上推」；item-form 由 `wx.onKeyboardHeightChange` 监听键盘高度 `kbHeight`，把 `scroll-view` 高度设为 `calc(100vh - {{kbHeight}}px)` 动态收缩可视区，`bindfocus` 时读 `e.detail.height` 立即收缩、并用 `scroll-into-view` 把聚焦字段（每个 `.field` 有 `id="f-*"`、input 带 `data-target`）滚到顶部；`bindblur` **延迟 120ms 兜底把 `kbHeight` 归零** + 清空 `scrollIntoId`（延迟期内若 focus 了新框则取消归零，避免框间切换先弹回满高再收缩的抖动）。items 搜索框在顶部、键盘弹起本就可见，仅关 `adjust-position`，不收缩高度（避免与其 `refresher` 冲突）。
+
+**原因 / Reason:** 页面 `disableScroll` + `scroll-view(100vh)`（决策 5）下，微信 `adjust-position` 默认的整页上推作用于 page/webview 层、与固定高度 scroll-view 是两套机制，安卓真机表现为整页漂移 + input 内文字/placeholder 相对边框错位（看不到已输入内容）。这是 scroll-view 内原生输入组件的已知平台问题。`always-embed`（iOS 同层渲染）只对 iOS 生效，用户当前只有安卓真机，故走「关上推 + 自行避让」的通用方案。
+
+**影响 / Impact（不变量）:**
+- **不得把 item-form / items 输入框的 `adjust-position` 改回 `true`**，否则漂移复现；新增输入框须同样加 `adjust-position="{{false}}"` + `id`/`data-target` + `bindfocus`/`bindblur`。
+- 键盘监听在 `onLoad` 注册、`onUnload` 用 `wx.offKeyboardHeightChange` 注销（item-form 每次 `navigateTo` 新建实例，必须注销防泄漏 / 重复回调）。
+- `scroll-view` 高度改内联 `style` 覆盖 `.page-scroll` 的 `height:100vh`；键盘收起 `kbHeight=0` 时等价 `100vh`，无残留。
+- **`kbHeight` 归零必须由 `onFieldBlur` 兜底，不能只依赖 `wx.onKeyboardHeightChange`**：安卓数字键盘（`type="digit"`/`"number"`）收起时该事件常不回调 `height=0`，只靠它会让 `scroll-view` 卡在收缩高度、底部留白遮挡内容（2026-09-05 安卓真机复现并修复）；`onFieldFocus` 亦用 `e.detail.height` 主动收缩。对应 `onUnload` 须一并 `clearTimeout(this._blurTimer)`。
+- **安卓首次聚焦可能仍有一次极轻微原生视口上推**（webview adjustPan 层行为，社区反馈 `adjust-position=false` 亦难完全阻止首次那一下，失焦复位后同页后续聚焦不再上推）；若真机验证发现残留，属平台限制、非本方案缺陷。
+
 
 ---
 
@@ -279,6 +298,9 @@ wx.setStorage 本地缓存（版本化 key） + USER_DATA_PATH 文件（照片�
 
 # 8. 最近的重要变化 / Recent Significant Changes
 
+- 2026-09-05 — **修复键盘避让：数字键盘收起后 scroll-view 卡收缩高度、底部留白遮挡内容（安卓真机，尚未 commit）**：根因——`kbHeight` 只靠 `wx.onKeyboardHeightChange` 回调 `height=0` 复位，而安卓数字键盘（`type=digit/number`）收起常不回调。修复：`onFieldBlur` 延迟 120ms 兜底归零（延迟兼容框间切换、focus 取消归零防抖动）+ `onFieldFocus` 用 `e.detail.height` 立即收缩 + `onUnload` 清理定时器。详见决策 7。改动文件：item-form.js。状态＝`node --check` 通过 + **安卓真机验证通过（2026-09-05）**，已随本轮提交。
+- 2026-09-04 — **真机反馈修复：下拉刷新文案 + 输入框键盘避让（尚未 commit）**：① 三页下拉刷新改自定义 refresher 文案（`refresher-default-style="none"` + `slot="refresher"`：下拉刷新→松开立即刷新→正在刷新…+转圈），「今天」页补下拉完成 toast「内容已刷新」（此前无提示）；② item-form 7 输入框 + items 搜索框键盘避让（`adjust-position=false` + `wx.onKeyboardHeightChange` 动态收缩 scroll-view + `scroll-into-view` 滚到聚焦字段，见决策 7），根治安卓「输入框漂移、看不到输入内容」。改动文件：app.wxss、dashboard.js/wxml、items.js/wxml、history.js/wxml、item-form.js/wxml。状态＝已通过 `node --check` + 结构 grep + **安卓真机验证通过（2026-09-05）**，已随本轮提交。
+- 2026-09-04 — **下拉刷新收尾清理（A①+A②，尚未 commit）**：① `dashboard.js` 的 `onScrollRefresh` 由 3 批 `setData` 对齐为 2 批——`refreshing:false` 并入 `refresh()` 成功批（catch 批原已有），与物品页 `load()` 同模式，用户无感知、少一趟渲染消息；② 删除 `dashboard.json` / `history.json` 中 `disableScroll` 后失效的 `backgroundTextStyle: "dark"`（`app.json` 全局项保留）。改动文件：dashboard.js、dashboard.json、history.json。状态＝已通过 `node --check` + JSON 合法性校验 + 安卓真机验证，已随本轮提交。
 - 2026-09-04 — **物品页补下拉刷新**（提交 `5903e81`；设计依据见决策 5.1）：`items.wxml` 的 `scroll-view` 展开为多行并加 4 个 `refresher` 属性（与首页 / 今天页逐字节一致）；`items.js` 新增 `refreshing` 字段与 `onScrollRefresh()`，并把 `refreshing:false` 并入 `load()` 的合并 `setData`（含 catch 路径）以遵守 `contentReady` 原子翻转不变量；下拉刷新仅 **2 批** `setData`（首页现为 3 批）。`items.json` 无需改动（refresher 是组件属性，非页面配置）。改动文件：items.js、items.wxml。状态＝已提交 + 已通过静态评审与 Node 状态机实测（含异常路径），**待真机验证**。
 - 2026-09-04 — **history 健壮性加固 + 死代码清理**：① `history.json` 补 `disableScroll:true` 并移除冗余 `enablePullDownRefresh`（全 7 页对齐）；② `utils/history.js` 根治 never-settle（内层链补 `.catch` 恒 settle）+ `getLocalPreview` 顶层 try/catch 绝不抛异常 + `loadLocalEvents` 畸形数据安全过滤 + 诊断 `console.warn`；③ 移除 tabBar 选中态快照死代码（`app.tabBarSnapshot` / `prepareTabSwitch` / `SHARED_DATA.selected` 预置及误导注释）。改动文件：history.json、utils/history.js、app.js、custom-tab-bar/index.js、dashboard.js、pages/history/history.js（注释）。状态＝已通过评审 + 静态实测，**待真机验证**。
 - 2026-09-04 — **主题切换首帧闪烁修复**（设计细节见决策 6，此处不重述）：两次提交 `841744e`（themeReady 门控落地）+ `5caae4d`（开门前置 / contentReady 原子收口），累计改动 **7 页 js + 7 页 wxml + AI_CONTEXT.md**。状态＝待真机验证。
@@ -294,11 +316,11 @@ wx.setStorage 本地缓存（版本化 key） + USER_DATA_PATH 文件（照片�
 
 # 9. 下一步建议 / Next Recommended Actions
 
-> 第 1–2 条属本轮范围内（第 1 条为**必做**真机验证）；第 3–5 条为可选后续，需用户确认后再做。
+> 第 1 条主题首帧仍待用户真机验证；第 2–3 条本轮改动已安卓真机验证通过（2026-09-05）并分批提交；第 4–5 条为可选后续，需用户确认后再做。
 
-1. **真机验证（必做）**：清单以第 5 节为准（已含主题首帧、history 健壮性、tabBar 死代码、物品页下拉刷新四类改动的全部验证点）；若报新缺陷，优先核对本文件「已知问题」与决策 4/5/6 的结论，尤其先判断是否属决策 6.4 的平台硬限制、勿重走已证伪路径。
-2. 工作区尚有未提交改动：仅本次 `AI_CONTEXT.md` / `README.md` 文档修订（物品页下拉刷新的代码已随 `5903e81` 提交，上一轮文档修订已随 `67c11f1` 提交），由用户决定何时 commit。
-3. 可选清理（均为几行改动，需用户确认）：① `dashboard.js` 的 `onScrollRefresh` 由 3 批 `setData` 对齐为 2 批（把 `refreshing:false` 并入 `refresh()` 的内容批，与物品页同模式）；② 删除 `dashboard.json` / `history.json` 中已失效的 `backgroundTextStyle: "dark"`（见决策 5.1）。
+1. **主题首帧真机验证（仍待用户执行）**：清单见第 5 节第 1–4 项（本轮下拉刷新 + 键盘避让的第 5–8 项已验证通过）；若报新缺陷，优先核对本文件「已知问题」与决策 4/5/6 的结论，尤其先判断是否属决策 6.4 的平台硬限制、勿重走已证伪路径。
+2. **本轮改动已分批提交入库（2026-09-05）**：下拉刷新反馈（三页自定义文案 + 今天页 toast + A①A② 清理）、输入框键盘避让（item-form + items 搜索框）、配套文档，均已安卓真机验证通过后提交。
+3. A①A②（下拉刷新 2 批对齐 + 删除失效 `backgroundTextStyle`）已随本轮一并入库；提交历史见 `git log`（main 分支）。
 4. 可选优化方向（需用户确认后再做）：考虑把 `tools/history_in_today.json`（6MB）移出仓库或加入忽略；为「历史上的今天」补充更多日期事件需重新运行 `node tools/convert.js`。
 5. 若未来开放在线接口，需在小程序后台配置合法域名并更新隐私协议；目前 `utils/history.js` 中 `API_CONFIG.enabled = false`。
 
