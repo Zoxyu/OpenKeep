@@ -55,6 +55,10 @@
       <view class="stat-num lv-text-safe">{{stats.safe}}</view>
       <view class="stat-label">安心保存</view>
     </view>
+    <view wx:if="{{stats.memo > 0}}" class="stat" hover-class="stat-hover" bindtap="onStatTap" data-level="memo">
+      <view class="stat-num lv-text-memo">{{stats.memo}}</view>
+      <view class="stat-label">备忘</view>
+    </view>
   </view>
 
   <!-- 主提醒卡：最紧急的一件 -->
@@ -111,6 +115,23 @@
     </view>
   </view>
 
+  <!-- 关键词搜索框（点 fab 旁圆形搜索按钮展开） -->
+  <view wx:if="{{searchOpen}}" class="dash-search-wrap">
+    <view class="dash-search-box">
+      <view class="dash-search-icon"></view>
+      <input
+        class="dash-search-input"
+        value="{{keyword}}"
+        placeholder="搜索名称、分类、位置或备注"
+        placeholder-class="ph-text"
+        confirm-type="search"
+        adjust-position="{{false}}"
+        bindinput="onSearchInput"
+      />
+      <view wx:if="{{keyword}}" class="dash-search-clear" hover-class="clear-hover" bindtap="onSearchClear">×</view>
+    </view>
+  </view>
+
   <!-- 列表区（list-head 与 filter-bar 均由 contentReady 守卫，门开帧不显示「共 0 件」与空筛选栏） -->
   <view wx:if="{{contentReady}}" class="list-head">
     <view class="list-title">物品看板</view>
@@ -137,6 +158,11 @@
   <view class="fab" hover-class="fab-hover" bindtap="goAdd">
     <text class="fab-plus">＋</text>
     <text class="fab-text">添加物品</text>
+  </view>
+
+  <!-- 搜索入口（添加按钮旁的圆形按钮） -->
+  <view class="fab-search" hover-class="fab-hover" bindtap="onToggleSearch">
+    <view class="fab-search-icon"></view>
   </view>
 
 </view>

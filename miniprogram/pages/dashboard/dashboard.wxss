@@ -147,7 +147,7 @@
 .list-title { font-size: 31rpx; font-weight: 600; letter-spacing: 1rpx; }
 .list-total { font-size: 24rpx; color: var(--c-faint); }
 /* 底部预留悬浮胶囊 tabBar 与添加按钮的避让空间 */
-.list { padding: 16rpx 40rpx 300rpx; }
+.list { padding: 16rpx 40rpx 380rpx; }
 
 /* ====== 悬浮添加按钮 ====== */
 .fab {
@@ -170,6 +170,86 @@
 }
 .fab-hover { opacity: 0.85; transform: translateY(2rpx); }
 .fab-plus { font-size: 36rpx; margin-right: 10rpx; }
+
+/* ====== 搜索入口（添加按钮旁的圆形按钮）与搜索框 ====== */
+.fab-search {
+  position: fixed;
+  right: 40rpx;
+  bottom: calc(180rpx + env(safe-area-inset-bottom) + 116rpx);
+  width: 88rpx;
+  height: 88rpx;
+  border-radius: 50%;
+  background: var(--c-card);
+  border: 1rpx solid var(--c-line);
+  box-shadow: 0 14rpx 36rpx rgba(32, 36, 33, 0.18);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 50;
+}
+/* CSS 绘制的放大镜 */
+.fab-search-icon {
+  width: 30rpx;
+  height: 30rpx;
+  border: 4rpx solid var(--c-sub);
+  border-radius: 50%;
+  box-sizing: border-box;
+  position: relative;
+}
+.fab-search-icon::after {
+  content: "";
+  position: absolute;
+  right: -9rpx;
+  bottom: -7rpx;
+  width: 12rpx;
+  height: 4rpx;
+  background: var(--c-sub);
+  border-radius: 2rpx;
+  transform: rotate(45deg);
+}
+.dash-search-wrap { padding: 24rpx 40rpx 0; }
+.dash-search-box {
+  display: flex;
+  align-items: center;
+  height: 88rpx;
+  padding: 0 28rpx;
+  background: var(--c-card);
+  border: 1rpx solid var(--c-line);
+  border-radius: 999rpx;
+  box-shadow: var(--c-shadow);
+}
+.dash-search-icon {
+  width: 26rpx;
+  height: 26rpx;
+  border: 4rpx solid var(--c-faint);
+  border-radius: 50%;
+  box-sizing: border-box;
+  position: relative;
+  margin-right: 20rpx;
+  flex-shrink: 0;
+}
+.dash-search-icon::after {
+  content: "";
+  position: absolute;
+  right: -8rpx;
+  bottom: -6rpx;
+  width: 10rpx;
+  height: 4rpx;
+  background: var(--c-faint);
+  border-radius: 2rpx;
+  transform: rotate(45deg);
+}
+.dash-search-input { flex: 1; font-size: 28rpx; height: 88rpx; }
+.dash-search-clear {
+  width: 56rpx;
+  height: 56rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--c-faint);
+  font-size: 36rpx;
+  flex-shrink: 0;
+}
 
 /* ====== 首次启动引导浮层 ====== */
 .onboard-mask {

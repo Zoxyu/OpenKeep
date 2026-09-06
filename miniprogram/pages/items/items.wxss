@@ -92,6 +92,7 @@
 .fp-cell-on.fp-st-expired { background: var(--c-danger-bg); color: var(--c-danger); }
 .fp-cell-on.fp-st-warning { background: var(--c-warn-bg); color: var(--c-warn); }
 .fp-cell-on.fp-st-safe { background: var(--c-safe-bg); color: var(--c-safe); }
+.fp-cell-on.fp-st-memo { background: var(--c-memo-bg); color: var(--c-memo); }
 
 /* 骨架屏样式已删除：数据来自本地缓存、同步可得，不再存在加载等待期 */
 

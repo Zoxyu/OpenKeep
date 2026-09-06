@@ -35,7 +35,8 @@ Page({
       { key: 'all', label: '全部' },
       { key: 'expired', label: '已过期' },
       { key: 'warning', label: '临期' },
-      { key: 'safe', label: '安全' }
+      { key: 'safe', label: '安全' },
+      { key: 'memo', label: '备忘' }
     ],
     sortOptions: [
       { key: 'due', label: '到期最早' },

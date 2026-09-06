@@ -38,7 +38,10 @@ Page({
     // scroll-view 下拉刷新状态（页面已 disableScroll，改用 refresher）
     refreshing: false,
     // 自定义下拉刷新区域文案（refresher-default-style="none" + slot="refresher"）
-    refresherText: '下拉刷新'
+    refresherText: '下拉刷新',
+    // 关键词搜索（fab 旁圆形入口展开）：模糊匹配名称/分类/位置/备注
+    keyword: '',
+    searchOpen: false
   },
 
   onLoad() {
@@ -98,7 +101,7 @@ Page({
       it.photoOk = !!it.photoPath && imageUtil.isPhotoValid(it.photoPath);
     });
 
-    const stats = { expired: 0, warning: 0, safe: 0 };
+    const stats = { expired: 0, warning: 0, safe: 0, memo: 0 };
     items.forEach(it => { stats[it.status.level] += 1; });
 
     // 主提醒卡：第一条非「安全」记录；没有则展示新手引导
@@ -109,7 +112,8 @@ Page({
 
     // M1：近期保修提醒（轻量，独立于三色到期统计，不改变其含义）；
     // 仅统计已设置保修、且将在 30 天内到期（含今天）的物品，按剩余天数升序。
-    const WARRANTY_WINDOW = 30;
+    // 保修提醒窗口：默认 30 天；settings.warrantyBeyond30 开启后超过 30 天的保修也纳入
+    const WARRANTY_WINDOW = settings.warrantyBeyond30 ? Infinity : 30;
     const warrantySoon = [];
     items.forEach(it => {
       const w = recordUtil.getWarrantyStatus(it);
@@ -125,7 +129,14 @@ Page({
     warrantySoon.sort((a, b) => a.daysLeft - b.daysLeft);
 
     const filter = this.data.filter;
-    const list = filter === 'all' ? items : items.filter(it => it.status.level === filter);
+    const kw = this.data.keyword.trim().toLowerCase();
+    let list = filter === 'all' ? items : items.filter(it => it.status.level === filter);
+    if (kw) {
+      list = list.filter(it => {
+        const hay = (it.name + ' ' + it.categoryLabel + ' ' + (it.location || '') + ' ' + (it.notes || '')).toLowerCase();
+        return hay.indexOf(kw) > -1;
+      });
+    }
 
     this.setData({
       // contentReady 与它守卫的列表数据同批原子翻转：门开帧不显示误导性的 0/0/0、共 0 件
@@ -145,7 +156,8 @@ Page({
         { key: 'all', label: '全部', count: items.length },
         { key: 'expired', label: '已过期', count: stats.expired },
         { key: 'warning', label: '临期', count: stats.warning },
-        { key: 'safe', label: '安全', count: stats.safe }
+        { key: 'safe', label: '安全', count: stats.safe },
+        { key: 'memo', label: '备忘', count: stats.memo }
       ]
     });
     } catch (e) {
@@ -162,6 +174,24 @@ Page({
   // 点击统计卡片 = 快捷筛选到对应状态
   onStatTap(e) {
     this.setData({ filter: e.currentTarget.dataset.level });
+    this.refresh();
+  },
+
+  // ====== 关键词搜索（fab 旁圆形入口展开/收起） ======
+  onToggleSearch() {
+    if (this.data.searchOpen) {
+      this.setData({ searchOpen: false, keyword: '' });
+      this.refresh();
+    } else {
+      this.setData({ searchOpen: true });
+    }
+  },
+  onSearchInput(e) {
+    this.setData({ keyword: e.detail.value });
+    this.refresh();
+  },
+  onSearchClear() {
+    this.setData({ keyword: '' });
     this.refresh();
   },
 
