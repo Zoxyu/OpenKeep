@@ -9,7 +9,7 @@
 
   <view class="intro">
     <view class="intro-title">选择要提醒的物品</view>
-    <view class="intro-desc">已过期与未来 90 天内到期的物品会显示在这里。导入后，将在到期日上午 9:00 添加提醒。</view>
+    <view class="intro-desc">已过期与未来 90 天内到期的物品、以及保修即将到期的物品会显示在这里。导入后，将在对应日期上午 9:00 添加提醒。</view>
   </view>
 
   <!-- 选项区 -->
@@ -29,6 +29,13 @@
         <view class="cell-sub">避免产生重复提醒</view>
       </view>
       <switch checked="{{skipImported}}" color="#3E8F72" disabled="{{importing}}" bindchange="onSkipChange" />
+    </view>
+    <view class="cell">
+      <view>
+        <view class="cell-title">纳入超过 30 天的保修</view>
+        <view class="cell-sub">默认只提醒 30 天内到期的保修</view>
+      </view>
+      <switch checked="{{warrantyBeyond30}}" color="#3E8F72" disabled="{{importing}}" bindchange="onWarrantyBeyondChange" />
     </view>
     <view class="cell">
       <view class="cell-title">全选可选记录</view>
@@ -54,7 +61,7 @@
       </view>
       <view class="ci-body">
         <view class="ci-name">{{item.record.name}}</view>
-        <view class="ci-meta">{{item.record.categoryLabel}} · 到期 {{item.record.status.dueDate}}</view>
+        <view class="ci-meta">{{item.record.categoryLabel}} · {{item.kind === 'warranty' ? '保修至 ' + item.record.warrantyEnd : '到期 ' + item.record.status.dueDate}}</view>
       </view>
       <view class="ci-right">
         <status-badge level="{{item.record.status.level}}" text="{{item.record.status.levelText}}" size="small" />

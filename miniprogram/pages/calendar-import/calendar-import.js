@@ -51,6 +51,8 @@ Page({
     hasCandidates: false,
     checkedCount: 0,
     skipImported: true,
+    // M1：保修提醒窗口开关（>30 天保修也纳入候选），读自 settings
+    warrantyBeyond30: false,
     reminderOptions: REMINDER_OPTIONS.map(r => r.label),
     reminderIndex: 1,
     importing: false,
@@ -93,19 +95,33 @@ Page({
     try {
       const settings = app.globalData.settings || storage.loadSettings();
       const all = recordUtil.withStatus(storage.loadRecords(), settings.warningDays);
-      const candidates = recordUtil.sortUrgent(all.filter(it => it.status.daysLeft <= 90));
+      // 物品到期候选：已过期 + 未来 90 天内到期
+      const dueCandidates = all.filter(it => it.status.daysLeft <= 90);
+      // 保修到期候选（M1）：有保修日且未过保；窗口默认 30 天，warrantyBeyond30 开启后不限上限
+      const wWindow = settings.warrantyBeyond30 ? Infinity : 30;
+      const dueIds = {};
+      dueCandidates.forEach(it => { dueIds[it.id] = true; });
+      const dueList = recordUtil.sortUrgent(dueCandidates).map(it => ({ record: it, kind: 'due' }));
+      const warrantyList = recordUtil.sortUrgent(all.filter(it => {
+        const w = recordUtil.getWarrantyStatus(it);
+        return w.hasWarranty && w.daysLeft >= 0 && w.daysLeft <= wWindow && !dueIds[it.id];
+      })).map(it => ({ record: it, kind: 'warranty' }));
+      const candidates = dueList.concat(warrantyList);
       const skip = this.data.skipImported;
-      const items = candidates.map(it => ({
-        record: it,
-        checked: !it.calendarImported,
-        disabled: skip && it.calendarImported
+      const items = candidates.map(c => ({
+        record: c.record,
+        kind: c.kind,
+        // 已过期物品默认不勾选（需手动勾选才导入）；其余未导入记录默认勾选
+        checked: !c.record.calendarImported && c.record.status.level !== 'expired',
+        disabled: skip && c.record.calendarImported
       }));
       this.setData({
         // contentReady 与它守卫的候选列表同批原子翻转
         contentReady: true,
         items,
         hasCandidates: items.length > 0,
-        checkedCount: items.filter(i => i.checked).length
+        checkedCount: items.filter(i => i.checked).length,
+        warrantyBeyond30: !!settings.warrantyBeyond30
       });
     } catch (e) {
       console.error('[calendar-import] buildList failed', e);
@@ -158,6 +174,17 @@ Page({
 
   onReminderChange(e) {
     this.setData({ reminderIndex: Number(e.detail.value) });
+  },
+
+  // M1：保修提醒窗口开关（>30 天保修也纳入候选与看板卡）；持久化到 settings 并重建候选
+  onWarrantyBeyondChange(e) {
+    const on = !!e.detail.value;
+    const settings = app.globalData.settings || storage.loadSettings();
+    settings.warrantyBeyond30 = on;
+    storage.saveSettings(settings);
+    app.globalData.settings = settings;
+    this.setData({ warrantyBeyond30: on });
+    this.buildList();
   },
 
   // ====== 导入流程 ======
@@ -232,7 +259,7 @@ Page({
     if (idx >= list.length) { this.finishImport(false); return; }
 
     const item = list[idx];
-    const evt = calendarUtil.buildEvent(item.record, item.record.status, reminderDays);
+    const evt = calendarUtil.buildEvent(item.record, item.record.status, reminderDays, item.kind);
 
     // 到期日期非法等构造失败：记为失败，不阻断后续条目
     if (!evt) {
