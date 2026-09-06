@@ -94,6 +94,7 @@ wx.setStorage 本地缓存（版本化 key） + USER_DATA_PATH 文件（照片�
 - **全部 7 个页面**使用 `disableScroll: true` + 内部 `scroll-view`（`.page-scroll`），不要恢复页面级原生滚动。
 - 日历权限仅在用户主动点击导入后申请；禁止后台 / 页面加载时静默申请。
 - 中文界面，文案克制温和；尺寸一律 `rpx`；点击区域分层：主操作按钮 / 底部操作区 ≥88rpx，次级控件（分段选择 `.seg-item`、单位选择 `.unit-item`、底部取消 `.bb-cancel`）76–80rpx，筛选胶囊（`.chip` / `.fb-chip` / `.fp-cell`）与 `.clear-link` 64–68rpx（实测最小值，勿宣称「全部 ≥88rpx」）。
+- **验收以用户真机反馈为准**：测试清单通过≠最终验收；已标记「验收通过」的功能若后续用户反馈问题，仍按正常缺陷流程排查修复，不因「已验收」而忽略。
 
 
 ---
@@ -102,7 +103,7 @@ wx.setStorage 本地缓存（版本化 key） + USER_DATA_PATH 文件（照片�
 
 ## 整体状态 / Overall Status
 
-功能完整、可编译运行。近两周边开发边在安卓 / iOS 真机上测试，已修复多轮兼容性缺陷；用户正在自行进行最终真机验证（用户明确不需要 Agent 代跑验证）。
+功能完整、可编译运行。V1.0 收尾与 M1 第一批次（购买/保修）已安卓真机验收通过；本轮交付备忘模式、保修日历导入、保修窗口开关、看板搜索等 M1 扩展，待用户真机验证。用户自行真机验证（Agent 不代跑）。
 
 ## 已完成 / Completed
 
@@ -118,7 +119,7 @@ wx.setStorage 本地缓存（版本化 key） + USER_DATA_PATH 文件（照片�
 
 ## 进行中 / In Progress
 
-- 用户持续真机验证中。本轮下拉刷新反馈 + 输入框键盘避让已安卓真机验证通过（2026-09-05）并分批提交；主题首帧修复（决策 6，更早提交）仍待用户真机验证。验证清单见第 5 节。
+- M1 / V1.5 进行中：备忘模式、保修日历导入、保修窗口开关、看板搜索、已过期不默认勾选等扩展已交付（2026-09-06），待用户真机验证。主题首帧修复（决策 6）仍待用户真机验证。
 
 ## 阻塞问题 / Blocked
 
@@ -136,7 +137,7 @@ wx.setStorage 本地缓存（版本化 key） + USER_DATA_PATH 文件（照片�
 
 # 5. 当前任务 / Active Tasks
 
-**本轮任务（三页下拉刷新自定义文案反馈 + 「今天」页补刷新 toast + 输入框键盘避让含数字键盘收起修复 + A①A② 清理）已完成、已通过安卓真机验证（2026-09-05），并分批提交入库。** 更早的主题首帧修复（决策 6，提交 `841744e`/`5caae4d`）仍待用户真机验证。
+**本轮任务（M1 扩展：备忘模式+莫兰迪蓝、录入 3 选 1、保修进批量导入+>30 天开关、已过期不默认勾选、看板关键词搜索+底部留白）已交付（2026-09-06），待用户真机验证。** 上一轮（下拉刷新反馈+键盘避让）已安卓真机验证通过并入库；主题首帧修复（决策 6）仍待验证。
 
 真机验证清单（存档；Node / 模拟器无法验证渲染时序与手势，必须以真机为准。**第 5–8 项本轮安卓真机已验证通过**，第 1–4 项主题首帧仍待验证）：
 
@@ -148,6 +149,10 @@ wx.setStorage 本地缓存（版本化 key） + USER_DATA_PATH 文件（照片�
 6. **首页下拉刷新（本轮批次对齐回归）**：`dashboard.js` 的 `onScrollRefresh` 已由 3 批 `setData` 改为 2 批（`refreshing:false` 并入 `refresh()` 成功批，catch 批原已有，与物品页同模式），需回归验证：首页下拉能触发、指示器正常收回、toast「已刷新本地状态」出现、内容照常刷新；异常路径（`refresh()` catch）仍能收起指示器。
 7. **下拉刷新文案（本轮，安卓重点）**：三页改自定义 refresher（`refresher-default-style="none"` + `slot="refresher"`），下拉时依次显示「下拉刷新 → 松开立即刷新（拉够 45px）→ 正在刷新…」+ 转圈点；「今天」页下拉完成后应有 toast「内容已刷新」（此前无提示，本轮补）；深浅色下文案与转圈点均可见。
 8. **输入框键盘避让（安卓重点，见决策 7）**：item-form 7 个输入框（含多行备注）+ items 搜索框聚焦弹键盘时，页面**不再整体漂移**、输入文字**始终可见**（聚焦字段自动滚到键盘上方）；**尤其购买价格等数字键盘（type=digit/number）输入完收起后，页面须恢复满高、底部不再留白遮挡**（2026-09-05 修复）；框间切换无明显抖动；反复聚焦同一字段仍能正常滚动。
+9. **备忘模式（本轮）**：只填存放位置保存→状态「备忘」莫兰迪蓝；看板统计/筛选含备忘维度；纯备忘不进批量导入候选。
+10. **录入 3 选 1（本轮）**：保质期/保修/位置都不填→报错提示；填任一可保存。
+11. **保修进批量导入（本轮）**：有保修日(未过保)记录出现在候选(显示「保修至」)；开关开启后>30天保修也进；已过期物品默认不勾选。
+12. **看板搜索+留白（本轮）**：fab 旁搜索按钮展开→关键词过滤列表；底部留白使 fab 不挡最后卡片。
 
 可选后续（非本轮范围，需用户确认）：见第 9 节第 4、5 条。
 
@@ -280,6 +285,23 @@ wx.setStorage 本地缓存（版本化 key） + USER_DATA_PATH 文件（照片�
 - **`kbHeight` 归零必须由 `onFieldBlur` 兜底，不能只依赖 `wx.onKeyboardHeightChange`**：安卓数字键盘（`type="digit"`/`"number"`）收起时该事件常不回调 `height=0`，只靠它会让 `scroll-view` 卡在收缩高度、底部留白遮挡内容（2026-09-05 安卓真机复现并修复）；`onFieldFocus` 亦用 `e.detail.height` 主动收缩。对应 `onUnload` 须一并 `clearTimeout(this._blurTimer)`。
 - **安卓首次聚焦可能仍有一次极轻微原生视口上推**（webview adjustPan 层行为，社区反馈 `adjust-position=false` 亦难完全阻止首次那一下，失焦复位后同页后续聚焦不再上推）；若真机验证发现残留，属平台限制、非本方案缺陷。
 
+## 决策 8：备忘模式（3 选 1 录入）+ 保修提醒窗口开关 + 保修进日历导入
+
+**日期 / Date:** 2026-09-06（用户真机反馈后实施；待真机验证）
+
+**决定 / Decision:**
+- **录入 3 选 1**：保质期（或开封后可保存天数）/ 保修结束日 / 存放位置 至少填一项即可保存（保质期不再强制必填）。只填存放位置＝**备忘模式**：无到期日，`computeStatus` 返回独立状态 `memo`（莫兰迪浅蓝 `--c-memo`），不参与红黄绿到期语义；看板统计/筛选含「备忘」维度。
+- **备忘进日历导入规则**：纯备忘（无任何日期）不进批量导入候选（日历事件必须有日期）；填了保修日的备忘用保修日导入（`buildEvent` kind='warranty'）；填了保质期的记录有到期日、按到期日导入（正常红黄绿，非备忘）。
+- **保修提醒窗口开关**：`settings.warrantyBeyond30`（默认 false＝保修只看 30 天内）。开关 UI 在「批量导入日历」页；同时影响看板「近期保修」卡与批量导入保修候选的窗口（开启后 >30 天保修也纳入）。
+- **批量导入已过期物品默认不勾选**（仍出现在候选，需手动勾选才导入）；未来到期与保修候选默认勾选。
+
+**原因 / Reason:** 用户希望低压力录入（备忘录场景）、保修到期可被日历提醒、且保修提醒范围可配置；已过期物品默认勾选易误导（用户反馈）。
+
+**影响 / Impact（不变量）:**
+- `memo` 状态贯穿：record.computeStatus / 看板统计+筛选 / items 筛选 / status-badge / app.wxss 莫兰迪蓝变量；新增状态展示处须容纳 memo。
+- 保修窗口开关存 `settings.warrantyBeyond30`（storage normalize 兜底 false）；看板与批量导入都读它，勿各自硬编码 30。
+- 批量导入候选元素为 `{ record, kind }`，kind='due'|'warranty' 决定 buildEvent 日期来源；runStep 传 item.kind。
+
 
 ---
 
@@ -298,6 +320,7 @@ wx.setStorage 本地缓存（版本化 key） + USER_DATA_PATH 文件（照片�
 
 # 8. 最近的重要变化 / Recent Significant Changes
 
+- 2026-09-06 — **M1 扩展交付：备忘模式+保修日历导入+看板搜索（待真机验证，尚未 commit）**：① 录入 3 选 1（保质期/保修/位置），只填位置＝备忘模式（新状态 memo 莫兰迪蓝，看板统计/筛选容纳）；② 批量导入候选新增保修到期（buildEvent kind='warranty' 用保修日），纯备忘不进候选；③ 「批量导入」页加 warrantyBeyond30 开关（>30 天保修也纳入，同控看板保修卡窗口）；④ 已过期物品默认不勾选；⑤ 看板加关键词搜索（fab 旁圆形入口）+ 底部留白防 fab 遮挡。改动文件：record/storage/calendar.js、item-form、dashboard、items、calendar-import、app.wxss、status-badge.wxss。状态＝`node --check` 通过，**待安卓真机验证**。
 - 2026-09-05 — **修复键盘避让：数字键盘收起后 scroll-view 卡收缩高度、底部留白遮挡内容（安卓真机，尚未 commit）**：根因——`kbHeight` 只靠 `wx.onKeyboardHeightChange` 回调 `height=0` 复位，而安卓数字键盘（`type=digit/number`）收起常不回调。修复：`onFieldBlur` 延迟 120ms 兜底归零（延迟兼容框间切换、focus 取消归零防抖动）+ `onFieldFocus` 用 `e.detail.height` 立即收缩 + `onUnload` 清理定时器。详见决策 7。改动文件：item-form.js。状态＝`node --check` 通过 + **安卓真机验证通过（2026-09-05）**，已随本轮提交。
 - 2026-09-04 — **真机反馈修复：下拉刷新文案 + 输入框键盘避让（尚未 commit）**：① 三页下拉刷新改自定义 refresher 文案（`refresher-default-style="none"` + `slot="refresher"`：下拉刷新→松开立即刷新→正在刷新…+转圈），「今天」页补下拉完成 toast「内容已刷新」（此前无提示）；② item-form 7 输入框 + items 搜索框键盘避让（`adjust-position=false` + `wx.onKeyboardHeightChange` 动态收缩 scroll-view + `scroll-into-view` 滚到聚焦字段，见决策 7），根治安卓「输入框漂移、看不到输入内容」。改动文件：app.wxss、dashboard.js/wxml、items.js/wxml、history.js/wxml、item-form.js/wxml。状态＝已通过 `node --check` + 结构 grep + **安卓真机验证通过（2026-09-05）**，已随本轮提交。
 - 2026-09-04 — **下拉刷新收尾清理（A①+A②，尚未 commit）**：① `dashboard.js` 的 `onScrollRefresh` 由 3 批 `setData` 对齐为 2 批——`refreshing:false` 并入 `refresh()` 成功批（catch 批原已有），与物品页 `load()` 同模式，用户无感知、少一趟渲染消息；② 删除 `dashboard.json` / `history.json` 中 `disableScroll` 后失效的 `backgroundTextStyle: "dark"`（`app.json` 全局项保留）。改动文件：dashboard.js、dashboard.json、history.json。状态＝已通过 `node --check` + JSON 合法性校验 + 安卓真机验证，已随本轮提交。
