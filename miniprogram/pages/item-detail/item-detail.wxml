@@ -60,7 +60,7 @@
         <view class="cell-title">存放位置</view>
         <view class="cell-value">{{record.location}}</view>
       </view>
-      <view class="cell">
+      <view wx:if="{{status.dueDate}}" class="cell">
         <view class="cell-title">到期日期</view>
         <view class="cell-value">{{status.dueDate}}</view>
       </view>

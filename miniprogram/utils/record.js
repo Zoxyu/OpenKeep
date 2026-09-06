@@ -136,7 +136,7 @@ function withStatus(records, warningDays) {
 
 // 首页排序：已过期优先，其次临期，最后按到期日由近到远
 function sortUrgent(list) {
-  const order = { expired: 0, warning: 1, safe: 2 };
+  const order = { expired: 0, warning: 1, safe: 2, memo: 3 };
   return list.slice().sort((a, b) => {
     const d = order[a.status.level] - order[b.status.level];
     return d !== 0 ? d : a.status.dueTs - b.status.dueTs;

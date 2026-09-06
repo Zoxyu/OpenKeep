@@ -104,10 +104,10 @@ Page({
     const stats = { expired: 0, warning: 0, safe: 0, memo: 0 };
     items.forEach(it => { stats[it.status.level] += 1; });
 
-    // 主提醒卡：第一条非「安全」记录；没有则展示新手引导
+    // 主提醒卡：第一条 expired/warning 记录；备忘（无到期日）不作为紧急提醒；没有则展示新手引导
     let urgentItem = null;
     for (let i = 0; i < items.length; i++) {
-      if (items[i].status.level !== 'safe') { urgentItem = items[i]; break; }
+      if (items[i].status.level === 'expired' || items[i].status.level === 'warning') { urgentItem = items[i]; break; }
     }
 
     // M1：近期保修提醒（轻量，独立于三色到期统计，不改变其含义）；
