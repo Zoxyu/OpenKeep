@@ -44,6 +44,9 @@ page {
   --c-danger-bg: rgba(198, 91, 85, 0.10);
   --c-hover: rgba(32, 36, 33, 0.04);
   --c-shadow: 0 8rpx 28rpx rgba(32, 36, 33, 0.06);
+  /* 备忘状态（M1 备忘模式）：莫兰迪浅蓝，独立于红黄绿到期语义 */
+  --c-memo: #7C93A8;
+  --c-memo-bg: rgba(124, 147, 168, 0.12);
   min-height: 100vh;
   background: var(--c-bg);
   color: var(--c-text);
@@ -66,6 +69,8 @@ page {
   --c-danger-bg: rgba(224, 138, 130, 0.14);
   --c-hover: rgba(255, 255, 255, 0.06);
   --c-shadow: 0 8rpx 28rpx rgba(0, 0, 0, 0.35);
+  --c-memo: #A9C0D4;
+  --c-memo-bg: rgba(169, 192, 212, 0.16);
 }
 
 /* ====== 通用按钮（使用 view + hover-class，避免原生 button 默认样式） ====== */
@@ -188,6 +193,7 @@ page {
 .lv-text-expired { color: var(--c-danger); }
 .lv-text-warning { color: var(--c-warn); }
 .lv-text-safe { color: var(--c-safe); }
+.lv-text-memo { color: var(--c-memo); }
 
 /* ====== 列表行 ====== */
 .cell {
@@ -209,6 +215,7 @@ page {
 .bar-inner.lv-expired, .lv-bar-expired { background: var(--c-danger); }
 .bar-inner.lv-warning, .lv-bar-warning { background: var(--c-warn); }
 .bar-inner.lv-safe, .lv-bar-safe { background: var(--c-safe); }
+.bar-inner.lv-memo, .lv-bar-memo { background: var(--c-memo); }
 
 /* ====== 自定义复选框 ====== */
 .checkbox {

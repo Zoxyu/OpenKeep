@@ -105,8 +105,10 @@ function requestAuth() {
  *   3. 显式传入 alarm: true，避免部分机型默认不提醒。
  * 到期日期非法时返回 null，由调用方按失败处理，不影响后续条目。
  */
-function buildEvent(record, status, reminderDays) {
-  const due = dateUtil.parseDate(status && status.dueDate);
+function buildEvent(record, status, reminderDays, kind) {
+  // kind='warranty' 时用保修结束日构造（备忘记录无到期日但有保修日）；默认用到期日
+  const isWarranty = kind === 'warranty';
+  const due = dateUtil.parseDate(isWarranty ? record.warrantyEnd : (status && status.dueDate));
   if (!due) return null;
 
   // 事件开始时间：到期日 09:00；已过期则钳制到最近一个未来的 09:00
@@ -120,17 +122,21 @@ function buildEvent(record, status, reminderDays) {
       : new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1, 9, 0, 0);
   }
 
-  // 标题：带存放位置时生成「冰箱冷冻室 的 冷冻水饺 快要到期啦」
-  const title = record.location
-    ? record.location + ' 的 ' + record.name + ' 快要到期啦'
-    : record.name + ' 快要到期啦';
+  // 标题：带存放位置时生成「冰箱冷冻室 的 冷冻水饺 快要到期啦」；保修类用「保修即将到期」
+  const title = isWarranty
+    ? (record.location ? record.location + ' 的 ' + record.name + ' 保修即将到期' : record.name + ' 保修即将到期')
+    : (record.location ? record.location + ' 的 ' + record.name + ' 快要到期啦' : record.name + ' 快要到期啦');
 
   const lines = [
     '分类：' + (record.categoryLabel || '其他')
   ];
   if (record.location) lines.push('存放位置：' + record.location);
   lines.push('开封日期：' + record.openedAt);
-  lines.push('到期日期：' + status.dueDate + (isExpired ? '（已过期，提醒时间已调整）' : ''));
+  if (isWarranty) {
+    lines.push('保修结束：' + dateUtil.formatDate(due) + (isExpired ? '（已过保，提醒时间已调整）' : ''));
+  } else {
+    lines.push('到期日期：' + status.dueDate + (isExpired ? '（已过期，提醒时间已调整）' : ''));
+  }
   const shelfText = recordUtil.shelfLifeText(record);
   if (shelfText) lines.push('保质期：' + shelfText);
   if (record.openedDays > 0) lines.push('开封后可保存：' + record.openedDays + ' 天');

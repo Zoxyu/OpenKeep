@@ -283,16 +283,20 @@ Page({
     if (!name) errors.name = '请输入物品名称';
     else if (name.length > 30) errors.name = '名称最多 30 个字';
 
-    // 保质期：未填「开封后可保存天数」时必填；填了则为 1–3650 整数
+    // 保质期 / 保修结束日 / 存放位置 三选一（至少填一项）：只填存放位置＝备忘模式（无到期日，状态「备忘」）
     const shelfRaw = String(this.data.shelfLifeValue).trim();
     const openedRaw = String(this.data.openedDays).trim();
+    const hasShelf = !!shelfRaw || !!openedRaw;
+    const hasWarranty = !!String(this.data.warrantyEnd).trim();
+    const hasLocation = !!String(this.data.location).trim();
     if (shelfRaw) {
       const v = Number(shelfRaw);
       if (!isFinite(v) || Math.floor(v) !== v || v < 1 || v > 3650) {
         errors.shelfLifeValue = '请输入 1–3650 之间的整数';
       }
-    } else if (!openedRaw) {
-      errors.shelfLifeValue = '请填写保质期，或填写下方的开封后可保存天数';
+    }
+    if (!hasShelf && !hasWarranty && !hasLocation) {
+      errors.shelfLifeValue = '保质期、保修结束日、存放位置至少填写一项（只填存放位置可作为备忘）';
     }
 
     // 开封后可保存天数：可选，填了则必须是 1–3650 整数

@@ -76,12 +76,13 @@ function computeStatus(record, warningDays, today) {
   const due = dueDateOf(record, opened);
   const daysOpened = dateUtil.diffDays(base, opened);
 
-  // 无到期依据（不应出现，表单已校验）：按长期安全处理，排在最后
+  // 无到期依据（备忘模式：填了存放位置或保修、但未填保质期）：归入独立「备忘」状态（莫兰迪蓝），
+  // 不参与红黄绿到期语义，排在最后；保修提醒由 getWarrantyStatus 独立负责。
   if (!due) {
     return {
       dueDate: '', dueTs: Number.MAX_SAFE_INTEGER, daysLeft: Number.MAX_SAFE_INTEGER,
-      daysOpened: daysOpened, level: 'safe', levelText: '安全',
-      label: '未设置到期日', progress: 0
+      daysOpened: daysOpened, level: 'memo', levelText: '备忘',
+      label: '备忘', progress: 0
     };
   }
 

@@ -12,7 +12,7 @@ const KEYS = {
   onboarded: 'openkeep_onboarded_v' + VERSION
 };
 
-const DEFAULT_SETTINGS = { warningDays: 7, theme: 'system' };
+const DEFAULT_SETTINGS = { warningDays: 7, theme: 'system', warrantyBeyond30: false };
 const VALID_WARN_DAYS = [3, 7, 14];
 const CATEGORY_KEYS = ['fridge', 'freezer', 'medicine', 'cosmetics', 'other'];
 
@@ -153,10 +153,12 @@ function removeRecord(id) {
 
 function loadSettings() {
   const raw = safeGet(KEYS.settings, null);
-  const s = { warningDays: DEFAULT_SETTINGS.warningDays, theme: DEFAULT_SETTINGS.theme };
+  const s = { warningDays: DEFAULT_SETTINGS.warningDays, theme: DEFAULT_SETTINGS.theme, warrantyBeyond30: DEFAULT_SETTINGS.warrantyBeyond30 };
   if (raw && typeof raw === 'object') {
     if (VALID_WARN_DAYS.indexOf(raw.warningDays) > -1) s.warningDays = raw.warningDays;
     if (['system', 'light', 'dark'].indexOf(raw.theme) > -1) s.theme = raw.theme;
+    // M1：保修提醒窗口开关（默认 false＝只看 30 天内；true＝超过 30 天的保修也纳入看板卡与批量导入候选）
+    if (typeof raw.warrantyBeyond30 === 'boolean') s.warrantyBeyond30 = raw.warrantyBeyond30;
   }
   return s;
 }

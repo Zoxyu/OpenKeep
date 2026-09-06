@@ -25,3 +25,6 @@
 
 .lv-safe { color: var(--c-safe); background: var(--c-safe-bg); }
 .lv-safe .dot { background: var(--c-safe); }
+
+.lv-memo { color: var(--c-memo); background: var(--c-memo-bg); }
+.lv-memo .dot { background: var(--c-memo); }
