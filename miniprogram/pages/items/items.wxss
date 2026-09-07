@@ -102,5 +102,6 @@
 .list { padding: 8rpx 40rpx 220rpx; }
 .list-count { padding: 16rpx 4rpx; font-size: 24rpx; color: var(--c-faint); }
 
-.empty-action { display: flex; justify-content: center; padding: 0 96rpx; }
+/* 底部再预留悬浮胶囊 tabBar 高度（含 safe-area）：极矮屏下空态 CTA 仍可滚动到遮挡区之上 */
+.empty-action { display: flex; justify-content: center; padding: 0 96rpx calc(160rpx + env(safe-area-inset-bottom)); }
 .empty-btn { width: 100%; }

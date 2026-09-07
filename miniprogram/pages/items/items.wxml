@@ -39,8 +39,10 @@
     </view>
   </view>
 
-  <!-- 筛选面板：固定网格布局，所有选项一屏可见，无需左右滑动 -->
-  <view class="filter-panel">
+  <!-- 筛选面板：固定网格布局，所有选项一屏可见，无需左右滑动。
+       零记录时隐藏：无物可筛属无效 UI；且避免空态 CTA 被它下压进悬浮胶囊 tabBar 的遮挡区
+       （iOS 模拟矮视口 + safe-area 曾真机复现「添加物品按钮被胶囊栏完美挡住」，安卓高视口未复现） -->
+  <view wx:if="{{hasAny}}" class="filter-panel">
     <!-- 分类：3 列两行 -->
     <view class="fp-group">
       <view class="fp-label">分类</view>
