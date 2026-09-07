@@ -64,6 +64,11 @@
 .clear-link { margin-top: 10rpx; min-height: 64rpx; line-height: 64rpx; font-size: 24rpx; color: var(--c-sub); }
 .clear-hover { opacity: 0.6; }
 
+/* 维护周期分段：四选项单行撑满（复用 unit-seg/unit-item） */
+.cycle-seg { width: 100%; }
+.cycle-seg .unit-item { flex: 1; min-width: 0; }
+.cycle-hint { padding: 0 32rpx 24rpx; }
+
 /* 分类选择 */
 .cat-row { display: flex; gap: 14rpx; }
 .cat-item {

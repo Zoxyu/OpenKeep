@@ -45,6 +45,15 @@ Page({
     purchaseDate: '',         // 购买日期（M1 可选，'YYYY-MM-DD' 或 ''）
     purchasePrice: '',        // 购买价格（M1 可选，表单内为字符串，保存交由 storage 规范化为 number|null）
     warrantyEnd: '',          // 保修结束日期（M1 可选，'YYYY-MM-DD' 或 ''）
+    maintenanceLast: '',      // 上次维护日期（M1 第二批次可选，'YYYY-MM-DD' 或 ''）
+    maintenanceCycle: 'none', // 维护周期：不设/每月/每年/自定义天数
+    maintenanceCycleDays: '', // 自定义周期天数（表单内字符串，保存交由 storage 规范化）
+    cycleOptions: [
+      { v: 'none', label: '不设' },
+      { v: 'monthly', label: '每月' },
+      { v: 'yearly', label: '每年' },
+      { v: 'custom', label: '自定义' }
+    ],
     quickOpenedInput: '',     // 「已开封 X 天」快捷输入
     quickHint: '',
     quickOk: false,           // 快捷输入是否推算成功（控制提示文案颜色）
@@ -112,6 +121,9 @@ Page({
           purchaseDate: r.purchaseDate || '',
           purchasePrice: (r.purchasePrice === null || r.purchasePrice === undefined) ? '' : String(r.purchasePrice),
           warrantyEnd: r.warrantyEnd || '',
+          maintenanceLast: r.maintenanceLast || '',
+          maintenanceCycle: r.maintenanceCycle || 'none',
+          maintenanceCycleDays: r.maintenanceCycleDays > 0 ? String(r.maintenanceCycleDays) : '',
           notes: r.notes,
           refHint: this.buildRefHint(r.category),
           quickOpenedInput: openedDiff >= 0 ? String(openedDiff) : ''
@@ -245,6 +257,22 @@ Page({
   onClearPurchaseDate() { this.setData({ purchaseDate: '' }); },
   onClearWarrantyEnd() { this.setData({ warrantyEnd: '' }); },
 
+  // ====== 维护周期（M1 第二批次可选字段）======
+  onMaintenanceLastChange(e) {
+    const errors = Object.assign({}, this.data.errors); delete errors.maintenanceLast;
+    this.setData({ maintenanceLast: e.detail.value, errors });
+  },
+  onClearMaintenanceLast() { this.setData({ maintenanceLast: '' }); },
+  onCycleTap(e) {
+    const errors = Object.assign({}, this.data.errors);
+    delete errors.maintenanceLast; delete errors.maintenanceCycleDays;
+    this.setData({ maintenanceCycle: e.currentTarget.dataset.v, errors });
+  },
+  onMaintenanceDaysInput(e) {
+    const errors = Object.assign({}, this.data.errors); delete errors.maintenanceCycleDays;
+    this.setData({ maintenanceCycleDays: e.detail.value, errors });
+  },
+
   onUnitTap(e) {
     this.setData({ shelfLifeUnit: e.currentTarget.dataset.v });
   },
@@ -323,6 +351,18 @@ Page({
       const p = Number(priceRaw);
       if (!isFinite(p) || p < 0) errors.purchasePrice = '请输入有效的购买价格（不小于 0）';
     }
+
+    // 维护周期（可选附加）：设了周期则上次维护日必填；自定义天数必须 1–3650 整数
+    if (this.data.maintenanceCycle !== 'none') {
+      if (!this.data.maintenanceLast) errors.maintenanceLast = '设置了维护周期，请选择上次维护日期';
+      if (this.data.maintenanceCycle === 'custom') {
+        const dRaw = String(this.data.maintenanceCycleDays).trim();
+        const d = Number(dRaw);
+        if (!dRaw || !isFinite(d) || Math.floor(d) !== d || d < 1 || d > 3650) {
+          errors.maintenanceCycleDays = '请输入 1–3650 之间的整数';
+        }
+      }
+    }
     return errors;
   },
 
@@ -361,6 +401,10 @@ Page({
       base.purchaseDate = this.data.purchaseDate;
       base.purchasePrice = this.data.purchasePrice;
       base.warrantyEnd = this.data.warrantyEnd;
+      // M1 第二批次：维护周期透传，由 storage.normalizeRecord 统一规范化
+      base.maintenanceLast = this.data.maintenanceLast;
+      base.maintenanceCycle = this.data.maintenanceCycle;
+      base.maintenanceCycleDays = parseInt(this.data.maintenanceCycleDays, 10) || 0;
       base.updatedAt = now;
 
       const ok = storage.upsertRecord(base);

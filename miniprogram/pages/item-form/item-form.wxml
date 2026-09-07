@@ -232,6 +232,62 @@
     </view>
   </view>
 
+  <!-- 维护周期（M1 第二批次，纯可选附加；下次维护日＝上次+1 周期自动推算，不落库） -->
+  <view class="form-card card">
+    <view class="opt-head">
+      <text class="opt-title">维护周期</text>
+      <text class="opt-sub">纯可选 · 适合滤芯/洗衣机等定期保养物</text>
+    </view>
+
+    <!-- 上次维护日期 -->
+    <view class="field">
+      <view class="field-label">上次维护日期</view>
+      <picker mode="date" value="{{maintenanceLast}}" bindchange="onMaintenanceLastChange">
+        <view class="input-base picker-row">
+          <text class="{{maintenanceLast ? '' : 'ph-text'}}">{{maintenanceLast || '请选择（设周期时必填）'}}</text>
+          <text class="picker-arrow">›</text>
+        </view>
+      </picker>
+      <view wx:if="{{maintenanceLast}}" class="clear-link" hover-class="clear-hover" bindtap="onClearMaintenanceLast">清除维护日期</view>
+      <view wx:if="{{errors.maintenanceLast}}" class="err-text">{{errors.maintenanceLast}}</view>
+    </view>
+
+    <!-- 维护周期：四选项单行分段（复用 unit-seg 样式） -->
+    <view class="field">
+      <view class="field-label">维护周期</view>
+      <view class="unit-seg cycle-seg">
+        <view
+          wx:for="{{cycleOptions}}"
+          wx:key="v"
+          class="unit-item {{maintenanceCycle === item.v ? 'unit-on' : ''}}"
+          data-v="{{item.v}}"
+          hover-class="unit-hover"
+          bindtap="onCycleTap"
+        >{{item.label}}</view>
+      </view>
+    </view>
+
+    <!-- 自定义天数（仅 custom 显示） -->
+    <view wx:if="{{maintenanceCycle === 'custom'}}" class="field" id="f-mdays">
+      <view class="field-label">自定义周期（天）</view>
+      <input
+        class="input-base"
+        type="number"
+        value="{{maintenanceCycleDays}}"
+        placeholder="如：180"
+        placeholder-class="ph-text"
+        adjust-position="{{false}}"
+        data-target="f-mdays"
+        bindfocus="onFieldFocus"
+        bindblur="onFieldBlur"
+        bindinput="onMaintenanceDaysInput"
+      />
+      <view wx:if="{{errors.maintenanceCycleDays}}" class="err-text">{{errors.maintenanceCycleDays}}</view>
+    </view>
+
+    <view class="field-sub cycle-hint">保存后按「上次维护日 + 1 个周期」自动推算下次维护日，详情可见并可写入日历提醒。</view>
+  </view>
+
   <!-- 操作按钮 -->
   <view class="actions">
     <view class="btn btn-primary {{saving ? 'btn-disabled' : ''}}" hover-class="btn-hover" bindtap="onSave">
