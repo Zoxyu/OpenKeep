@@ -60,9 +60,9 @@ wx.setStorage 本地缓存（版本化 key） + USER_DATA_PATH 文件（照片�
 | `miniprogram/app.js` | 全局设置、主题单一事实来源（`resolveTheme` / `effectiveTheme` / `isDark`）、主题变化监听（`onTheme`）、原生 chrome（`applyChrome` / `syncPageChrome`） | 稳定 |
 | `pages/dashboard` | 首页看板：问候、三色统计、主提醒卡、近期保修卡（30 天内过保）、筛选、列表、悬浮添加按钮、历史预览卡、引导页 | 稳定 |
 | `pages/items` | 全部物品：搜索 + 分类/状态/排序固定网格筛选（非横滑）、下拉刷新（自定义文案反馈）、搜索框键盘避让、悬浮添加 fab（有记录时显示，空态用流内 CTA 不重复）；**零记录时隐藏筛选面板**（无物可筛属无效 UI，且避免空态「＋ 添加物品」CTA 被下压进悬浮胶囊 tabBar 遮挡区——iOS 模拟矮视口 + safe-area 曾复现按钮被胶囊栏挡住，安卓高视口不复现；修胶囊栏遮挡时勿改 tabBar 本身，tabBar 含 safe-area 偏移是各 fab 避让的基准） | 稳定；已安卓真机验证 |
-| `pages/item-form` | 新增/编辑：封面照片持久化、保质期（天/月/年）、可选开封天数、存放位置、快捷反推 | 稳定 |
-| `pages/item-detail` | 详情、编辑/删除、单条写入日历 | 稳定 |
-| `pages/calendar-import` | 批量导入日历：勾选、全选、跳过已导入、逐条串行写入、进度与结果统计 | 稳定（含安卓手势链方案） |
+| `pages/item-form` | 新增/编辑：封面照片持久化、保质期（天/月/年）、可选开封天数、存放位置、快捷反推、维护周期（上次维护日+每月/每年/自定义天数） | 稳定；维护周期待真机验证 |
+| `pages/item-detail` | 详情、编辑/删除、单条写入日历、维护周期卡（上次/周期/下次/状态） | 稳定；维护卡待真机验证 |
+| `pages/calendar-import` | 批量导入日历：勾选、全选、跳过已导入、逐条串行写入、进度与结果统计；候选=到期+保修+维护（30 天内含超期，超期默认不勾选） | 稳定（含安卓手势链方案）；维护候选待真机验证 |
 | `pages/history` | 历史上的今天：缓存→在线（可选未启用）→本地 366 天数据兜底 | 稳定 |
 | `pages/profile` | 设置：临期阈值（3/7/14 天，默认 7）、外观、统计、批量导入入口、数据说明、清空数据 | 稳定 |
 | `utils/record.js` | 状态唯一计算源、排序、分类定义与参考天数、示例数据 | 稳定 |
@@ -115,6 +115,7 @@ wx.setStorage 本地缓存（版本化 key） + USER_DATA_PATH 文件（照片�
 - 首次启动引导（体验示例数据 / 从空白开始）
 - 主题切换首帧闪烁修复（门控 + 开门前置 + contentReady 原子守卫 + 白屏加固，见决策 6）；2026-09-07 用户真机复测**仍有闪烁**，用户判定非主要、**缓办**（见已知问题）
 - 物品页补下拉刷新（`refresher`，与首页 / 今天页同一套属性），设计依据见决策 5.1；已通过静态评审 + Node 状态机实测 + 安卓真机验证（2026-09-05）
+- 维护周期（M1 第二批次）：上次维护日 + 周期（每月/每年/自定义天数）→ 下次维护日派生（`utils/maintenance.js` 独立计算、不落库）；录入/详情卡/卡片 meta/批量导入日历联动；2026-09-07 交付，待真机验证（见决策 9）
 - README、隐私政策（`privacy-policy.txt`）、小程序图标；项目已在 Git 管理（main 分支，远端 `Zoxyu/OpenKeep`），`AGENTS.md`（a284035）与 `AI_CONTEXT.md`（c1b38a1）**均已纳入版本控制**
 
 ## 进行中 / In Progress
@@ -161,6 +162,7 @@ wx.setStorage 本地缓存（版本化 key） + USER_DATA_PATH 文件（照片�
 17. **统计卡同行（2026-09-07，用户验证通过）**：看板已过期/临期/安心保存三卡同一行（`.stat` 加 `box-sizing: border-box`）；仅当出现保修/备忘卡（4–5 个）时自动换两行。
 18. **物品页空态 CTA 避让（2026-09-07，用户 iOS 模拟验证通过）**：空态「＋ 添加物品」完整显示在胶囊栏上方；零记录时筛选面板隐藏（无物可筛属无效 UI）。
 19. **物品页 fab（2026-09-07，用户验证通过）**：有记录时右下角「＋ 添加物品」fab、点击进表单；滚到底最后一卡不被遮；空态不与流内 CTA 重复。
+20. **维护周期（2026-09-07，待验证）**：① 录入「维护周期」区：设周期则上次维护日必填（否则报错）、自定义需 1–3650 天；② 保存后详情显示维护卡（上次/周期/下次/状态），下次维护日＝上次+1 周期（月末/闰年收敛，已 Node 实测）；③ 超期红字「已超期 N 天」；④ 卡片 meta 在无到期日且无保修时显示「维护至 X」；⑤ 批量导入候选含 30 天内维护到期（超期默认不勾选），导入事件标题「该做维护了」；⑥ 旧数据（无维护字段）各页表现不变。
 
 可选后续（非本轮范围，需用户确认）：见第 9 节第 4、5 条。
 
@@ -311,6 +313,18 @@ wx.setStorage 本地缓存（版本化 key） + USER_DATA_PATH 文件（照片�
 - 保修窗口开关存 `settings.warrantyBeyond30`（storage normalize 兜底 false）；看板与批量导入都读它，勿各自硬编码 30。
 - 批量导入候选元素为 `{ record, kind }`，kind='due'|'warranty' 决定 buildEvent 日期来源；runStep 传 item.kind。
 
+## 决策 9：维护周期（M1 第二批次）数据模型与提醒语义
+
+**日期 / Date:** 2026-09-07
+
+**决定 / Decision:**
+- 字段（全可选，旧数据读时默认兜底）：`maintenanceLast`（'YYYY-MM-DD'）、`maintenanceCycle`（'none'|'monthly'|'yearly'|'custom'）、`maintenanceCycleDays`（1–3650，仅 custom 有意义）。
+- **下次维护日为派生值**（上次 + 1 周期，`utils/maintenance.js` 唯一计算源，月末/闰年收敛复用 date.js），不落库存储；按 PROJECT_PLAN 8.6 周期逻辑独立，页面只消费 `getMaintenanceInfo` 结果（record.withStatus 挂载 `maintenance` 字段）。
+- **与红黄绿/保修/备忘状态完全正交**：不参与状态级别、排序权重、统计维度（避免「新增状态级别需全面审计」回归类）。
+- 超期语义：下次维护日 < 今天时如实报「已超期 N 天」，不向后滚动到未来周期；批量导入候选＝维护到期 30 天内（含超期），与 due/warranty 候选去重，超期维护与已过期物品同待**默认不勾选**。
+- 日历联动：`buildEvent` kind='maintenance' 用下次维护日（标题「该做维护了」）；详情页单条导入日期依据链＝保修日 > 到期日 > 维护日（备忘+维护周期记录也可导入）；纯备忘无维护仍不进日历。
+- 录入校验：设了周期则上次维护日必填；custom 需 1–3650 整数；维护周期为纯可选附加，不参与「保质期/保修/位置 3 选 1」。
+
 
 ---
 
@@ -329,6 +343,7 @@ wx.setStorage 本地缓存（版本化 key） + USER_DATA_PATH 文件（照片�
 
 # 8. 最近的重要变化 / Recent Significant Changes
 
+- 2026-09-07 — **M1 第二批次维护周期交付（待真机验证，尚未 commit）**：① 新增 `utils/maintenance.js`（周期唯一计算源，下次维护日派生不落库，月末/闰年收敛）；② storage 三字段规范化（旧数据兼容）+ record.withStatus 挂载 maintenance；③ 录入新增「维护周期」区（设周期则上次维护日必填、自定义 1–3650 天）；④ 详情维护卡 + 日历栏支持维护日（依据链保修>到期>维护）；⑤ item-card meta「维护至 X」第三回退；⑥ 批量导入加维护候选（30 天含超期、去重、超期默认不勾选）+ buildEvent kind='maintenance'。改动文件：utils/maintenance.js（新）、storage/record/calendar.js、item-form、item-detail、item-card、calendar-import。状态＝`node --check` 通过 + Node 实测周期计算（月末 1/31→2/28、闰年 2/29→2/28、超期标签、旧数据兼容均正确）。
 - 2026-09-07 — **物品页添加入口补齐：悬浮 fab（提交 `728a1e4`，docs `73bdbc1`）**：物品页此前仅空态有流内 CTA、有记录后无添加入口；补 `wx:if="{{hasAny}}"` fab（与空态 CTA 互斥不重复，复用 `goAdd`），避让基准与看板 fab 同（`bottom: calc(180rpx + env(safe-area-inset-bottom))`）；`.list` 底部预留 220→380rpx 防 fab 遮末卡。改动文件：items.wxml、items.wxss。状态＝待用户验证。
 - 2026-09-07 — **物品页空态 CTA 遮挡修复（iOS 模拟复现，提交 `d7739a6`，docs `11b480c`）**：根因——空态 CTA 在 scroll-view 流内无底部避让，iOS 模拟矮视口 + 34px safe-area 使胶囊 tabBar 整体抬高恰好遮住（安卓高视口未复现）。修复——零记录隐藏筛选面板使 CTA 上移约 440rpx + `.empty-action` 底部预留 `calc(160rpx + env(safe-area-inset-bottom))`；**不改 tabBar 本身**（其 safe-area 偏移是各 fab 避让基准）。改动文件：items.wxml、items.wxss。状态＝**用户 iOS 模拟验证通过**（空态截图 CTA 完整可见于胶囊栏上方）。
 - 2026-09-07 — **看板统计卡同行修复（提交 `1750abe`）**：`.stat` 默认 content-box 致 1rpx 边框未计入 flex-basis、三卡超宽约 4rpx 触发 wrap 成 2+1；加 `box-sizing: border-box` 后三色卡精确同行、4–5 卡才换行。改动文件：dashboard.wxss。状态＝待用户验证。
