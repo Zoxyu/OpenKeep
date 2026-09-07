@@ -88,6 +88,15 @@ function normalizeRecord(raw) {
     purchasePrice = Math.round(priceNum * 100) / 100;
   }
 
+  // ===== M1 第二批次：维护周期字段（全部可选；下次维护日为派生值、不落库）=====
+  // 上次维护日期：'YYYY-MM-DD'，经 date.js 校验，非法 / 未填为 ''
+  const maintenanceLast = dateUtil.parseDate(raw.maintenanceLast) ? raw.maintenanceLast : '';
+  // 维护周期：none/monthly/yearly/custom，旧数据默认 none
+  const maintenanceCycle = ['none', 'monthly', 'yearly', 'custom'].indexOf(raw.maintenanceCycle) > -1 ? raw.maintenanceCycle : 'none';
+  // 自定义周期天数：1–3650 整数（仅 custom 有意义），非法 / 未填为 0
+  const mcDaysRaw = parseInt(raw.maintenanceCycleDays, 10);
+  const maintenanceCycleDays = (isFinite(mcDaysRaw) && mcDaysRaw >= 1 && mcDaysRaw <= 3650) ? mcDaysRaw : 0;
+
   return {
     id: typeof raw.id === 'string' && raw.id ? raw.id : genId(),
     name: name,
@@ -102,6 +111,9 @@ function normalizeRecord(raw) {
     purchaseDate: purchaseDate,
     purchasePrice: purchasePrice,
     warrantyEnd: warrantyEnd,
+    maintenanceLast: maintenanceLast,
+    maintenanceCycle: maintenanceCycle,
+    maintenanceCycleDays: maintenanceCycleDays,
     createdAt: typeof raw.createdAt === 'number' ? raw.createdAt : now,
     updatedAt: typeof raw.updatedAt === 'number' ? raw.updatedAt : now,
     calendarImported: !!raw.calendarImported,

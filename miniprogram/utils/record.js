@@ -4,6 +4,7 @@
  * 保证颜色、文字、统计数与筛选结果全局一致；状态绝不落库写死。
  */
 const dateUtil = require('./date');
+const maintenanceUtil = require('./maintenance');
 
 // 分类定义：文案 + 占位图形色值（浅色 / 深色模式分别给出一套）
 // refOpenedDays：该分类「开封后可保存天数」的保守参考值（宁少勿多，提醒更安全）
@@ -140,7 +141,9 @@ function withStatus(records, warningDays) {
       toneDark: cat.toneDark,
       toneAlpha: cat.toneAlpha,
       toneDarkAlpha: cat.toneDarkAlpha,
-      status: computeStatus(r, warningDays, today)
+      status: computeStatus(r, warningDays, today),
+      // M1 第二批次：维护信息（与到期/保修状态正交，计算逻辑独立在 utils/maintenance.js）
+      maintenance: maintenanceUtil.getMaintenanceInfo(r, today)
     });
   });
 }
@@ -224,5 +227,6 @@ module.exports = {
   withStatus,
   sortUrgent,
   getWarrantyStatus,
+  getMaintenanceInfo: maintenanceUtil.getMaintenanceInfo,
   demoRecords
 };
