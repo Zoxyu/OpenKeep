@@ -8,9 +8,10 @@
 .hero-sub { margin-top: 4rpx; font-size: 23rpx; color: var(--c-faint); letter-spacing: 1rpx; }
 
 /* ====== 三色统计卡 ====== */
-.stats { display: flex; gap: 20rpx; padding: 36rpx 40rpx 0; }
+.stats { display: flex; flex-wrap: wrap; gap: 20rpx; padding: 36rpx 40rpx 0; }
 .stat {
-  flex: 1;
+  flex: 1 1 calc(33.33% - 14rpx);
+  min-width: calc(33.33% - 14rpx);
   background: var(--c-card);
   border-radius: 22rpx;
   border: 1rpx solid var(--c-line);

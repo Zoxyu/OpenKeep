@@ -36,6 +36,7 @@ Page({
       { key: 'expired', label: '已过期' },
       { key: 'warning', label: '临期' },
       { key: 'safe', label: '安全' },
+      { key: 'warranty', label: '保修' },
       { key: 'memo', label: '备忘' }
     ],
     sortOptions: [

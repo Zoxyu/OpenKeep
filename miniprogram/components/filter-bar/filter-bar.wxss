@@ -1,14 +1,18 @@
-/* 快捷筛选条：可横滑的胶囊选项 */
+/* 快捷筛选条：胶囊选项自动换行分行（避免横滑，保证一屏可见） */
 .filter-bar {
-  white-space: nowrap;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16rpx 12rpx;
   padding: 8rpx 40rpx;
 }
 .fb-chip {
   display: inline-flex;
   align-items: center;
+  justify-content: center;
+  flex: 1 1 calc(33.33% - 12rpx);
+  min-width: calc(33.33% - 12rpx);
   min-height: 68rpx;
-  padding: 0 30rpx;
-  margin-right: 16rpx;
+  padding: 0 20rpx;
   border-radius: 999rpx;
   background: var(--c-card);
   border: 1rpx solid var(--c-line);

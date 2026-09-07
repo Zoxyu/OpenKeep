@@ -1,4 +1,4 @@
-<scroll-view class="filter-bar" scroll-x="true" enable-flex="true" enhanced="true" show-scrollbar="false">
+<view class="filter-bar">
   <view
     wx:for="{{options}}"
     wx:key="key"
@@ -10,4 +10,4 @@
     <text>{{item.label}}</text>
     <text wx:if="{{item.count !== undefined}}" class="fb-count">{{item.count}}</text>
   </view>
-</scroll-view>
+</view>

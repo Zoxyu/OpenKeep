@@ -101,7 +101,7 @@ Page({
       it.photoOk = !!it.photoPath && imageUtil.isPhotoValid(it.photoPath);
     });
 
-    const stats = { expired: 0, warning: 0, safe: 0, memo: 0 };
+    const stats = { expired: 0, warning: 0, safe: 0, warranty: 0, memo: 0 };
     items.forEach(it => { stats[it.status.level] += 1; });
 
     // 主提醒卡：第一条 expired/warning 记录；备忘（无到期日）不作为紧急提醒；没有则展示新手引导
@@ -157,6 +157,7 @@ Page({
         { key: 'expired', label: '已过期', count: stats.expired },
         { key: 'warning', label: '临期', count: stats.warning },
         { key: 'safe', label: '安全', count: stats.safe },
+        { key: 'warranty', label: '保修', count: stats.warranty },
         { key: 'memo', label: '备忘', count: stats.memo }
       ]
     });

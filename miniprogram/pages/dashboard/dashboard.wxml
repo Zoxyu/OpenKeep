@@ -55,6 +55,10 @@
       <view class="stat-num lv-text-safe">{{stats.safe}}</view>
       <view class="stat-label">安心保存</view>
     </view>
+    <view wx:if="{{stats.warranty > 0}}" class="stat" hover-class="stat-hover" bindtap="onStatTap" data-level="warranty">
+      <view class="stat-num lv-text-warranty">{{stats.warranty}}</view>
+      <view class="stat-label">保修</view>
+    </view>
     <view wx:if="{{stats.memo > 0}}" class="stat" hover-class="stat-hover" bindtap="onStatTap" data-level="memo">
       <view class="stat-num lv-text-memo">{{stats.memo}}</view>
       <view class="stat-label">备忘</view>
