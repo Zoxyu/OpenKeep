@@ -92,15 +92,15 @@
       <view class="notes-body">{{record.notes}}</view>
     </view>
 
-    <!-- 日历提醒 -->
-    <view class="cal-card card">
+    <!-- 日历提醒（纯备忘无日期不可导入，隐藏本栏） -->
+    <view wx:if="{{status.level !== 'memo'}}" class="cal-card card">
       <view class="cal-head">
         <view class="cal-title">到期提醒 · 手机日历</view>
         <view wx:if="{{record.calendarImported}}" class="cal-done">已添加提醒</view>
       </view>
       <view wx:if="{{!calSupported}}" class="cal-note">当前微信版本或设备不支持写入系统日历，物品管理功能不受影响。</view>
       <block wx:else>
-        <view class="cal-desc">将在到期日上午 9:00 添加提醒，并按所选时间提前通知。</view>
+        <view class="cal-desc">将在{{status.level === 'warranty' ? '保修结束日' : '到期日'}}上午 9:00 添加提醒，并按所选时间提前通知。</view>
         <picker mode="selector" range="{{reminderOptions}}" value="{{reminderIndex}}" bindchange="onReminderChange">
           <view class="cal-picker">
             <text>{{reminderOptions[reminderIndex]}}</text>

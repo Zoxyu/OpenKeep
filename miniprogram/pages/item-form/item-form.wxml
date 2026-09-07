@@ -93,9 +93,9 @@
       <view class="field-sub">仅凭已开封天数无法推算到期日，到期日由下方保质期或开封后可保存天数决定。</view>
     </view>
 
-    <!-- 保质期（必填，可选天/个月/年） -->
+    <!-- 保质期（三选一之一，可选天/个月/年） -->
     <view class="field" id="f-shelf">
-      <view class="field-label"><text class="req">*</text>保质期（包装标注）</view>
+      <view class="field-label">保质期（包装标注）· 与保修/存放位置三选一</view>
       <view class="shelf-row">
         <input
           class="input-base shelf-input"
@@ -142,9 +142,9 @@
       <view wx:else class="hint-text">{{refHint}}（宁少勿多，提醒更安全）</view>
     </view>
 
-    <!-- 存放位置（可选，用于日历提醒文案） -->
+    <!-- 存放位置（三选一之一，可作备忘） -->
     <view class="field" id="f-location">
-      <view class="field-label">存放位置（可选，最多 20 字）</view>
+      <view class="field-label">存放位置（最多 20 字）· 三选一之一，只填它可作备忘</view>
       <input
         class="input-base"
         value="{{location}}"
@@ -184,7 +184,7 @@
   <view class="form-card card">
     <view class="opt-head">
       <text class="opt-title">购买与保修</text>
-      <text class="opt-sub">可选</text>
+      <text class="opt-sub">保修为三选一之一 · 购买信息纯可选</text>
     </view>
 
     <!-- 购买日期 -->
@@ -218,9 +218,9 @@
       <view wx:if="{{errors.purchasePrice}}" class="err-text">{{errors.purchasePrice}}</view>
     </view>
 
-    <!-- 保修结束日期 -->
+    <!-- 保修结束日期（三选一之一） -->
     <view class="field">
-      <view class="field-label">保修结束日期</view>
+      <view class="field-label">保修结束日期 · 三选一之一</view>
       <picker mode="date" value="{{warrantyEnd}}" bindchange="onWarrantyEndChange">
         <view class="input-base picker-row">
           <text class="{{warrantyEnd ? '' : 'ph-text'}}">{{warrantyEnd || '请选择（可选）'}}</text>

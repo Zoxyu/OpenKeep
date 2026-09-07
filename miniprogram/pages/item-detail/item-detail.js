@@ -190,7 +190,8 @@ Page({
     const evt = calendarUtil.buildEvent(
       Object.assign({}, record, { categoryLabel: this.data.cat.label }),
       status,
-      reminderDays
+      reminderDays,
+      status.level === 'warranty' ? 'warranty' : undefined
     );
     // 到期日期非法时 buildEvent 返回 null，提前拦截避免崩溃
     if (!evt) {
