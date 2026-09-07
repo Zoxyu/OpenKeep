@@ -12,6 +12,7 @@
 .stat {
   flex: 1 1 calc(33.33% - 14rpx);
   min-width: calc(33.33% - 14rpx);
+  box-sizing: border-box;
   background: var(--c-card);
   border-radius: 22rpx;
   border: 1rpx solid var(--c-line);
