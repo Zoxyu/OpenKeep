@@ -23,6 +23,7 @@
     <view class="meta">{{item.categoryLabel}} · 开封于 {{item.openedAt}}</view>
     <view wx:if="{{item.status.dueDate}}" class="meta">到期 {{item.status.dueDate}}</view>
     <view wx:elif="{{item.status.level === 'warranty'}}" class="meta">保修至 {{item.warrantyEnd}}</view>
+    <view wx:elif="{{item.maintenance.active}}" class="meta">维护至 {{item.maintenance.nextDate}}</view>
     <view class="bar">
       <view class="bar-inner lv-{{item.status.level}}" style="width:{{item.status.progress}}%;"></view>
     </view>

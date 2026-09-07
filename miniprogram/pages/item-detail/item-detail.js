@@ -37,6 +37,7 @@ Page({
     priceText: '',            // 购买价格展示串（M1，未设置为 ''）
     warranty: null,           // getWarrantyStatus 结果（M1）
     warrantyLeftText: '',     // 保修剩余 / 已过保的展示文案（M1）
+    maintenance: null,        // 维护信息（M1 第二批次，getMaintenanceInfo 结果）
     missing: false,
     reminderOptions: REMINDER_OPTIONS.map(r => r.label),
     reminderIndex: 1,
@@ -91,6 +92,8 @@ Page({
     }
     const priceText = (r.purchasePrice === null || r.purchasePrice === undefined)
       ? '' : '¥' + Number(r.purchasePrice).toFixed(2);
+    // M1 第二批次：维护信息（与到期/保修正交；未设置时 active=false，详情页不显示维护卡）
+    const maintenance = recordUtil.getMaintenanceInfo(r);
     let idx = 1;
     for (let i = 0; i < REMINDER_OPTIONS.length; i++) {
       if (REMINDER_OPTIONS[i].v === r.calendarReminderDays) { idx = i; break; }
@@ -103,6 +106,7 @@ Page({
       priceText: priceText,
       warranty: warranty,
       warrantyLeftText: warrantyLeftText,
+      maintenance: maintenance,
       photoOk: !!r.photoPath && imageUtil.isPhotoValid(r.photoPath),
       reminderIndex: idx
     });
@@ -191,7 +195,9 @@ Page({
       Object.assign({}, record, { categoryLabel: this.data.cat.label }),
       status,
       reminderDays,
-      status.level === 'warranty' ? 'warranty' : undefined
+      // 单条导入日期依据链：保修状态用保修日；无到期日但设了维护周期用下次维护日；其余用到期日
+      status.level === 'warranty' ? 'warranty'
+        : (!status.dueDate && this.data.maintenance && this.data.maintenance.active ? 'maintenance' : undefined)
     );
     // 到期日期非法时 buildEvent 返回 null，提前拦截避免崩溃
     if (!evt) {
