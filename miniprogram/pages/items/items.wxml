@@ -122,4 +122,11 @@
 
   </scroll-view>
 
+  <!-- 悬浮添加按钮（有记录时显示）：空态由 scroll-view 流内 CTA 承担、不重复出现；
+       bottom 含 safe-area，与看板 fab 同一避让基准（抬升至悬浮胶囊 tabBar 之上） -->
+  <view wx:if="{{hasAny}}" class="fab" hover-class="fab-hover" bindtap="goAdd">
+    <text class="fab-plus">＋</text>
+    <text class="fab-text">添加物品</text>
+  </view>
+
 </view>
