@@ -157,6 +157,9 @@ wx.setStorage 本地缓存（版本化 key） + USER_DATA_PATH 文件（照片�
 14. **录入文本（2026-09-07）**：保质期无红色*、存放位置/保修标注三选一，无误导「可选/必填」。
 15. **warranty 状态（2026-09-07）**：只填保修→徽章「保修」+「保修还剩N天」，不归备忘；只填位置→「备忘」。
 16. **纯备忘日历栏（2026-09-07）**：纯备忘详情页不显示「到期提醒·手机日历」栏；warranty 记录日历栏显示且导入用保修日。
+17. **统计卡同行（2026-09-07）**：看板已过期/临期/安心保存三卡同一行（`.stat` 加 `box-sizing: border-box`）；仅当出现保修/备忘卡（4–5 个）时自动换两行。
+18. **物品页空态 CTA 避让（2026-09-07，用户 iOS 模拟验证通过）**：空态「＋ 添加物品」完整显示在胶囊栏上方；零记录时筛选面板隐藏（无物可筛属无效 UI）。
+19. **物品页 fab（2026-09-07，待验证）**：有记录时右下角「＋ 添加物品」fab、点击进表单；滚到底最后一卡不被遮；空态不与流内 CTA 重复。
 
 可选后续（非本轮范围，需用户确认）：见第 9 节第 4、5 条。
 
@@ -291,7 +294,7 @@ wx.setStorage 本地缓存（版本化 key） + USER_DATA_PATH 文件（照片�
 
 ## 决策 8：备忘模式（3 选 1 录入）+ 保修提醒窗口开关 + 保修进日历导入
 
-**日期 / Date:** 2026-09-06（用户真机反馈后实施；待真机验证）
+**日期 / Date:** 2026-09-06（用户真机反馈后实施）；2026-09-07 用户真机验证通过，其中「只填保修不应归备忘」反馈在当日 4 点反馈轮修订为独立 warranty 状态（见第 8 节变更记录）
 
 **决定 / Decision:**
 - **录入 3 选 1**：保质期（或开封后可保存天数）/ 保修结束日 / 存放位置 至少填一项即可保存（保质期不再强制必填，label 不带必填星号；存放位置/保修标注「三选一」）。
@@ -325,11 +328,14 @@ wx.setStorage 本地缓存（版本化 key） + USER_DATA_PATH 文件（照片�
 
 # 8. 最近的重要变化 / Recent Significant Changes
 
-- 2026-09-07 — **真机反馈 4 点修复（待真机验证，尚未 commit）**：① 看板筛选标签改分行（filter-bar 去横滑改 flex-wrap 三列）+ 统计卡 wrap 容纳保修/备忘；② item-form 文本优化（保质期去必填星号、存放位置/保修标注三选一）；③ 拆出 warranty 状态（只填保修≠备忘，正常显示保修剩余，贯穿统计/筛选/排序/徽章/卡片）；④ 纯备忘详情页隐藏日历栏、warranty 单条导入用保修日。改动文件：record.js、app.wxss、status-badge/item-card/filter-bar 组件、dashboard/items/item-form/item-detail。状态＝`node --check` 通过，**待安卓真机验证**。
-- 2026-09-06 — **M1 扩展交付：备忘模式+保修日历导入+看板搜索（待真机验证，尚未 commit）**：① 录入 3 选 1（保质期/保修/位置），只填位置＝备忘模式（新状态 memo 莫兰迪蓝，看板统计/筛选容纳）；② 批量导入候选新增保修到期（buildEvent kind='warranty' 用保修日），纯备忘不进候选；③ 「批量导入」页加 warrantyBeyond30 开关（>30 天保修也纳入，同控看板保修卡窗口）；④ 已过期物品默认不勾选；⑤ 看板加关键词搜索（fab 旁圆形入口）+ 底部留白防 fab 遮挡。改动文件：record/storage/calendar.js、item-form、dashboard、items、calendar-import、app.wxss、status-badge.wxss。状态＝`node --check` 通过，**待安卓真机验证**。
-- 2026-09-05 — **修复键盘避让：数字键盘收起后 scroll-view 卡收缩高度、底部留白遮挡内容（安卓真机，尚未 commit）**：根因——`kbHeight` 只靠 `wx.onKeyboardHeightChange` 回调 `height=0` 复位，而安卓数字键盘（`type=digit/number`）收起常不回调。修复：`onFieldBlur` 延迟 120ms 兜底归零（延迟兼容框间切换、focus 取消归零防抖动）+ `onFieldFocus` 用 `e.detail.height` 立即收缩 + `onUnload` 清理定时器。详见决策 7。改动文件：item-form.js。状态＝`node --check` 通过 + **安卓真机验证通过（2026-09-05）**，已随本轮提交。
-- 2026-09-04 — **真机反馈修复：下拉刷新文案 + 输入框键盘避让（尚未 commit）**：① 三页下拉刷新改自定义 refresher 文案（`refresher-default-style="none"` + `slot="refresher"`：下拉刷新→松开立即刷新→正在刷新…+转圈），「今天」页补下拉完成 toast「内容已刷新」（此前无提示）；② item-form 7 输入框 + items 搜索框键盘避让（`adjust-position=false` + `wx.onKeyboardHeightChange` 动态收缩 scroll-view + `scroll-into-view` 滚到聚焦字段，见决策 7），根治安卓「输入框漂移、看不到输入内容」。改动文件：app.wxss、dashboard.js/wxml、items.js/wxml、history.js/wxml、item-form.js/wxml。状态＝已通过 `node --check` + 结构 grep + **安卓真机验证通过（2026-09-05）**，已随本轮提交。
-- 2026-09-04 — **下拉刷新收尾清理（A①+A②，尚未 commit）**：① `dashboard.js` 的 `onScrollRefresh` 由 3 批 `setData` 对齐为 2 批——`refreshing:false` 并入 `refresh()` 成功批（catch 批原已有），与物品页 `load()` 同模式，用户无感知、少一趟渲染消息；② 删除 `dashboard.json` / `history.json` 中 `disableScroll` 后失效的 `backgroundTextStyle: "dark"`（`app.json` 全局项保留）。改动文件：dashboard.js、dashboard.json、history.json。状态＝已通过 `node --check` + JSON 合法性校验 + 安卓真机验证，已随本轮提交。
+- 2026-09-07 — **物品页添加入口补齐：悬浮 fab（提交 `728a1e4`，docs `73bdbc1`）**：物品页此前仅空态有流内 CTA、有记录后无添加入口；补 `wx:if="{{hasAny}}"` fab（与空态 CTA 互斥不重复，复用 `goAdd`），避让基准与看板 fab 同（`bottom: calc(180rpx + env(safe-area-inset-bottom))`）；`.list` 底部预留 220→380rpx 防 fab 遮末卡。改动文件：items.wxml、items.wxss。状态＝待用户验证。
+- 2026-09-07 — **物品页空态 CTA 遮挡修复（iOS 模拟复现，提交 `d7739a6`，docs `11b480c`）**：根因——空态 CTA 在 scroll-view 流内无底部避让，iOS 模拟矮视口 + 34px safe-area 使胶囊 tabBar 整体抬高恰好遮住（安卓高视口未复现）。修复——零记录隐藏筛选面板使 CTA 上移约 440rpx + `.empty-action` 底部预留 `calc(160rpx + env(safe-area-inset-bottom))`；**不改 tabBar 本身**（其 safe-area 偏移是各 fab 避让基准）。改动文件：items.wxml、items.wxss。状态＝**用户 iOS 模拟验证通过**（空态截图 CTA 完整可见于胶囊栏上方）。
+- 2026-09-07 — **看板统计卡同行修复（提交 `1750abe`）**：`.stat` 默认 content-box 致 1rpx 边框未计入 flex-basis、三卡超宽约 4rpx 触发 wrap 成 2+1；加 `box-sizing: border-box` 后三色卡精确同行、4–5 卡才换行。改动文件：dashboard.wxss。状态＝待用户验证。
+- 2026-09-07 — **真机反馈 4 点修复（提交 `033540d`/`c0b52a6`/`bcba469`，docs `dffa9fd`）**：① 看板筛选标签改分行（filter-bar 去横滑改 flex-wrap 三列）+ 统计卡 wrap 容纳保修/备忘；② item-form 文本优化（保质期去必填星号、存放位置/保修标注三选一）；③ 拆出 warranty 状态（只填保修≠备忘，正常显示保修剩余，贯穿统计/筛选/排序/徽章/卡片）；④ 纯备忘详情页隐藏日历栏、warranty 单条导入用保修日。改动文件：record.js、app.wxss、status-badge/item-card/filter-bar 组件、dashboard/items/item-form/item-detail。状态＝`node --check` 通过；2026-09-07 用户复测确认筛选分行、保修/备忘状态、详情日历栏均正常，遗留问题收敛于上述遮挡与 fab 两轮。
+- 2026-09-06 — **M1 扩展交付：备忘模式+保修日历导入+看板搜索（提交 `e65f1a5`/`ceeeb28`/`674c0b9`，回归修正 `0ccd8ac`，docs `b73be9e`）**：① 录入 3 选 1（保质期/保修/位置），只填位置＝备忘模式（新状态 memo 莫兰迪蓝，看板统计/筛选容纳）；② 批量导入候选新增保修到期（buildEvent kind='warranty' 用保修日），纯备忘不进候选；③ 「批量导入」页加 warrantyBeyond30 开关（>30 天保修也纳入，同控看板保修卡窗口）；④ 已过期物品默认不勾选；⑤ 看板加关键词搜索（fab 旁圆形入口）+ 底部留白防 fab 遮挡。改动文件：record/storage/calendar.js、item-form、dashboard、items、calendar-import、app.wxss、status-badge.wxss。状态＝`node --check` 通过；用户真机验证通过（2026-09-07），4 条体验反馈已在当日 4 点修复轮处理。
+- 2026-09-05 — **修复键盘避让：数字键盘收起后 scroll-view 卡收缩高度、底部留白遮挡内容（安卓真机，提交 `a46a49c`）**：根因——`kbHeight` 只靠 `wx.onKeyboardHeightChange` 回调 `height=0` 复位，而安卓数字键盘（`type=digit/number`）收起常不回调。修复：`onFieldBlur` 延迟 120ms 兜底归零（延迟兼容框间切换、focus 取消归零防抖动）+ `onFieldFocus` 用 `e.detail.height` 立即收缩 + `onUnload` 清理定时器。详见决策 7。改动文件：item-form.js。状态＝`node --check` 通过 + **安卓真机验证通过（2026-09-05）**，已随本轮提交。
+- 2026-09-04 — **真机反馈修复：下拉刷新文案 + 输入框键盘避让（提交 `3e96a70`/`a46a49c`）**：① 三页下拉刷新改自定义 refresher 文案（`refresher-default-style="none"` + `slot="refresher"`：下拉刷新→松开立即刷新→正在刷新…+转圈），「今天」页补下拉完成 toast「内容已刷新」（此前无提示）；② item-form 7 输入框 + items 搜索框键盘避让（`adjust-position=false` + `wx.onKeyboardHeightChange` 动态收缩 scroll-view + `scroll-into-view` 滚到聚焦字段，见决策 7），根治安卓「输入框漂移、看不到输入内容」。改动文件：app.wxss、dashboard.js/wxml、items.js/wxml、history.js/wxml、item-form.js/wxml。状态＝已通过 `node --check` + 结构 grep + **安卓真机验证通过（2026-09-05）**，已随本轮提交。
+- 2026-09-04 — **下拉刷新收尾清理（A①+A②，提交 `3e96a70`）**：① `dashboard.js` 的 `onScrollRefresh` 由 3 批 `setData` 对齐为 2 批——`refreshing:false` 并入 `refresh()` 成功批（catch 批原已有），与物品页 `load()` 同模式，用户无感知、少一趟渲染消息；② 删除 `dashboard.json` / `history.json` 中 `disableScroll` 后失效的 `backgroundTextStyle: "dark"`（`app.json` 全局项保留）。改动文件：dashboard.js、dashboard.json、history.json。状态＝已通过 `node --check` + JSON 合法性校验 + 安卓真机验证，已随本轮提交。
 - 2026-09-04 — **物品页补下拉刷新**（提交 `5903e81`；设计依据见决策 5.1）：`items.wxml` 的 `scroll-view` 展开为多行并加 4 个 `refresher` 属性（与首页 / 今天页逐字节一致）；`items.js` 新增 `refreshing` 字段与 `onScrollRefresh()`，并把 `refreshing:false` 并入 `load()` 的合并 `setData`（含 catch 路径）以遵守 `contentReady` 原子翻转不变量；下拉刷新仅 **2 批** `setData`（首页现为 3 批）。`items.json` 无需改动（refresher 是组件属性，非页面配置）。改动文件：items.js、items.wxml。状态＝已提交 + 已通过静态评审与 Node 状态机实测（含异常路径），**待真机验证**。
 - 2026-09-04 — **history 健壮性加固 + 死代码清理**：① `history.json` 补 `disableScroll:true` 并移除冗余 `enablePullDownRefresh`（全 7 页对齐）；② `utils/history.js` 根治 never-settle（内层链补 `.catch` 恒 settle）+ `getLocalPreview` 顶层 try/catch 绝不抛异常 + `loadLocalEvents` 畸形数据安全过滤 + 诊断 `console.warn`；③ 移除 tabBar 选中态快照死代码（`app.tabBarSnapshot` / `prepareTabSwitch` / `SHARED_DATA.selected` 预置及误导注释）。改动文件：history.json、utils/history.js、app.js、custom-tab-bar/index.js、dashboard.js、pages/history/history.js（注释）。状态＝已通过评审 + 静态实测，**待真机验证**。
 - 2026-09-04 — **主题切换首帧闪烁修复**（设计细节见决策 6，此处不重述）：两次提交 `841744e`（themeReady 门控落地）+ `5caae4d`（开门前置 / contentReady 原子收口），累计改动 **7 页 js + 7 页 wxml + AI_CONTEXT.md**。状态＝待真机验证。
