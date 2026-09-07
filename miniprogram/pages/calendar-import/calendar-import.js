@@ -102,17 +102,30 @@ Page({
       const dueIds = {};
       dueCandidates.forEach(it => { dueIds[it.id] = true; });
       const dueList = recordUtil.sortUrgent(dueCandidates).map(it => ({ record: it, kind: 'due' }));
+      const warrantyIds = {};
       const warrantyList = recordUtil.sortUrgent(all.filter(it => {
         const w = recordUtil.getWarrantyStatus(it);
-        return w.hasWarranty && w.daysLeft >= 0 && w.daysLeft <= wWindow && !dueIds[it.id];
+        const ok = w.hasWarranty && w.daysLeft >= 0 && w.daysLeft <= wWindow && !dueIds[it.id];
+        if (ok) warrantyIds[it.id] = true;
+        return ok;
       })).map(it => ({ record: it, kind: 'warranty' }));
-      const candidates = dueList.concat(warrantyList);
+      // 维护候选（M1 第二批次）：设了维护周期且下次维护在 30 天内（含超期）；
+      // 与 due/warranty 候选去重，同一条记录不重复出现
+      const maintenanceList = recordUtil.sortUrgent(all.filter(it => {
+        if (dueIds[it.id] || warrantyIds[it.id]) return false;
+        const m = it.maintenance;
+        return !!m && m.active && m.daysLeft <= 30;
+      })).map(it => ({ record: it, kind: 'maintenance' }));
+      const candidates = dueList.concat(warrantyList, maintenanceList);
       const skip = this.data.skipImported;
       const items = candidates.map(c => ({
         record: c.record,
         kind: c.kind,
-        // 已过期物品默认不勾选（需手动勾选才导入）；其余未导入记录默认勾选
-        checked: !c.record.calendarImported && c.record.status.level !== 'expired',
+        // 已过期物品与超期维护默认不勾选（需手动勾选才导入）；其余未导入记录默认勾选
+        checked: !c.record.calendarImported && !(
+          (c.kind === 'due' && c.record.status.level === 'expired') ||
+          (c.kind === 'maintenance' && c.record.maintenance.daysLeft < 0)
+        ),
         disabled: skip && c.record.calendarImported
       }));
       this.setData({

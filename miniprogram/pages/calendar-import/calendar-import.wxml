@@ -9,7 +9,7 @@
 
   <view class="intro">
     <view class="intro-title">选择要提醒的物品</view>
-    <view class="intro-desc">已过期与未来 90 天内到期的物品、以及保修即将到期的物品会显示在这里。导入后，将在对应日期上午 9:00 添加提醒。</view>
+    <view class="intro-desc">已过期与未来 90 天内到期的物品、保修即将到期的物品、以及维护即将到期的物品（30 天内，含超期）会显示在这里。导入后，将在对应日期上午 9:00 添加提醒。</view>
   </view>
 
   <!-- 选项区 -->
@@ -61,7 +61,7 @@
       </view>
       <view class="ci-body">
         <view class="ci-name">{{item.record.name}}</view>
-        <view class="ci-meta">{{item.record.categoryLabel}} · {{item.kind === 'warranty' ? '保修至 ' + item.record.warrantyEnd : '到期 ' + item.record.status.dueDate}}</view>
+        <view class="ci-meta">{{item.record.categoryLabel}} · {{item.kind === 'warranty' ? '保修至 ' + item.record.warrantyEnd : (item.kind === 'maintenance' ? '维护至 ' + item.record.maintenance.nextDate : '到期 ' + item.record.status.dueDate)}}</view>
       </view>
       <view class="ci-right">
         <status-badge level="{{item.record.status.level}}" text="{{item.record.status.levelText}}" size="small" />
@@ -75,7 +75,7 @@
     wx:elif="{{contentReady}}"
     type="calendar"
     title="暂无需要提醒的物品"
-    desc="已过期与未来 90 天内到期的物品会自动出现在这里。"
+    desc="已过期与未来 90 天内到期的物品、保修与维护即将到期的物品会自动出现在这里。"
   />
 
   </scroll-view>
