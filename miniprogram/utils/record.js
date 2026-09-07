@@ -76,9 +76,20 @@ function computeStatus(record, warningDays, today) {
   const due = dueDateOf(record, opened);
   const daysOpened = dateUtil.diffDays(base, opened);
 
-  // 无到期依据（备忘模式：填了存放位置或保修、但未填保质期）：归入独立「备忘」状态（莫兰迪蓝），
-  // 不参与红黄绿到期语义，排在最后；保修提醒由 getWarrantyStatus 独立负责。
+  // 无到期依据（未填保质期）：分两种辅助状态，均不参与红黄绿到期语义、排在最后。
   if (!due) {
+    // 只填了保修（无保质期）：归入「保修」状态，正常展示保修剩余，不归备忘
+    const wEnd = dateUtil.parseDate(record.warrantyEnd);
+    if (wEnd) {
+      const wLeft = dateUtil.diffDays(wEnd, base);
+      const wLabel = wLeft < 0 ? '已过保 ' + (-wLeft) + ' 天' : (wLeft === 0 ? '今天最后一天' : '保修还剩 ' + wLeft + ' 天');
+      return {
+        dueDate: '', dueTs: Number.MAX_SAFE_INTEGER, daysLeft: Number.MAX_SAFE_INTEGER,
+        daysOpened: daysOpened, level: 'warranty', levelText: '保修',
+        label: wLabel, progress: 0
+      };
+    }
+    // 纯备忘（只填存放位置，无保质期无保修）：归入「备忘」状态
     return {
       dueDate: '', dueTs: Number.MAX_SAFE_INTEGER, daysLeft: Number.MAX_SAFE_INTEGER,
       daysOpened: daysOpened, level: 'memo', levelText: '备忘',
@@ -136,7 +147,7 @@ function withStatus(records, warningDays) {
 
 // 首页排序：已过期优先，其次临期，最后按到期日由近到远
 function sortUrgent(list) {
-  const order = { expired: 0, warning: 1, safe: 2, memo: 3 };
+  const order = { expired: 0, warning: 1, safe: 2, warranty: 3, memo: 4 };
   return list.slice().sort((a, b) => {
     const d = order[a.status.level] - order[b.status.level];
     return d !== 0 ? d : a.status.dueTs - b.status.dueTs;

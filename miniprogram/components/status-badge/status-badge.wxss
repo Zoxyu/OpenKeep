@@ -28,3 +28,6 @@
 
 .lv-memo { color: var(--c-memo); background: var(--c-memo-bg); }
 .lv-memo .dot { background: var(--c-memo); }
+
+.lv-warranty { color: var(--c-memo); background: var(--c-memo-bg); }
+.lv-warranty .dot { background: var(--c-memo); }

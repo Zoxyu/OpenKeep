@@ -194,6 +194,7 @@ page {
 .lv-text-warning { color: var(--c-warn); }
 .lv-text-safe { color: var(--c-safe); }
 .lv-text-memo { color: var(--c-memo); }
+.lv-text-warranty { color: var(--c-memo); }
 
 /* ====== 列表行 ====== */
 .cell {
@@ -216,6 +217,7 @@ page {
 .bar-inner.lv-warning, .lv-bar-warning { background: var(--c-warn); }
 .bar-inner.lv-safe, .lv-bar-safe { background: var(--c-safe); }
 .bar-inner.lv-memo, .lv-bar-memo { background: var(--c-memo); }
+.bar-inner.lv-warranty, .lv-bar-warranty { background: var(--c-memo); }
 
 /* ====== 自定义复选框 ====== */
 .checkbox {
