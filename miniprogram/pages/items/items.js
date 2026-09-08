@@ -66,6 +66,14 @@ Page({
     });
   },
 
+  // ====== 分享：发送给朋友 / 分享到朋友圈（数据纯本地，落地页不携带记录 id，见 dashboard 同段注释）======
+  onShareAppMessage() {
+    return { title: '到期那天：全部物品与保修、维护，一个页面看清', path: '/pages/items/items' };
+  },
+  onShareTimeline() {
+    return { title: '到期那天：全部物品与保修、维护，一个页面看清' };
+  },
+
   onShow() {
     // onShow 只管原生 chrome（每页一份的标题栏 / 窗口背景），不再负责 DOM 主题纠正
     app.syncPageChrome(this);

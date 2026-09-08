@@ -69,6 +69,16 @@ Page({
     });
   },
 
+  // ====== 分享：发送给朋友 / 分享到朋友圈（朋友圈需基础库 2.11.3+，项目最低 2.15.0 满足）======
+  // 数据纯本地存储：朋友收到的是「产品名片」而非我的数据，故落地页不携带任何记录 id，
+  // 避免朋友设备无对应记录时看到「记录不存在」；表单/设置页不开分享。
+  onShareAppMessage() {
+    return { title: '到期那天：全家物品的保质期看板，红黄绿一眼看清', path: '/pages/dashboard/dashboard' };
+  },
+  onShareTimeline() {
+    return { title: '到期那天：全家物品的保质期看板，红黄绿一眼看清' };
+  },
+
   onShow() {
     // onShow 只管原生 chrome（每页一份的标题栏 / 窗口背景），不再负责 DOM 主题纠正
     app.syncPageChrome(this);

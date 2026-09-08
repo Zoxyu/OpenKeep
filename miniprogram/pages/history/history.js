@@ -59,6 +59,14 @@ Page({
     });
   },
 
+  // ====== 分享：发送给朋友 / 分享到朋友圈（数据纯本地，落地页不携带记录 id，见 dashboard 同段注释）======
+  onShareAppMessage() {
+    return { title: '历史上的今天：看看今天发生过什么', path: '/pages/history/history' };
+  },
+  onShareTimeline() {
+    return { title: '历史上的今天：看看今天发生过什么' };
+  },
+
   onShow() {
     // onShow 只管原生 chrome（每页一份的标题栏 / 窗口背景），不再负责 DOM 主题纠正
     app.syncPageChrome(this);

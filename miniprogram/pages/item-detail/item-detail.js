@@ -63,6 +63,25 @@ Page({
     });
   },
 
+  // ====== 分享：发送给朋友 / 分享到朋友圈 ======
+  // 数据纯本地存储：朋友设备没有这条记录，分享详情路径必然「记录不存在」；
+  // 故标题携带物品状态作谈资，落地页统一指向首页看板（朋友圈 query 同样不携带 id）。
+  onShareAppMessage() {
+    const r = this.data.record;
+    const title = r
+      ? '「' + r.name + '」' + this.data.status.label + '——我在用「到期那天」管理保质期'
+      : '到期那天：全家物品的保质期看板，红黄绿一眼看清';
+    return { title: title, path: '/pages/dashboard/dashboard' };
+  },
+  onShareTimeline() {
+    const r = this.data.record;
+    return {
+      title: r
+        ? '「' + r.name + '」' + this.data.status.label + '——我在用「到期那天」管理保质期'
+        : '到期那天：全家物品的保质期看板，红黄绿一眼看清'
+    };
+  },
+
   onShow() {
     // onShow 只管原生 chrome（每页一份的标题栏 / 窗口背景），不再负责 DOM 主题纠正
     app.syncPageChrome(this);
