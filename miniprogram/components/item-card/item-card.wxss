@@ -64,10 +64,11 @@
   display: flex;
   flex-direction: column;
   align-items: flex-end;
-  justify-content: space-between;
+  justify-content: flex-end;
   flex-shrink: 0;
 }
-.left-label { font-size: 26rpx; font-weight: 600; white-space: nowrap; }
+/* 状态描述文字（已过期 N 天/还剩 N 天等）：移入卡片内部 body，颜色由 lv-text-* 承担 */
+.status-label { font-size: 26rpx; font-weight: 600; white-space: nowrap; margin-top: 6rpx; }
 .cal-tag {
   font-size: 20rpx;
   color: var(--c-sub);
