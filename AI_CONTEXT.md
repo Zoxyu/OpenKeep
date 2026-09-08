@@ -343,6 +343,7 @@ wx.setStorage 本地缓存（版本化 key） + USER_DATA_PATH 文件（照片�
 
 # 8. 最近的重要变化 / Recent Significant Changes
 
+- 2026-09-08 — **卡片描述文字/进度条颜色与徽章统一（提交 `62c054d`）**：根因——组件样式默认隔离，item-card 不继承 app.wxss 的 `lv-text-*` / `bar-inner.lv-*` 规则（仅 `--c-*` 变量经 .page-root 继承穿透），描述文字此前恒为默认深色；item-card.wxss 本地重声明 5 级语义色 + 进度条轨道/填充色（顺带修复卡内进度条此前无轨道/填充色）。同轮用户验证通过：iOS 模拟搜索/添加按钮不压卡片、安卓真机无异常、卡片布局逻辑正常。
 - 2026-09-08 — **真机反馈两项修复（待真机验证，提交 `a094766`/`0487ecb`）**：① 卡片布局优化（item-card）：5 种状态徽章固定右上角；描述文字（已过期 N 天/还剩 N 天/保修剩余）移入卡片 body 独立行（备忘与徽章文本重复不显示）；meta 合并为主日期行（到期 > 保修至 > 维护至 > 纯备忘回退开封于，开封日不再必显）；已入日历标记改底部对齐。② 看板 `.list` 留白 380rpx → `calc(420rpx + env(safe-area-inset-bottom))`：搜索按钮顶边＝384rpx+safe-area，原留白不含 safe 致 iOS 模拟（safe≈34px）滚到底时压住最后一张卡片（安卓/华为模拟 safe=0 不复现）。
 - 2026-09-07 — **M1 第二批次维护周期交付（提交 `c0df604`/`0970ed6`/`3a6c0ff`/`8791528`，docs `d6206bb`）**：① 新增 `utils/maintenance.js`（周期唯一计算源，下次维护日派生不落库，月末/闰年收敛）；② storage 三字段规范化（旧数据兼容）+ record.withStatus 挂载 maintenance；③ 录入新增「维护周期」区（设周期则上次维护日必填、自定义 1–3650 天）；④ 详情维护卡 + 日历栏支持维护日（依据链保修>到期>维护）；⑤ item-card meta「维护至 X」第三回退；⑥ 批量导入加维护候选（30 天含超期、去重、超期默认不勾选）+ buildEvent kind='maintenance'。改动文件：utils/maintenance.js（新）、storage/record/calendar.js、item-form、item-detail、item-card、calendar-import。状态＝`node --check` 通过 + Node 实测周期计算（月末 1/31→2/28、闰年 2/29→2/28、超期标签、旧数据兼容均正确）。
 - 2026-09-07 — **物品页添加入口补齐：悬浮 fab（提交 `728a1e4`，docs `73bdbc1`）**：物品页此前仅空态有流内 CTA、有记录后无添加入口；补 `wx:if="{{hasAny}}"` fab（与空态 CTA 互斥不重复，复用 `goAdd`），避让基准与看板 fab 同（`bottom: calc(180rpx + env(safe-area-inset-bottom))`）；`.list` 底部预留 220→380rpx 防 fab 遮末卡。改动文件：items.wxml、items.wxss。状态＝待用户验证。
