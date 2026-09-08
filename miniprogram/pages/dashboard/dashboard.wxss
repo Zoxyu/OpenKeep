@@ -148,8 +148,10 @@
 }
 .list-title { font-size: 31rpx; font-weight: 600; letter-spacing: 1rpx; }
 .list-total { font-size: 24rpx; color: var(--c-faint); }
-/* 底部预留悬浮胶囊 tabBar 与添加按钮的避让空间 */
-.list { padding: 16rpx 40rpx 380rpx; }
+/* 底部预留悬浮胶囊 tabBar 与添加/搜索按钮的避让空间；
+ * 搜索按钮顶边＝296rpx+safe-area+88rpx，故留白必须含 safe-area，
+ * 否则 iOS 模拟（safe≈34px）下滚到底时搜索按钮压住最后一张卡片（安卓/华为模拟 safe=0 不复现） */
+.list { padding: 16rpx 40rpx calc(420rpx + env(safe-area-inset-bottom)); }
 
 /* ====== 悬浮添加按钮 ====== */
 .fab {
