@@ -69,6 +69,24 @@
 }
 /* 状态描述文字（已过期 N 天/还剩 N 天等）：移入卡片内部 body，颜色由 lv-text-* 承担 */
 .status-label { font-size: 26rpx; font-weight: 600; white-space: nowrap; margin-top: 6rpx; }
+
+/* 语义状态色：组件样式默认隔离，不继承 app.wxss 的 lv-text-* / bar-inner.lv-* 规则
+ * （只有 --c-* 自定义属性经 .page-root 继承穿透），故组件内必须本地重声明，
+ * 使描述文字与进度条颜色跟状态徽章统一（用户 2026-09-08 反馈） */
+.status-label.lv-text-expired { color: var(--c-danger); }
+.status-label.lv-text-warning { color: var(--c-warn); }
+.status-label.lv-text-safe { color: var(--c-safe); }
+.status-label.lv-text-memo { color: var(--c-memo); }
+.status-label.lv-text-warranty { color: var(--c-memo); }
+
+/* 进度条轨道与填充色（同上隔离原因本地声明） */
+.bar { height: 8rpx; border-radius: 999rpx; background: var(--c-card-2); overflow: hidden; }
+.bar-inner { height: 100%; border-radius: 999rpx; }
+.bar-inner.lv-expired { background: var(--c-danger); }
+.bar-inner.lv-warning { background: var(--c-warn); }
+.bar-inner.lv-safe { background: var(--c-safe); }
+.bar-inner.lv-memo { background: var(--c-memo); }
+.bar-inner.lv-warranty { background: var(--c-memo); }
 .cal-tag {
   font-size: 20rpx;
   color: var(--c-sub);
