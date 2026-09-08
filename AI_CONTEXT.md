@@ -118,6 +118,7 @@ wx.setStorage 本地缓存（版本化 key） + USER_DATA_PATH 文件（照片�
 - 维护周期（M1 第二批次）：上次维护日 + 周期（每月/每年/自定义天数）→ 下次维护日派生（`utils/maintenance.js` 独立计算、不落库）；录入/详情卡/卡片 meta/批量导入日历联动；2026-09-07 交付，**2026-09-08 用户真机验证通过**（见决策 9）
 - 分享：4 个内容页（dashboard/items/history/item-detail）支持「发送给朋友」（`onShareAppMessage`）与「分享到朋友圈」（`onShareTimeline`，基础库 2.11.3+，项目最低 2.15.0 满足）；**数据纯本地故分享 path/query 不携带记录 id**（朋友设备无记录会「记录不存在」），详情分享标题携带物品状态、落地页指向首页看板；表单/设置页（item-form/calendar-import/profile）不开分享
 - README、隐私政策（`privacy-policy.txt`）、小程序图标；项目已在 Git 管理（main 分支，远端 `Zoxyu/OpenKeep`），`AGENTS.md`（a284035）与 `AI_CONTEXT.md`（c1b38a1）**均已纳入版本控制**
+- **Git 提交约定（用户约定 2026-09-08）**：仅当用户在当前提示词中明确要求提交/推送时才执行 commit/push；commit 描述一律中文；一次改动涉及多份文件时按主题分批提交
 
 ## 进行中 / In Progress
 
