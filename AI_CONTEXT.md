@@ -116,6 +116,7 @@ wx.setStorage 本地缓存（版本化 key） + USER_DATA_PATH 文件（照片�
 - 主题切换首帧闪烁修复（门控 + 开门前置 + contentReady 原子守卫 + 白屏加固，见决策 6）；2026-09-07 用户真机复测**仍有闪烁**，用户判定非主要、**缓办**（见已知问题）
 - 物品页补下拉刷新（`refresher`，与首页 / 今天页同一套属性），设计依据见决策 5.1；已通过静态评审 + Node 状态机实测 + 安卓真机验证（2026-09-05）
 - 维护周期（M1 第二批次）：上次维护日 + 周期（每月/每年/自定义天数）→ 下次维护日派生（`utils/maintenance.js` 独立计算、不落库）；录入/详情卡/卡片 meta/批量导入日历联动；2026-09-07 交付，**2026-09-08 用户真机验证通过**（见决策 9）
+- 分享：4 个内容页（dashboard/items/history/item-detail）支持「发送给朋友」（`onShareAppMessage`）与「分享到朋友圈」（`onShareTimeline`，基础库 2.11.3+，项目最低 2.15.0 满足）；**数据纯本地故分享 path/query 不携带记录 id**（朋友设备无记录会「记录不存在」），详情分享标题携带物品状态、落地页指向首页看板；表单/设置页（item-form/calendar-import/profile）不开分享
 - README、隐私政策（`privacy-policy.txt`）、小程序图标；项目已在 Git 管理（main 分支，远端 `Zoxyu/OpenKeep`），`AGENTS.md`（a284035）与 `AI_CONTEXT.md`（c1b38a1）**均已纳入版本控制**
 
 ## 进行中 / In Progress
@@ -343,6 +344,7 @@ wx.setStorage 本地缓存（版本化 key） + USER_DATA_PATH 文件（照片�
 
 # 8. 最近的重要变化 / Recent Significant Changes
 
+- 2026-09-08 — **分享功能：发送给朋友 + 分享到朋友圈（待真机验证）**：dashboard/items/history/item-detail 四内容页定义 `onShareAppMessage`/`onShareTimeline`（胶囊「…」菜单出现对应入口）；朋友圈需基础库 2.11.3+（项目最低 2.15.0 满足）；数据纯本地故分享 path/query 不携带记录 id，详情分享标题携带物品状态作谈资、落地页指向首页看板；表单/设置页不开分享。改动文件：四页 js。状态＝`node --check` 通过，待用户验证（分享菜单/朋友圈入口需真机或开发者工具确认）。
 - 2026-09-08 — **卡片描述文字/进度条颜色与徽章统一（提交 `62c054d`）**：根因——组件样式默认隔离，item-card 不继承 app.wxss 的 `lv-text-*` / `bar-inner.lv-*` 规则（仅 `--c-*` 变量经 .page-root 继承穿透），描述文字此前恒为默认深色；item-card.wxss 本地重声明 5 级语义色 + 进度条轨道/填充色（顺带修复卡内进度条此前无轨道/填充色）。同轮用户验证通过：iOS 模拟搜索/添加按钮不压卡片、安卓真机无异常、卡片布局逻辑正常。
 - 2026-09-08 — **真机反馈两项修复（待真机验证，提交 `a094766`/`0487ecb`）**：① 卡片布局优化（item-card）：5 种状态徽章固定右上角；描述文字（已过期 N 天/还剩 N 天/保修剩余）移入卡片 body 独立行（备忘与徽章文本重复不显示）；meta 合并为主日期行（到期 > 保修至 > 维护至 > 纯备忘回退开封于，开封日不再必显）；已入日历标记改底部对齐。② 看板 `.list` 留白 380rpx → `calc(420rpx + env(safe-area-inset-bottom))`：搜索按钮顶边＝384rpx+safe-area，原留白不含 safe 致 iOS 模拟（safe≈34px）滚到底时压住最后一张卡片（安卓/华为模拟 safe=0 不复现）。
 - 2026-09-07 — **M1 第二批次维护周期交付（提交 `c0df604`/`0970ed6`/`3a6c0ff`/`8791528`，docs `d6206bb`）**：① 新增 `utils/maintenance.js`（周期唯一计算源，下次维护日派生不落库，月末/闰年收敛）；② storage 三字段规范化（旧数据兼容）+ record.withStatus 挂载 maintenance；③ 录入新增「维护周期」区（设周期则上次维护日必填、自定义 1–3650 天）；④ 详情维护卡 + 日历栏支持维护日（依据链保修>到期>维护）；⑤ item-card meta「维护至 X」第三回退；⑥ 批量导入加维护候选（30 天含超期、去重、超期默认不勾选）+ buildEvent kind='maintenance'。改动文件：utils/maintenance.js（新）、storage/record/calendar.js、item-form、item-detail、item-card、calendar-import。状态＝`node --check` 通过 + Node 实测周期计算（月末 1/31→2/28、闰年 2/29→2/28、超期标签、旧数据兼容均正确）；**2026-09-08 用户真机验证通过（清单第 20 项），V1.5 两批次至此闭环**。
