@@ -103,7 +103,7 @@ wx.setStorage 本地缓存（版本化 key） + USER_DATA_PATH 文件（照片�
 
 ## 整体状态 / Overall Status
 
-功能完整、可编译运行。V1.0 收尾与 M1 第一批次（购买/保修）已安卓真机验收通过；本轮交付备忘模式、保修日历导入、保修窗口开关、看板搜索等 M1 扩展，待用户真机验证。用户自行真机验证（Agent 不代跑）。
+功能完整、可编译运行。**V1.5（M1）已于 2026-09-08 收尾：两批次（购买/保修、维护周期）与 M1 扩展（备忘模式、保修日历导入、保修窗口开关、看板搜索等）全部用户真机验证通过**（PROJECT_PLAN 状态板 M1 DONE）。分享功能与卡片语义色统一（2026-09-08 交付）已于 2026-09-09 用户验证通过；当前无待验证项；主题首帧闪烁缓办（决策 6）。用户自行真机验证（Agent 不代跑）。
 
 ## 已完成 / Completed
 
@@ -122,7 +122,9 @@ wx.setStorage 本地缓存（版本化 key） + USER_DATA_PATH 文件（照片�
 
 ## 进行中 / In Progress
 
-- M1 / V1.5 进行中：备忘模式、保修日历导入、保修窗口开关、看板搜索、已过期不默认勾选等扩展已交付（2026-09-06），待用户真机验证。主题首帧修复（决策 6）仍待用户真机验证。
+- M1 / V1.5 已收尾（2026-09-08）：两批次（购买/保修、维护周期）+ 扩展（备忘模式、保修日历导入、保修窗口开关、看板搜索、已过期不默认勾选等）全部用户真机验证通过；PROJECT_PLAN 状态板 M1 DONE，下一里程碑 M2 / V2.0 待用户决策启动。
+- 2026-09-09：分享功能（发送给朋友/分享到朋友圈，四个内容页）与卡片语义色统一（描述文字/进度条与徽章同色）用户验证通过（清单第 21–22 项）；当前无进行中交付项。
+- 缓办：主题首帧闪烁（决策 6，用户 2026-09-07 判定非主要，见已知问题；重启按缺陷流程）。
 
 ## 阻塞问题 / Blocked
 
@@ -141,9 +143,9 @@ wx.setStorage 本地缓存（版本化 key） + USER_DATA_PATH 文件（照片�
 
 # 5. 当前任务 / Active Tasks
 
-**本轮任务（M1 扩展 + 后续 4 点反馈修复、iOS 遮挡避让、物品页 fab）已全部交付并经用户验证通过（2026-09-07）。** 主题首帧修复（决策 6）2026-09-07 用户真机复测**仍有闪烁**，用户判定非主要、**缓办**（见已知问题与第 9 节第 1 条）。
+**M1 扩展 + 后续 4 点反馈修复、iOS 遮挡避让、物品页 fab 均已交付并用户验证通过（2026-09-07）；分享功能与卡片语义色统一 2026-09-08 交付、2026-09-09 用户验证通过（清单第 21–22 项）。** 主题首帧修复（决策 6）2026-09-07 用户真机复测**仍有闪烁**，用户判定非主要、**缓办**（见已知问题与第 9 节第 1 条）。
 
-真机验证清单（存档；Node / 模拟器无法验证渲染时序与手势，必须以真机为准。**第 5–20 项均已用户验证通过**（第 5–8 项安卓真机 2026-09-05，第 9–19 项 2026-09-07，第 20 项 2026-09-08）；第 1–4 项主题首帧 2026-09-07 用户复测仍有问题、缓办）：
+真机验证清单（存档；Node / 模拟器无法验证渲染时序与手势，必须以真机为准。**第 5–22 项均已用户验证通过**（第 5–8 项安卓真机 2026-09-05，第 9–19 项 2026-09-07，第 20 项 2026-09-08，第 21–22 项 2026-09-09）；第 1–4 项主题首帧 2026-09-07 用户复测仍有问题、缓办）：
 
 1. 跟随系统浅↔深切换后，首次进入各页应**完全无闪**。
 2. 手动锁定主题≠系统时，旧主题内容不再闪；残留的系统色纯底已压到最短，确认观感是否可接受。
@@ -165,6 +167,8 @@ wx.setStorage 本地缓存（版本化 key） + USER_DATA_PATH 文件（照片�
 18. **物品页空态 CTA 避让（2026-09-07，用户 iOS 模拟验证通过）**：空态「＋ 添加物品」完整显示在胶囊栏上方；零记录时筛选面板隐藏（无物可筛属无效 UI）。
 19. **物品页 fab（2026-09-07，用户验证通过）**：有记录时右下角「＋ 添加物品」fab、点击进表单；滚到底最后一卡不被遮；空态不与流内 CTA 重复。
 20. **维护周期（2026-09-08，用户验证通过）**：① 录入「维护周期」区：设周期则上次维护日必填（否则报错）、自定义需 1–3650 天；② 保存后详情显示维护卡（上次/周期/下次/状态），下次维护日＝上次+1 周期（月末/闰年收敛，已 Node 实测）；③ 超期红字「已超期 N 天」；④ 卡片 meta 在无到期日且无保修时显示「维护至 X」；⑤ 批量导入候选含 30 天内维护到期（超期默认不勾选），导入事件标题「该做维护了」；⑥ 旧数据（无维护字段）各页表现不变。
+21. **分享（2026-09-09，用户验证通过）**：四个内容页（看板/物品/今天/详情）胶囊「…」菜单出现「发送给朋友」与「分享到朋友圈」；分享卡片标题正确、详情分享落地首页看板（不出现「记录不存在」）；表单/设置页「…」无分享入口。
+22. **卡片语义色（2026-09-09，用户验证通过）**：卡片描述文字（已过期 X 天/还剩 X 天/保修还剩 X 天）与徽章同色（红/黄/绿/莫兰迪蓝），进度条有轨道与对应颜色填充；深浅色模式均正常。
 
 可选后续（非本轮范围，需用户确认）：见第 9 节第 4、5 条。
 
@@ -345,20 +349,20 @@ wx.setStorage 本地缓存（版本化 key） + USER_DATA_PATH 文件（照片�
 
 # 8. 最近的重要变化 / Recent Significant Changes
 
-- 2026-09-08 — **分享功能：发送给朋友 + 分享到朋友圈（待真机验证）**：dashboard/items/history/item-detail 四内容页定义 `onShareAppMessage`/`onShareTimeline`（胶囊「…」菜单出现对应入口）；朋友圈需基础库 2.11.3+（项目最低 2.15.0 满足）；数据纯本地故分享 path/query 不携带记录 id，详情分享标题携带物品状态作谈资、落地页指向首页看板；表单/设置页不开分享。改动文件：四页 js。状态＝`node --check` 通过，待用户验证（分享菜单/朋友圈入口需真机或开发者工具确认）。
-- 2026-09-08 — **卡片描述文字/进度条颜色与徽章统一（提交 `62c054d`）**：根因——组件样式默认隔离，item-card 不继承 app.wxss 的 `lv-text-*` / `bar-inner.lv-*` 规则（仅 `--c-*` 变量经 .page-root 继承穿透），描述文字此前恒为默认深色；item-card.wxss 本地重声明 5 级语义色 + 进度条轨道/填充色（顺带修复卡内进度条此前无轨道/填充色）。同轮用户验证通过：iOS 模拟搜索/添加按钮不压卡片、安卓真机无异常、卡片布局逻辑正常。
-- 2026-09-08 — **真机反馈两项修复（待真机验证，提交 `a094766`/`0487ecb`）**：① 卡片布局优化（item-card）：5 种状态徽章固定右上角；描述文字（已过期 N 天/还剩 N 天/保修剩余）移入卡片 body 独立行（备忘与徽章文本重复不显示）；meta 合并为主日期行（到期 > 保修至 > 维护至 > 纯备忘回退开封于，开封日不再必显）；已入日历标记改底部对齐。② 看板 `.list` 留白 380rpx → `calc(420rpx + env(safe-area-inset-bottom))`：搜索按钮顶边＝384rpx+safe-area，原留白不含 safe 致 iOS 模拟（safe≈34px）滚到底时压住最后一张卡片（安卓/华为模拟 safe=0 不复现）。
+- 2026-09-08 — **分享功能：发送给朋友 + 分享到朋友圈（用户验证通过 2026-09-09）**：dashboard/items/history/item-detail 四内容页定义 `onShareAppMessage`/`onShareTimeline`（胶囊「…」菜单出现对应入口）；朋友圈需基础库 2.11.3+（项目最低 2.15.0 满足）；数据纯本地故分享 path/query 不携带记录 id，详情分享标题携带物品状态作谈资、落地页指向首页看板；表单/设置页不开分享。改动文件：四页 js。状态＝`node --check` 通过；用户验证通过 2026-09-09（清单第 21 项）。
+- 2026-09-08 — **卡片描述文字/进度条颜色与徽章统一（提交 `62c054d`）**：根因——组件样式默认隔离，item-card 不继承 app.wxss 的 `lv-text-*` / `bar-inner.lv-*` 规则（仅 `--c-*` 变量经 .page-root 继承穿透），描述文字此前恒为默认深色；item-card.wxss 本地重声明 5 级语义色 + 进度条轨道/填充色（顺带修复卡内进度条此前无轨道/填充色）。同轮用户验证通过项：iOS 模拟搜索/添加按钮不压卡片、安卓真机无异常、卡片布局逻辑正常；颜色统一与进度条显示 2026-09-09 用户验证通过（清单第 22 项）。
+- 2026-09-08 — **真机反馈两项修复（用户验证通过 2026-09-08，提交 `a094766`/`0487ecb`）**：① 卡片布局优化（item-card）：5 种状态徽章固定右上角；描述文字（已过期 N 天/还剩 N 天/保修剩余）移入卡片 body 独立行（备忘与徽章文本重复不显示）；meta 合并为主日期行（到期 > 保修至 > 维护至 > 纯备忘回退开封于，开封日不再必显）；已入日历标记改底部对齐。② 看板 `.list` 留白 380rpx → `calc(420rpx + env(safe-area-inset-bottom))`：搜索按钮顶边＝384rpx+safe-area，原留白不含 safe 致 iOS 模拟（safe≈34px）滚到底时压住最后一张卡片（安卓/华为模拟 safe=0 不复现）。
 - 2026-09-07 — **M1 第二批次维护周期交付（提交 `c0df604`/`0970ed6`/`3a6c0ff`/`8791528`，docs `d6206bb`）**：① 新增 `utils/maintenance.js`（周期唯一计算源，下次维护日派生不落库，月末/闰年收敛）；② storage 三字段规范化（旧数据兼容）+ record.withStatus 挂载 maintenance；③ 录入新增「维护周期」区（设周期则上次维护日必填、自定义 1–3650 天）；④ 详情维护卡 + 日历栏支持维护日（依据链保修>到期>维护）；⑤ item-card meta「维护至 X」第三回退；⑥ 批量导入加维护候选（30 天含超期、去重、超期默认不勾选）+ buildEvent kind='maintenance'。改动文件：utils/maintenance.js（新）、storage/record/calendar.js、item-form、item-detail、item-card、calendar-import。状态＝`node --check` 通过 + Node 实测周期计算（月末 1/31→2/28、闰年 2/29→2/28、超期标签、旧数据兼容均正确）；**2026-09-08 用户真机验证通过（清单第 20 项），V1.5 两批次至此闭环**。
-- 2026-09-07 — **物品页添加入口补齐：悬浮 fab（提交 `728a1e4`，docs `73bdbc1`）**：物品页此前仅空态有流内 CTA、有记录后无添加入口；补 `wx:if="{{hasAny}}"` fab（与空态 CTA 互斥不重复，复用 `goAdd`），避让基准与看板 fab 同（`bottom: calc(180rpx + env(safe-area-inset-bottom))`）；`.list` 底部预留 220→380rpx 防 fab 遮末卡。改动文件：items.wxml、items.wxss。状态＝待用户验证。
+- 2026-09-07 — **物品页添加入口补齐：悬浮 fab（提交 `728a1e4`，docs `73bdbc1`）**：物品页此前仅空态有流内 CTA、有记录后无添加入口；补 `wx:if="{{hasAny}}"` fab（与空态 CTA 互斥不重复，复用 `goAdd`），避让基准与看板 fab 同（`bottom: calc(180rpx + env(safe-area-inset-bottom))`）；`.list` 底部预留 220→380rpx 防 fab 遮末卡。改动文件：items.wxml、items.wxss。状态＝用户验证通过（2026-09-07，清单第 19 项/A）。
 - 2026-09-07 — **物品页空态 CTA 遮挡修复（iOS 模拟复现，提交 `d7739a6`，docs `11b480c`）**：根因——空态 CTA 在 scroll-view 流内无底部避让，iOS 模拟矮视口 + 34px safe-area 使胶囊 tabBar 整体抬高恰好遮住（安卓高视口未复现）。修复——零记录隐藏筛选面板使 CTA 上移约 440rpx + `.empty-action` 底部预留 `calc(160rpx + env(safe-area-inset-bottom))`；**不改 tabBar 本身**（其 safe-area 偏移是各 fab 避让基准）。改动文件：items.wxml、items.wxss。状态＝**用户 iOS 模拟验证通过**（空态截图 CTA 完整可见于胶囊栏上方）。
-- 2026-09-07 — **看板统计卡同行修复（提交 `1750abe`）**：`.stat` 默认 content-box 致 1rpx 边框未计入 flex-basis、三卡超宽约 4rpx 触发 wrap 成 2+1；加 `box-sizing: border-box` 后三色卡精确同行、4–5 卡才换行。改动文件：dashboard.wxss。状态＝待用户验证。
+- 2026-09-07 — **看板统计卡同行修复（提交 `1750abe`）**：`.stat` 默认 content-box 致 1rpx 边框未计入 flex-basis、三卡超宽约 4rpx 触发 wrap 成 2+1；加 `box-sizing: border-box` 后三色卡精确同行、4–5 卡才换行。改动文件：dashboard.wxss。状态＝用户验证通过（2026-09-07，清单第 17 项/B）。
 - 2026-09-07 — **真机反馈 4 点修复（提交 `033540d`/`c0b52a6`/`bcba469`，docs `dffa9fd`）**：① 看板筛选标签改分行（filter-bar 去横滑改 flex-wrap 三列）+ 统计卡 wrap 容纳保修/备忘；② item-form 文本优化（保质期去必填星号、存放位置/保修标注三选一）；③ 拆出 warranty 状态（只填保修≠备忘，正常显示保修剩余，贯穿统计/筛选/排序/徽章/卡片）；④ 纯备忘详情页隐藏日历栏、warranty 单条导入用保修日。改动文件：record.js、app.wxss、status-badge/item-card/filter-bar 组件、dashboard/items/item-form/item-detail。状态＝`node --check` 通过；2026-09-07 用户复测确认筛选分行、保修/备忘状态、详情日历栏均正常，遗留问题收敛于上述遮挡与 fab 两轮。
 - 2026-09-06 — **M1 扩展交付：备忘模式+保修日历导入+看板搜索（提交 `e65f1a5`/`ceeeb28`/`674c0b9`，回归修正 `0ccd8ac`，docs `b73be9e`）**：① 录入 3 选 1（保质期/保修/位置），只填位置＝备忘模式（新状态 memo 莫兰迪蓝，看板统计/筛选容纳）；② 批量导入候选新增保修到期（buildEvent kind='warranty' 用保修日），纯备忘不进候选；③ 「批量导入」页加 warrantyBeyond30 开关（>30 天保修也纳入，同控看板保修卡窗口）；④ 已过期物品默认不勾选；⑤ 看板加关键词搜索（fab 旁圆形入口）+ 底部留白防 fab 遮挡。改动文件：record/storage/calendar.js、item-form、dashboard、items、calendar-import、app.wxss、status-badge.wxss。状态＝`node --check` 通过；用户真机验证通过（2026-09-07），4 条体验反馈已在当日 4 点修复轮处理。
 - 2026-09-05 — **修复键盘避让：数字键盘收起后 scroll-view 卡收缩高度、底部留白遮挡内容（安卓真机，提交 `a46a49c`）**：根因——`kbHeight` 只靠 `wx.onKeyboardHeightChange` 回调 `height=0` 复位，而安卓数字键盘（`type=digit/number`）收起常不回调。修复：`onFieldBlur` 延迟 120ms 兜底归零（延迟兼容框间切换、focus 取消归零防抖动）+ `onFieldFocus` 用 `e.detail.height` 立即收缩 + `onUnload` 清理定时器。详见决策 7。改动文件：item-form.js。状态＝`node --check` 通过 + **安卓真机验证通过（2026-09-05）**，已随本轮提交。
 - 2026-09-04 — **真机反馈修复：下拉刷新文案 + 输入框键盘避让（提交 `3e96a70`/`a46a49c`）**：① 三页下拉刷新改自定义 refresher 文案（`refresher-default-style="none"` + `slot="refresher"`：下拉刷新→松开立即刷新→正在刷新…+转圈），「今天」页补下拉完成 toast「内容已刷新」（此前无提示）；② item-form 7 输入框 + items 搜索框键盘避让（`adjust-position=false` + `wx.onKeyboardHeightChange` 动态收缩 scroll-view + `scroll-into-view` 滚到聚焦字段，见决策 7），根治安卓「输入框漂移、看不到输入内容」。改动文件：app.wxss、dashboard.js/wxml、items.js/wxml、history.js/wxml、item-form.js/wxml。状态＝已通过 `node --check` + 结构 grep + **安卓真机验证通过（2026-09-05）**，已随本轮提交。
 - 2026-09-04 — **下拉刷新收尾清理（A①+A②，提交 `3e96a70`）**：① `dashboard.js` 的 `onScrollRefresh` 由 3 批 `setData` 对齐为 2 批——`refreshing:false` 并入 `refresh()` 成功批（catch 批原已有），与物品页 `load()` 同模式，用户无感知、少一趟渲染消息；② 删除 `dashboard.json` / `history.json` 中 `disableScroll` 后失效的 `backgroundTextStyle: "dark"`（`app.json` 全局项保留）。改动文件：dashboard.js、dashboard.json、history.json。状态＝已通过 `node --check` + JSON 合法性校验 + 安卓真机验证，已随本轮提交。
-- 2026-09-04 — **物品页补下拉刷新**（提交 `5903e81`；设计依据见决策 5.1）：`items.wxml` 的 `scroll-view` 展开为多行并加 4 个 `refresher` 属性（与首页 / 今天页逐字节一致）；`items.js` 新增 `refreshing` 字段与 `onScrollRefresh()`，并把 `refreshing:false` 并入 `load()` 的合并 `setData`（含 catch 路径）以遵守 `contentReady` 原子翻转不变量；下拉刷新仅 **2 批** `setData`（首页现为 3 批）。`items.json` 无需改动（refresher 是组件属性，非页面配置）。改动文件：items.js、items.wxml。状态＝已提交 + 已通过静态评审与 Node 状态机实测（含异常路径），**待真机验证**。
-- 2026-09-04 — **history 健壮性加固 + 死代码清理**：① `history.json` 补 `disableScroll:true` 并移除冗余 `enablePullDownRefresh`（全 7 页对齐）；② `utils/history.js` 根治 never-settle（内层链补 `.catch` 恒 settle）+ `getLocalPreview` 顶层 try/catch 绝不抛异常 + `loadLocalEvents` 畸形数据安全过滤 + 诊断 `console.warn`；③ 移除 tabBar 选中态快照死代码（`app.tabBarSnapshot` / `prepareTabSwitch` / `SHARED_DATA.selected` 预置及误导注释）。改动文件：history.json、utils/history.js、app.js、custom-tab-bar/index.js、dashboard.js、pages/history/history.js（注释）。状态＝已通过评审 + 静态实测，**待真机验证**。
+- 2026-09-04 — **物品页补下拉刷新**（提交 `5903e81`；设计依据见决策 5.1）：`items.wxml` 的 `scroll-view` 展开为多行并加 4 个 `refresher` 属性（与首页 / 今天页逐字节一致）；`items.js` 新增 `refreshing` 字段与 `onScrollRefresh()`，并把 `refreshing:false` 并入 `load()` 的合并 `setData`（含 catch 路径）以遵守 `contentReady` 原子翻转不变量；下拉刷新仅 **2 批** `setData`（首页现为 3 批）。`items.json` 无需改动（refresher 是组件属性，非页面配置）。改动文件：items.js、items.wxml。状态＝已提交 + 已通过静态评审与 Node 状态机实测（含异常路径）+ 安卓真机验证通过（2026-09-05，清单第 5 项）。
+- 2026-09-04 — **history 健壮性加固 + 死代码清理**：① `history.json` 补 `disableScroll:true` 并移除冗余 `enablePullDownRefresh`（全 7 页对齐）；② `utils/history.js` 根治 never-settle（内层链补 `.catch` 恒 settle）+ `getLocalPreview` 顶层 try/catch 绝不抛异常 + `loadLocalEvents` 畸形数据安全过滤 + 诊断 `console.warn`；③ 移除 tabBar 选中态快照死代码（`app.tabBarSnapshot` / `prepareTabSwitch` / `SHARED_DATA.selected` 预置及误导注释）。改动文件：history.json、utils/history.js、app.js、custom-tab-bar/index.js、dashboard.js、pages/history/history.js（注释）。状态＝已通过评审 + 静态实测；用户 2026-09-07 复测清单第 1–4 项时未报告本条相关异常（首帧闪烁属第 1–3 项问题，另列缓办）。
 - 2026-09-04 — **主题切换首帧闪烁修复**（设计细节见决策 6，此处不重述）：两次提交 `841744e`（themeReady 门控落地）+ `5caae4d`（开门前置 / contentReady 原子收口），累计改动 **7 页 js + 7 页 wxml + AI_CONTEXT.md**。状态＝2026-09-07 用户真机复测**首帧闪烁仍存在**，用户判定非主要、缓办（见已知问题；与决策 6.4 平台硬限制「残留系统色一闪」区分）。
 - 2026-08-27 — 新增并已提交两份 agent 协作文档：`AI_CONTEXT.md`（`c1b38a1`）与 `AGENTS.md`（`a284035`）；其中 AI_CONTEXT.md 后续随主题修复更新（`841744e` / `5caae4d`），AGENTS.md 自 a284035 后未再变更。
 - 2026-08-21 前后 — 修复安卓日历导入三连问题（手势链逐条确认、首次授权吞第一条、全选/取消全选破坏列表数据结构）；各页面 `disableScroll` + `scroll-view` 改造锁定 iOS 滚动。
