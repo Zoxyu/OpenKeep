@@ -104,6 +104,15 @@
         <view class="cell-title">维护状态</view>
         <view class="cell-value {{maintenance.overdue ? 'lv-text-expired' : 'lv-text-safe'}}">{{maintenance.label}}</view>
       </view>
+      <view class="maintenance-actions">
+        <view
+          class="btn btn-safe {{maintenanceDoneToday || completingMaintenance || writing ? 'btn-disabled' : ''}}"
+          hover-class="{{maintenanceDoneToday || completingMaintenance || writing ? 'none' : 'btn-hover'}}"
+          bindtap="onCompleteMaintenance"
+        >{{maintenanceDoneToday ? '今天已记录维护' : (completingMaintenance ? '确认中…' : '已完成维护')}}</view>
+        <view class="maintenance-note">按今天记录完成，下一次从今天起按原周期计算。补记其他日期可使用“编辑物品”。</view>
+        <view wx:if="{{record.calendarImported}}" class="maintenance-note">已有日历提醒不会自动更新，旧提醒请在系统日历中管理。下一次维护如需提醒，请另行添加。</view>
+      </view>
     </view>
 
     <!-- 备注 -->

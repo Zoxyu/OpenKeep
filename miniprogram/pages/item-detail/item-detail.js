@@ -8,6 +8,7 @@ const storage = require('../../utils/storage');
 const recordUtil = require('../../utils/record');
 const imageUtil = require('../../utils/image');
 const calendarUtil = require('../../utils/calendar');
+const dateUtil = require('../../utils/date');
 
 const REMINDER_OPTIONS = [
   { v: 0, label: '到期当天提醒' },
@@ -38,6 +39,8 @@ Page({
     warranty: null,           // getWarrantyStatus 结果（M1）
     warrantyLeftText: '',     // 保修剩余 / 已过保的展示文案（M1）
     maintenance: null,        // 维护信息（M1 第二批次，getMaintenanceInfo 结果）
+    maintenanceDoneToday: false,
+    completingMaintenance: false,
     missing: false,
     reminderOptions: REMINDER_OPTIONS.map(r => r.label),
     reminderIndex: 1,
@@ -126,6 +129,7 @@ Page({
       warranty: warranty,
       warrantyLeftText: warrantyLeftText,
       maintenance: maintenance,
+      maintenanceDoneToday: maintenance.active && maintenance.lastDate === dateUtil.todayStr(),
       photoOk: !!r.photoPath && imageUtil.isPhotoValid(r.photoPath),
       reminderIndex: idx
     });
@@ -137,6 +141,52 @@ Page({
 
   onEdit() {
     wx.navigateTo({ url: '/pages/item-form/item-form?id=' + this.data.id });
+  },
+
+  // 完成维护：以本次实际维护日为新起点，不累加旧的计划日期，也不自动写日历。
+  onCompleteMaintenance() {
+    if (this.data.completingMaintenance || this.data.writing) return;
+    const record = storage.getRecord(this.data.id);
+    if (!record || !recordUtil.getMaintenanceInfo(record).active) {
+      this.refresh();
+      return;
+    }
+    const today = dateUtil.todayStr();
+    if (record.maintenanceLast === today) {
+      this.refresh();
+      wx.showToast({ title: '今天已记录维护', icon: 'none' });
+      return;
+    }
+    const next = recordUtil.getMaintenanceInfo(Object.assign({}, record, { maintenanceLast: today }));
+    this.setData({ completingMaintenance: true });
+    wx.showModal({
+      title: '确认完成维护',
+      content: '将「' + record.name + '」的上次维护日期更新为今天（' + today + '），下次维护为 ' + next.nextDate + '。如需补记其他日期，请使用“编辑物品”。',
+      confirmText: '确认完成',
+      cancelText: '取消',
+      success: res => {
+        if (!res.confirm) return;
+        // 确认后重读，保留最新的其他字段；记录删除或周期变化时不覆盖、不复活旧记录。
+        const latest = storage.getRecord(record.id);
+        if (!latest || latest.maintenanceLast !== record.maintenanceLast ||
+            latest.maintenanceCycle !== record.maintenanceCycle ||
+            latest.maintenanceCycleDays !== record.maintenanceCycleDays || dateUtil.todayStr() !== today) {
+          this.refresh();
+          wx.showToast({ title: '记录或日期已变化，请重试', icon: 'none' });
+          return;
+        }
+        const updated = Object.assign({}, latest, { maintenanceLast: today, updatedAt: Date.now() });
+        // 日历标记是历史写入记录，无法据此识别写入种类，不清除以免误导重复导入保修/到期提醒。
+        if (!storage.upsertRecord(updated)) {
+          wx.showToast({ title: '保存失败，请重试', icon: 'none' });
+          return;
+        }
+        this.refresh();
+        wx.showToast({ title: '已完成维护', icon: 'success' });
+      },
+      fail: () => wx.showToast({ title: '暂时无法确认，请重试', icon: 'none' }),
+      complete: () => this.setData({ completingMaintenance: false })
+    });
   },
 
   // 删除：二次确认 + 同步删除本地照片文件
@@ -159,7 +209,7 @@ Page({
 
   // ====== 单条日历导入（仅用户主动点击触发） ======
   onAddCalendar() {
-    if (this.data.writing || !this.data.record) return;
+    if (this.data.writing || this.data.completingMaintenance || !this.data.record) return;
 
     // 低版本 / 不支持的设备：降级提示，不影响主功能
     if (!calendarUtil.isSupported()) {
@@ -208,6 +258,7 @@ Page({
   },
 
   writeCalendar() {
+    if (this.data.writing || this.data.completingMaintenance || !this.data.record) return;
     const { record, status, reminderIndex } = this.data;
     const reminderDays = REMINDER_OPTIONS[reminderIndex].v;
     const evt = calendarUtil.buildEvent(
