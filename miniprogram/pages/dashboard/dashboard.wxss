@@ -70,8 +70,8 @@
   margin-top: 30rpx;
   padding: 18rpx 44rpx;
   border-radius: 999rpx;
-  background: var(--c-text);
-  color: var(--c-bg);
+  background: var(--c-action-bg);
+  color: var(--c-action-text);
   font-size: 28rpx;
 }
 
@@ -164,8 +164,8 @@
   height: 96rpx;
   padding: 0 44rpx;
   border-radius: 999rpx;
-  background: var(--c-text);
-  color: var(--c-bg);
+  background: var(--c-action-bg);
+  color: var(--c-action-text);
   font-size: 30rpx;
   font-weight: 500;
   letter-spacing: 1rpx;
@@ -183,8 +183,8 @@
   width: 88rpx;
   height: 88rpx;
   border-radius: 50%;
-  background: var(--c-card);
-  border: 1rpx solid var(--c-line);
+  background: var(--c-control-bg);
+  border: 1rpx solid var(--c-control-line);
   box-shadow: 0 14rpx 36rpx rgba(32, 36, 33, 0.18);
   display: flex;
   align-items: center;
@@ -195,7 +195,7 @@
 .fab-search-icon {
   width: 30rpx;
   height: 30rpx;
-  border: 4rpx solid var(--c-sub);
+  border: 4rpx solid var(--c-control-text);
   border-radius: 50%;
   box-sizing: border-box;
   position: relative;
@@ -207,7 +207,7 @@
   bottom: -7rpx;
   width: 12rpx;
   height: 4rpx;
-  background: var(--c-sub);
+  background: var(--c-control-text);
   border-radius: 2rpx;
   transform: rotate(45deg);
 }

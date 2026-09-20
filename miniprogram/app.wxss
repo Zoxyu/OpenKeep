@@ -47,6 +47,15 @@ page {
   /* 备忘状态（M1 备忘模式）：莫兰迪浅蓝，独立于红黄绿到期语义 */
   --c-memo: #7C93A8;
   --c-memo-bg: rgba(124, 147, 168, 0.12);
+  /* 操作与选中态独立于正文色，避免深色模式出现亮白色大块背景。 */
+  --c-action-bg: #202421;
+  --c-action-text: #F7F7F4;
+  --c-selected-bg: #202421;
+  --c-selected-text: #F7F7F4;
+  --c-selected-line: #202421;
+  --c-control-bg: #FFFFFF;
+  --c-control-text: #858C86;
+  --c-control-line: rgba(32, 36, 33, 0.08);
   min-height: 100vh;
   background: var(--c-bg);
   color: var(--c-text);
@@ -71,6 +80,14 @@ page {
   --c-shadow: 0 8rpx 28rpx rgba(0, 0, 0, 0.35);
   --c-memo: #A9C0D4;
   --c-memo-bg: rgba(169, 192, 212, 0.16);
+  --c-action-bg: #395B50;
+  --c-action-text: #EEF5F1;
+  --c-selected-bg: #293D35;
+  --c-selected-text: #C0DACE;
+  --c-selected-line: #526F60;
+  --c-control-bg: #26332D;
+  --c-control-text: #C0DACE;
+  --c-control-line: #425B50;
 }
 
 /* ====== 通用按钮（使用 view + hover-class，避免原生 button 默认样式） ====== */
@@ -87,7 +104,7 @@ page {
   box-sizing: border-box;
 }
 .btn-hover { opacity: 0.85; transform: translateY(1rpx); }
-.btn-primary { background: var(--c-text); color: var(--c-bg); }
+.btn-primary { background: var(--c-action-bg); color: var(--c-action-text); }
 .btn-plain { background: var(--c-card-2); color: var(--c-text); border: 1rpx solid var(--c-line); }
 .btn-safe { background: var(--c-safe); color: #FFFFFF; }
 .btn-danger { background: var(--c-danger); color: #FFFFFF; }
@@ -182,9 +199,9 @@ page {
   white-space: nowrap;
 }
 .chip-on {
-  background: var(--c-text);
-  border-color: var(--c-text);
-  color: var(--c-bg);
+  background: var(--c-selected-bg);
+  border-color: var(--c-selected-line);
+  color: var(--c-selected-text);
   font-weight: 500;
 }
 .chip-count { margin-left: 8rpx; font-size: 22rpx; opacity: 0.7; }

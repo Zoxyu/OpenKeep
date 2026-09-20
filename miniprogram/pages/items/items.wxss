@@ -81,10 +81,10 @@
 .fp-grid-4 .fp-cell:nth-child(3n) { margin-right: 16rpx; }
 .fp-grid-4 .fp-cell:nth-child(4n) { margin-right: 0; }
 
-/* 选中态：默认墨色填充 */
+/* 选中态：浅色墨色、深色灰绿色填充 */
 .fp-cell-on {
-  background: var(--c-text);
-  color: var(--c-bg);
+  background: var(--c-selected-bg);
+  color: var(--c-selected-text);
   font-weight: 500;
 }
 
@@ -117,8 +117,8 @@
   height: 96rpx;
   padding: 0 44rpx;
   border-radius: 999rpx;
-  background: var(--c-text);
-  color: var(--c-bg);
+  background: var(--c-action-bg);
+  color: var(--c-action-text);
   font-size: 30rpx;
   font-weight: 500;
   letter-spacing: 1rpx;

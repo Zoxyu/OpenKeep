@@ -21,9 +21,9 @@
 }
 .fb-chip-hover { opacity: 0.8; }
 .fb-chip-on {
-  background: var(--c-text);
-  border-color: var(--c-text);
-  color: var(--c-bg);
+  background: var(--c-selected-bg);
+  border-color: var(--c-selected-line);
+  color: var(--c-selected-text);
   font-weight: 500;
 }
 .fb-count { margin-left: 10rpx; font-size: 22rpx; opacity: 0.7; }
