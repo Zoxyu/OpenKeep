@@ -1,5 +1,15 @@
 /* 新增 / 编辑物品页样式 */
 
+.entry-panel { margin: 28rpx 40rpx 0; }
+.entry-title { margin-bottom: 20rpx; font-size: 30rpx; font-weight: 600; }
+.entry-tabs { display: flex; gap: 12rpx; }
+.entry-tab { flex: 1; min-width: 0; min-height: 116rpx; padding: 18rpx 8rpx; box-sizing: border-box; border: 2rpx solid var(--c-line); border-radius: 20rpx; background: var(--c-card); color: var(--c-text); text-align: center; display: flex; flex-direction: column; justify-content: center; }
+.entry-on { background: var(--c-selected-bg); color: var(--c-selected-text); border-color: var(--c-selected-line); }
+.entry-label { font-size: 28rpx; font-weight: 600; }
+.entry-hint { margin-top: 8rpx; font-size: 21rpx; color: var(--c-sub); }
+.entry-on .entry-hint { color: inherit; }
+.entry-note { margin-top: 14rpx; font-size: 24rpx; line-height: 1.6; color: var(--c-sub); }
+
 /* ====== 封面照片区 ====== */
 .photo-area {
   margin: 32rpx 40rpx 0;
@@ -58,7 +68,7 @@
 .field-sub { margin-top: 10rpx; font-size: 23rpx; color: var(--c-faint); }
 
 /* 购买与保修（M1 可选）分区标题与清除链接 */
-.opt-head { display: flex; align-items: baseline; gap: 12rpx; padding: 32rpx 32rpx 6rpx; }
+.opt-head { display: flex; flex-wrap: wrap; align-items: baseline; gap: 12rpx; padding: 32rpx 32rpx 6rpx; }
 .opt-title { font-size: 28rpx; font-weight: 600; color: var(--c-text); letter-spacing: 1rpx; }
 .opt-sub { font-size: 22rpx; color: var(--c-faint); }
 .clear-link { margin-top: 10rpx; min-height: 64rpx; line-height: 64rpx; font-size: 24rpx; color: var(--c-sub); }

@@ -137,7 +137,7 @@ function buildEvent(record, status, reminderDays, kind) {
     '分类：' + (record.categoryLabel || '其他')
   ];
   if (record.location) lines.push('存放位置：' + record.location);
-  lines.push('开封日期：' + record.openedAt);
+  lines.push('开始使用日期：' + record.openedAt);
   if (isWarranty) {
     lines.push('保修结束：' + dateUtil.formatDate(due) + (isExpired ? '（已过保，提醒时间已调整）' : ''));
   } else if (isMaintenance) {
@@ -147,7 +147,7 @@ function buildEvent(record, status, reminderDays, kind) {
   }
   const shelfText = recordUtil.shelfLifeText(record);
   if (shelfText) lines.push('保质期：' + shelfText);
-  if (record.openedDays > 0) lines.push('开封后可保存：' + record.openedDays + ' 天');
+  if (record.openedDays > 0) lines.push('开始使用后可用：' + record.openedDays + ' 天');
   if (record.notes) lines.push('备注：' + record.notes);
 
   const startTimeSec = Math.floor(start.getTime() / 1000);

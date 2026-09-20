@@ -97,7 +97,7 @@
       wx:if="{{contentReady && !hasAny}}"
       type="box"
       title="还没有任何物品"
-      desc="添加第一件开封物品，开始你的保质期看板。"
+      desc="添加第一件物品，记录保质期、保修或维保信息。"
     />
     <view wx:if="{{contentReady && !hasAny}}" class="empty-action">
       <view class="btn btn-primary empty-btn" hover-class="btn-hover" bindtap="goAdd">＋ 添加物品</view>

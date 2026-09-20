@@ -1,10 +1,9 @@
 /**
  * 新增 / 编辑物品页
  * - 封面照片：拍照或相册选择，保存时复制到 USER_DATA_PATH 持久化
- * - 「已开封 X 天」快捷输入自动反推开封日期
- * - 保质期（必填，可选天/个月/年）是到期日的主要依据；
- *   「开封后可保存天数」为可选修正项（填了则优先按它算到期），
- *   并按分类给出保守参考值；新增「存放位置」可选字段供日历提醒文案使用
+ * - 「已使用 X 天」快捷输入自动反推开始使用日期
+ * - 保质期 / 保修 / 维保三栏至少填一类，存放位置是通用可选信息
+ * - 切栏只切换展示，保留所有字段；旧版纯位置备忘可继续编辑保存
  * - 保存前逐字段校验，错误信息显示在字段附近
  * - 编辑模式支持替换 / 移除照片与删除记录（删除同步清理本地照片文件）
  */
@@ -26,13 +25,15 @@ Page({
     isEdit: false,
     id: '',
     origin: null,             // 编辑模式下的原始记录
+    entryTab: 'shelf',        // 仅控制表单展示，不写入物品记录
+    legacyMemo: false,        // 旧版仅位置备忘的编辑兼容提示
     photoPath: '',            // 已持久化的照片（编辑模式沿用旧照片时）
     tempPhoto: '',            // 本次新选择、尚未持久化的照片
     name: '',
     category: 'fridge',
     categoryOptions: [],
     openedAt: '',
-    shelfLifeValue: '',       // 保质期数值（必填）
+    shelfLifeValue: '',       // 保质期数值（三类信息至少填一类）
     shelfLifeUnit: 'day',     // 保质期单位：天 / 个月 / 年
     unitOptions: [
       { v: 'day', label: '天' },
@@ -110,6 +111,10 @@ Page({
           isEdit: true,
           id: r.id,
           origin: r,
+          entryTab: r.shelfLifeValue > 0 || r.openedDays > 0 ? 'shelf'
+            : (r.warrantyEnd ? 'warranty' : (recordUtil.getMaintenanceInfo(r).active ? 'maintenance' : 'shelf')),
+          legacyMemo: !r.shelfLifeValue && !r.openedDays && !r.warrantyEnd &&
+            !recordUtil.getMaintenanceInfo(r).active && !!r.location,
           name: r.name,
           category: r.category,
           photoPath: r.photoPath,
@@ -140,7 +145,7 @@ Page({
   // 按分类生成「开封后可保存天数」的保守参考提示（宁少勿多）
   buildRefHint(category) {
     const cat = recordUtil.categoryOf(category);
-    return '参考：' + cat.label + '类开封后建议 ' + cat.refOpenedDays + ' 天内用完';
+    return '参考：' + cat.label + '类开始使用后建议 ' + cat.refOpenedDays + ' 天内用完';
   },
 
   onShow() {
@@ -234,6 +239,16 @@ Page({
   },
 
   // ====== 表单输入 ======
+  onEntryTabTap(e) {
+    const tab = e.currentTarget.dataset.tab;
+    if (this.data.saving || ['shelf', 'warranty', 'maintenance'].indexOf(tab) < 0 || tab === this.data.entryTab) return;
+    // 切栏先结束输入，避免隐藏控件残留键盘高度；所有录入值留在 data 中。
+    this._focusing = false;
+    if (this._blurTimer) { clearTimeout(this._blurTimer); this._blurTimer = null; }
+    if (wx.hideKeyboard) wx.hideKeyboard();
+    this.setData({ entryTab: tab, kbHeight: 0, scrollIntoId: '' });
+  },
+
   onNameInput(e) { this.setData({ name: e.detail.value }); },
   onShelfValueInput(e) { this.setData({ shelfLifeValue: e.detail.value }); },
   onOpenedDaysInput(e) { this.setData({ openedDays: e.detail.value }); },
@@ -265,7 +280,7 @@ Page({
   onClearMaintenanceLast() { this.setData({ maintenanceLast: '' }); },
   onCycleTap(e) {
     const errors = Object.assign({}, this.data.errors);
-    delete errors.maintenanceLast; delete errors.maintenanceCycleDays;
+    delete errors.maintenanceLast; delete errors.maintenanceCycle; delete errors.maintenanceCycleDays;
     this.setData({ maintenanceCycle: e.currentTarget.dataset.v, errors });
   },
   onMaintenanceDaysInput(e) {
@@ -296,7 +311,7 @@ Page({
       patch.quickHint = '';
     } else if (isFinite(x) && x >= 0 && x <= 3650 && String(x) === v.trim()) {
       patch.openedAt = dateUtil.formatDate(dateUtil.addDays(dateUtil.todayStart(), -x));
-      patch.quickHint = '已推算开封日期为 ' + patch.openedAt + '（仍可手动修改）';
+      patch.quickHint = '已推算开始使用日期为 ' + patch.openedAt + '（仍可手动修改）';
       patch.quickOk = true;
     } else {
       patch.quickHint = '请输入 0 以上的整数天数';
@@ -311,20 +326,24 @@ Page({
     if (!name) errors.name = '请输入物品名称';
     else if (name.length > 30) errors.name = '名称最多 30 个字';
 
-    // 保质期 / 保修结束日 / 存放位置 三选一（至少填一项）：只填存放位置＝备忘模式（无到期日，状态「备忘」）
+    // 新录入：保质期 / 保修 / 维保至少填一类，位置不再作为新记录的有效依据。
     const shelfRaw = String(this.data.shelfLifeValue).trim();
     const openedRaw = String(this.data.openedDays).trim();
     const hasShelf = !!shelfRaw || !!openedRaw;
     const hasWarranty = !!String(this.data.warrantyEnd).trim();
-    const hasLocation = !!String(this.data.location).trim();
+    const hasMaintenance = this.data.maintenanceCycle !== 'none';
+    const origin = this.data.origin;
+    const keepLegacyMemo = this.data.isEdit && origin && !origin.shelfLifeValue && !origin.openedDays &&
+      !origin.warrantyEnd && !recordUtil.getMaintenanceInfo(origin).active &&
+      !!origin.location && !!this.data.location.trim();
     if (shelfRaw) {
       const v = Number(shelfRaw);
       if (!isFinite(v) || Math.floor(v) !== v || v < 1 || v > 3650) {
         errors.shelfLifeValue = '请输入 1–3650 之间的整数';
       }
     }
-    if (!hasShelf && !hasWarranty && !hasLocation) {
-      errors.shelfLifeValue = '保质期、保修结束日、存放位置至少填写一项（只填存放位置可作为备忘）';
+    if (!hasShelf && !hasWarranty && !hasMaintenance && !keepLegacyMemo) {
+      errors.recordType = '请至少填写保质期、保修结束日期或完整的维保信息';
     }
 
     // 开封后可保存天数：可选，填了则必须是 1–3650 整数
@@ -335,7 +354,7 @@ Page({
       }
     }
 
-    if (!dateUtil.parseDate(this.data.openedAt)) errors.openedAt = '开封日期无效，请重新选择';
+    if (!dateUtil.parseDate(this.data.openedAt)) errors.openedAt = '开始使用日期无效，请重新选择';
     if (this.data.location.trim().length > 20) errors.location = '存放位置最多 20 个字';
     if (this.data.notes.length > 100) errors.notes = '备注最多 100 个字';
 
@@ -352,8 +371,12 @@ Page({
       if (!isFinite(p) || p < 0) errors.purchasePrice = '请输入有效的购买价格（不小于 0）';
     }
 
-    // 维护周期（可选附加）：设了周期则上次维护日必填；自定义天数必须 1–3650 整数
-    if (this.data.maintenanceCycle !== 'none') {
+    // 维保可独立作为录入依据；需合法日期和周期，自定义天数必须 1–3650 整数。
+    if (this.data.maintenanceLast && !dateUtil.parseDate(this.data.maintenanceLast)) {
+      errors.maintenanceLast = '上次维护日期无效，请重新选择';
+    }
+    if (hasMaintenance) {
+      if (['monthly', 'yearly', 'custom'].indexOf(this.data.maintenanceCycle) < 0) errors.maintenanceCycle = '请选择有效的维护周期';
       if (!this.data.maintenanceLast) errors.maintenanceLast = '设置了维护周期，请选择上次维护日期';
       if (this.data.maintenanceCycle === 'custom') {
         const dRaw = String(this.data.maintenanceCycleDays).trim();
@@ -366,12 +389,30 @@ Page({
     return errors;
   },
 
+  // 校验隐藏栏内的字段时，自动展开对应栏并定位，避免错误不可见。
+  showValidationErrors(errors) {
+    const targets = [
+      ['name', '', 'f-name'], ['openedAt', 'shelf', 'f-start'],
+      ['shelfLifeValue', 'shelf', 'f-shelf'], ['openedDays', 'shelf', 'f-opened'],
+      ['warrantyEnd', 'warranty', 'f-warranty'], ['purchaseDate', 'warranty', 'f-purchase'],
+      ['purchasePrice', 'warranty', 'f-price'], ['maintenanceLast', 'maintenance', 'f-mlast'],
+      ['maintenanceCycle', 'maintenance', 'f-cycle'], ['maintenanceCycleDays', 'maintenance', 'f-mdays'],
+      ['location', '', 'f-location'], ['notes', '', 'f-notes'], ['recordType', '', 'f-entry']
+    ];
+    const target = targets.find(t => errors[t[0]]);
+    const patch = { errors: errors, scrollIntoId: '' };
+    if (target && target[1]) patch.entryTab = target[1];
+    this.setData(patch, () => {
+      if (target) this.setData({ scrollIntoId: target[2] });
+    });
+  },
+
   // ====== 保存 ======
   onSave() {
     if (this.data.saving) return;
     const errors = this.validate();
     if (Object.keys(errors).length) {
-      this.setData({ errors });
+      this.showValidationErrors(errors);
       wx.showToast({ title: '请先修正表单中的问题', icon: 'none' });
       return;
     }
@@ -389,7 +430,9 @@ Page({
           calendarReminderDays: 1
         };
       base.name = this.data.name.trim();
-      base.category = this.data.category;
+      // 分类选择仅在保质期栏展示；新建纯保修/维保不沿用未选择的「冷藏」默认值。
+      const hasShelf = !!String(this.data.shelfLifeValue).trim() || !!String(this.data.openedDays).trim();
+      base.category = !this.data.isEdit && !hasShelf ? 'other' : this.data.category;
       base.photoPath = photoPath || '';
       base.openedAt = this.data.openedAt;
       base.shelfLifeValue = parseInt(this.data.shelfLifeValue, 10) || 0;

@@ -41,19 +41,19 @@
         <view class="cell-value">{{cat.label}}</view>
       </view>
       <view class="cell">
-        <view class="cell-title">开封日期</view>
+        <view class="cell-title">开始使用日期</view>
         <view class="cell-value">{{record.openedAt}}</view>
       </view>
       <view class="cell">
-        <view class="cell-title">已开封</view>
-        <view class="cell-value">{{status.daysOpened > 0 ? status.daysOpened + ' 天' : '今天刚开封'}}</view>
+        <view class="cell-title">已使用</view>
+        <view class="cell-value">{{status.daysOpened > 0 ? status.daysOpened + ' 天' : '今天开始使用'}}</view>
       </view>
       <view wx:if="{{shelfLifeText}}" class="cell">
         <view class="cell-title">保质期</view>
         <view class="cell-value">{{shelfLifeText}}</view>
       </view>
       <view wx:if="{{record.openedDays > 0}}" class="cell">
-        <view class="cell-title">开封后可保存</view>
+        <view class="cell-title">开始使用后可用</view>
         <view class="cell-value">{{record.openedDays}} 天（优先按此提醒）</view>
       </view>
       <view wx:if="{{record.location}}" class="cell">

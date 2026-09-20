@@ -6,7 +6,7 @@
       <view class="onboard-logo">期</view>
       <view class="onboard-name">到期那天</view>
       <view class="onboard-sub">In Time · 到期那天，还来得及</view>
-      <view class="onboard-desc">记录每一次开封，红黄绿看板一眼看清临期与过期。所有数据仅保存在你的手机本地，不上传、不联网。</view>
+      <view class="onboard-desc">记下物品的开始使用日期，随时查看到期、保修与维保信息。所有数据仅保存在你的手机本地，不上传、不联网。</view>
       <view class="btn btn-primary onboard-btn" hover-class="btn-hover" bindtap="onUseDemo">体验示例数据</view>
       <view class="btn btn-plain onboard-btn" hover-class="btn-hover" bindtap="onStartBlank">从空白开始</view>
     </view>
@@ -83,7 +83,7 @@
   <view wx:elif="{{contentReady && !hasRecords && !showOnboarding}}" class="guide" hover-class="card-hover" bindtap="goAdd">
     <view class="guide-circle"></view>
     <view class="guide-title">从第一件物品开始</view>
-    <view class="guide-desc">拍下或录入刚开封的物品，到期的事交给看板替你记着。</view>
+    <view class="guide-desc">拍下或录入开始使用的物品，到期的事交给看板替你记着。</view>
     <view class="guide-btn">＋ 添加第一件物品</view>
   </view>
 

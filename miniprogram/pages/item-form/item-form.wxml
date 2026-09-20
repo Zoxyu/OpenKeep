@@ -11,6 +11,28 @@
     scroll-with-animation
   >
 
+  <!-- 三栏只切换录入内容，不清空数据；至少填写一类，可同时填写多类。 -->
+  <view class="entry-panel" id="f-entry">
+    <view class="entry-title">这件物品需要记录什么？</view>
+    <view class="entry-tabs">
+      <view class="entry-tab {{entryTab === 'shelf' ? 'entry-on' : ''}}" data-tab="shelf" bindtap="onEntryTabTap" hover-class="cat-hover">
+        <view class="entry-label">保质期</view>
+        <view class="entry-hint">{{shelfLifeValue || openedDays ? '已填写' : '食品 · 化妆品'}}</view>
+      </view>
+      <view class="entry-tab {{entryTab === 'warranty' ? 'entry-on' : ''}}" data-tab="warranty" bindtap="onEntryTabTap" hover-class="cat-hover">
+        <view class="entry-label">保修</view>
+        <view class="entry-hint">{{warrantyEnd ? '已填写' : '电子产品 · 家电'}}</view>
+      </view>
+      <view class="entry-tab {{entryTab === 'maintenance' ? 'entry-on' : ''}}" data-tab="maintenance" bindtap="onEntryTabTap" hover-class="cat-hover">
+        <view class="entry-label">维保</view>
+        <view class="entry-hint">{{maintenanceLast && maintenanceCycle !== 'none' ? '已填写' : '维护 · 定期保养'}}</view>
+      </view>
+    </view>
+    <view class="entry-note">至少填写一类，可跨栏填写；切换不会清空，保存时保留所有已填信息。</view>
+    <view wx:if="{{legacyMemo}}" class="entry-note">这是旧版位置备忘，可继续编辑保存，也可补充以上信息。</view>
+    <view wx:if="{{errors.recordType}}" class="err-text">{{errors.recordType}}</view>
+  </view>
+
   <!-- 封面照片 -->
   <view class="photo-area" hover-class="photo-hover" bindtap="onPhotoTap">
     <block wx:if="{{tempPhoto || photoPath}}">
@@ -32,7 +54,7 @@
         class="input-base"
         value="{{name}}"
         maxlength="30"
-        placeholder="例如：鲜牛奶、眼药水"
+        placeholder="{{entryTab === 'shelf' ? '例如：鲜牛奶、面霜' : (entryTab === 'warranty' ? '例如：笔记本电脑、冰箱' : '例如：净水器滤芯、空调')}}"
         placeholder-class="ph-text"
         adjust-position="{{false}}"
         data-target="f-name"
@@ -43,6 +65,11 @@
       <view wx:if="{{errors.name}}" class="err-text">{{errors.name}}</view>
     </view>
 
+
+  </view>
+
+  <view wx:if="{{entryTab === 'shelf'}}" class="form-card card">
+    <view class="opt-head"><text class="opt-title">保质期信息</text><text class="opt-sub">填写保质期或开始使用后可用天数</text></view>
     <!-- 分类 -->
     <view class="field">
       <view class="field-label"><text class="req">*</text>分类</view>
@@ -61,9 +88,9 @@
       </view>
     </view>
 
-    <!-- 开封日期 -->
-    <view class="field">
-      <view class="field-label"><text class="req">*</text>开封日期</view>
+    <!-- 开始使用日期（沿用 openedAt 字段，兼容旧记录） -->
+    <view class="field" id="f-start">
+      <view class="field-label"><text class="req">*</text>开始使用日期</view>
       <picker mode="date" value="{{openedAt}}" bindchange="onDateChange">
         <view class="input-base picker-row">
           <text>{{openedAt}}</text>
@@ -73,14 +100,14 @@
       <view wx:if="{{errors.openedAt}}" class="err-text">{{errors.openedAt}}</view>
     </view>
 
-    <!-- 已开封 X 天 快捷输入 -->
+    <!-- 已使用 X 天 快捷输入 -->
     <view class="field" id="f-quick">
-      <view class="field-label">快捷输入 · 已开封 X 天（可选）</view>
+      <view class="field-label">快捷输入 · 已使用 X 天（可选）</view>
       <input
         class="input-base"
         type="number"
         value="{{quickOpenedInput}}"
-        placeholder="输入天数，自动反推开封日期"
+        placeholder="输入天数，自动反推开始使用日期"
         placeholder-class="ph-text"
         adjust-position="{{false}}"
         data-target="f-quick"
@@ -90,12 +117,12 @@
       />
       <view wx:if="{{quickHint && quickOk}}" class="hint-text">{{quickHint}}</view>
       <view wx:elif="{{quickHint}}" class="err-text">{{quickHint}}</view>
-      <view class="field-sub">仅凭已开封天数无法推算到期日，到期日由下方保质期或开封后可保存天数决定。</view>
+      <view class="field-sub">仅凭已使用天数无法推算到期日，到期日由下方保质期或开始使用后可用天数决定。</view>
     </view>
 
-    <!-- 保质期（三选一之一，可选天/个月/年） -->
+    <!-- 保质期，可选天/个月/年 -->
     <view class="field" id="f-shelf">
-      <view class="field-label">保质期（包装标注）· 与保修/存放位置三选一</view>
+      <view class="field-label">保质期（包装标注）</view>
       <view class="shelf-row">
         <input
           class="input-base shelf-input"
@@ -123,9 +150,9 @@
       <view wx:if="{{errors.shelfLifeValue}}" class="err-text">{{errors.shelfLifeValue}}</view>
     </view>
 
-    <!-- 开封后可保存天数（可选修正项） -->
+    <!-- 开始使用后可用天数（可选修正项） -->
     <view class="field" id="f-opened">
-      <view class="field-label">开封后可保存天数（可选，填了优先按它算到期）</view>
+      <view class="field-label">开始使用后可用天数（可选，填了优先按它算到期）</view>
       <input
         class="input-base"
         type="number"
@@ -142,53 +169,18 @@
       <view wx:else class="hint-text">{{refHint}}（宁少勿多，提醒更安全）</view>
     </view>
 
-    <!-- 存放位置（三选一之一，可作备忘） -->
-    <view class="field" id="f-location">
-      <view class="field-label">存放位置（最多 20 字）· 三选一之一，只填它可作备忘</view>
-      <input
-        class="input-base"
-        value="{{location}}"
-        maxlength="20"
-        placeholder="如：冰箱冷冻室、药箱、梳妆台"
-        placeholder-class="ph-text"
-        adjust-position="{{false}}"
-        data-target="f-location"
-        bindfocus="onFieldFocus"
-        bindblur="onFieldBlur"
-        bindinput="onLocationInput"
-      />
-      <view wx:if="{{errors.location}}" class="err-text">{{errors.location}}</view>
-    </view>
 
-    <!-- 备注 -->
-    <view class="field" id="f-notes">
-      <view class="field-label">备注（可选，最多 100 字）</view>
-      <textarea
-        class="input-base notes-input"
-        value="{{notes}}"
-        maxlength="100"
-        placeholder="例如：开封后需冷藏"
-        placeholder-class="ph-text"
-        adjust-position="{{false}}"
-        data-target="f-notes"
-        bindfocus="onFieldFocus"
-        bindblur="onFieldBlur"
-        bindinput="onNotesInput"
-      />
-      <view class="notes-count">{{notes.length}} / 100</view>
-      <view wx:if="{{errors.notes}}" class="err-text">{{errors.notes}}</view>
-    </view>
   </view>
 
-  <!-- 购买与保修（M1 可选，弱化展示，不增加首次录入压力） -->
-  <view class="form-card card">
+  <!-- 保修栏：购买信息可选，保修日期作为三选一依据。 -->
+  <view wx:if="{{entryTab === 'warranty'}}" class="form-card card">
     <view class="opt-head">
       <text class="opt-title">购买与保修</text>
-      <text class="opt-sub">保修为三选一之一 · 购买信息纯可选</text>
+      <text class="opt-sub">填写保修结束日期，购买信息可选</text>
     </view>
 
     <!-- 购买日期 -->
-    <view class="field">
+    <view class="field" id="f-purchase">
       <view class="field-label">购买日期</view>
       <picker mode="date" value="{{purchaseDate}}" bindchange="onPurchaseDateChange">
         <view class="input-base picker-row">
@@ -219,11 +211,11 @@
     </view>
 
     <!-- 保修结束日期（三选一之一） -->
-    <view class="field">
-      <view class="field-label">保修结束日期 · 三选一之一</view>
+    <view class="field" id="f-warranty">
+      <view class="field-label">保修结束日期</view>
       <picker mode="date" value="{{warrantyEnd}}" bindchange="onWarrantyEndChange">
         <view class="input-base picker-row">
-          <text class="{{warrantyEnd ? '' : 'ph-text'}}">{{warrantyEnd || '请选择（可选）'}}</text>
+          <text class="{{warrantyEnd ? '' : 'ph-text'}}">{{warrantyEnd || '请选择保修结束日期'}}</text>
           <text class="picker-arrow">›</text>
         </view>
       </picker>
@@ -232,15 +224,15 @@
     </view>
   </view>
 
-  <!-- 维护周期（M1 第二批次，纯可选附加；下次维护日＝上次+1 周期自动推算，不落库） -->
-  <view class="form-card card">
+  <!-- 维保栏：上次维护日与周期共同作为三选一依据。 -->
+  <view wx:if="{{entryTab === 'maintenance'}}" class="form-card card">
     <view class="opt-head">
       <text class="opt-title">维护周期</text>
-      <text class="opt-sub">纯可选 · 适合滤芯/洗衣机等定期保养物</text>
+      <text class="opt-sub">填写上次维护日期与周期</text>
     </view>
 
     <!-- 上次维护日期 -->
-    <view class="field">
+    <view class="field" id="f-mlast">
       <view class="field-label">上次维护日期</view>
       <picker mode="date" value="{{maintenanceLast}}" bindchange="onMaintenanceLastChange">
         <view class="input-base picker-row">
@@ -253,7 +245,7 @@
     </view>
 
     <!-- 维护周期：四选项单行分段（复用 unit-seg 样式） -->
-    <view class="field">
+    <view class="field" id="f-cycle">
       <view class="field-label">维护周期</view>
       <view class="unit-seg cycle-seg">
         <view
@@ -265,6 +257,7 @@
           bindtap="onCycleTap"
         >{{item.label}}</view>
       </view>
+      <view wx:if="{{errors.maintenanceCycle}}" class="err-text">{{errors.maintenanceCycle}}</view>
     </view>
 
     <!-- 自定义天数（仅 custom 显示） -->
@@ -286,6 +279,45 @@
     </view>
 
     <view class="field-sub cycle-hint">保存后按「上次维护日 + 1 个周期」自动推算下次维护日，详情可见并可写入日历提醒。</view>
+  </view>
+
+  <view class="form-card card">
+    <!-- 存放位置与备注（三栏共用） -->
+    <view class="field" id="f-location">
+      <view class="field-label">存放位置（可选，最多 20 字）</view>
+      <input
+        class="input-base"
+        value="{{location}}"
+        maxlength="20"
+        placeholder="如：厨房、书房、储物柜"
+        placeholder-class="ph-text"
+        adjust-position="{{false}}"
+        data-target="f-location"
+        bindfocus="onFieldFocus"
+        bindblur="onFieldBlur"
+        bindinput="onLocationInput"
+      />
+      <view wx:if="{{errors.location}}" class="err-text">{{errors.location}}</view>
+    </view>
+
+    <!-- 备注 -->
+    <view class="field" id="f-notes">
+      <view class="field-label">备注（可选，最多 100 字）</view>
+      <textarea
+        class="input-base notes-input"
+        value="{{notes}}"
+        maxlength="100"
+        placeholder="例如：需冷藏保存、保修凭证存放位置"
+        placeholder-class="ph-text"
+        adjust-position="{{false}}"
+        data-target="f-notes"
+        bindfocus="onFieldFocus"
+        bindblur="onFieldBlur"
+        bindinput="onNotesInput"
+      />
+      <view class="notes-count">{{notes.length}} / 100</view>
+      <view wx:if="{{errors.notes}}" class="err-text">{{errors.notes}}</view>
+    </view>
   </view>
 
   <!-- 操作按钮 -->

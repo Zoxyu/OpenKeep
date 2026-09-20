@@ -21,8 +21,8 @@
       <view class="name">{{item.name}}</view>
       <status-badge level="{{item.status.level}}" text="{{item.status.levelText}}" size="small" />
     </view>
-    <!-- 主日期行：到期/保修/维护优先，开封日仅作无日期时（纯备忘）的回退显示 -->
-    <view class="meta">{{item.categoryLabel}} · {{item.status.dueDate ? '到期 ' + item.status.dueDate : (item.status.level === 'warranty' ? '保修至 ' + item.warrantyEnd : (item.maintenance.active ? '维护至 ' + item.maintenance.nextDate : '开封于 ' + item.openedAt))}}</view>
+    <!-- 主日期行：到期/保修/维护优先，开始使用日期仅作无日期时（纯备忘）的回退显示 -->
+    <view class="meta">{{item.categoryLabel}} · {{item.status.dueDate ? '到期 ' + item.status.dueDate : (item.status.level === 'warranty' ? '保修至 ' + item.warrantyEnd : (item.maintenance.active ? '维护至 ' + item.maintenance.nextDate : '开始使用于 ' + item.openedAt))}}</view>
     <!-- 状态描述文字（已过期 N 天/还剩 N 天/保修剩余）移入卡片内部；备忘的描述与徽章重复不显示 -->
     <view wx:if="{{item.status.level !== 'memo'}}" class="status-label lv-text-{{item.status.level}}">{{item.status.label}}</view>
     <view class="bar">
