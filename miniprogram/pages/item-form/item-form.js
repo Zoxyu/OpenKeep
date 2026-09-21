@@ -154,35 +154,52 @@ Page({
   },
 
   onUnload() {
+    this._unloaded = true;
     if (this._untheme) this._untheme();
     if (this._onKbHeight) wx.offKeyboardHeightChange(this._onKbHeight);
     if (this._blurTimer) clearTimeout(this._blurTimer);
+    if (this._saveTimer) clearTimeout(this._saveTimer);
+    this.clearPendingPhoto();
   },
 
   // ====== 照片 ======
+  // 仅清理本页复制、但尚未写入记录的照片，不触碰原记录引用的文件。
+  clearPendingPhoto() {
+    if (this._pendingPhoto) imageUtil.removePhoto(this._pendingPhoto);
+    this._pendingPhoto = '';
+  },
+
   onPhotoTap() {
+    if (this.data.saving) return;
     const hasPhoto = !!(this.data.photoPath || this.data.tempPhoto);
     const items = ['拍照', '从相册选择'];
     if (hasPhoto) items.push('移除照片');
     wx.showActionSheet({
       itemList: items,
       success: res => {
+        if (this._unloaded || this.data.saving) return;
         if (res.tapIndex === 0) this.choosePhoto('camera');
         else if (res.tapIndex === 1) this.choosePhoto('album');
-        else if (res.tapIndex === 2) this.setData({ photoPath: '', tempPhoto: '' });
+        else if (res.tapIndex === 2) {
+          this.clearPendingPhoto();
+          this.setData({ photoPath: '', tempPhoto: '' });
+        }
       }
     });
   },
 
   choosePhoto(source) {
+    if (this.data.saving) return;
     wx.chooseMedia({
       count: 1,
       mediaType: ['image'],
       sourceType: [source],
       sizeType: ['compressed'],
       success: res => {
+        if (this._unloaded || this.data.saving) return;
         const tempFilePath = res.tempFiles && res.tempFiles[0] && res.tempFiles[0].tempFilePath;
         if (tempFilePath) {
+          this.clearPendingPhoto();
           const errors = Object.assign({}, this.data.errors);
           delete errors.photo;
           this.setData({ tempPhoto: tempFilePath, errors });
@@ -409,7 +426,7 @@ Page({
 
   // ====== 保存 ======
   onSave() {
-    if (this.data.saving) return;
+    if (this._unloaded || this.data.saving) return;
     const errors = this.validate();
     if (Object.keys(errors).length) {
       this.showValidationErrors(errors);
@@ -450,23 +467,41 @@ Page({
       base.maintenanceCycleDays = parseInt(this.data.maintenanceCycleDays, 10) || 0;
       base.updatedAt = now;
 
-      const ok = storage.upsertRecord(base);
+      let ok = false;
+      try { ok = storage.upsertRecord(base); } catch (e) { /* 写入异常按保存失败处理 */ }
+      if (!ok) {
+        this.setData({ saving: false });
+        wx.showModal({
+          title: '保存失败',
+          content: '未能保存到本地，填写内容仍保留在当前页面。请重试；若仍失败，请检查设备存储空间。',
+          showCancel: false
+        });
+        return;
+      }
+      // 写入成功后，新照片归记录所有，退出页面时不再当作草稿清理。
+      this._pendingPhoto = '';
       // 编辑模式下清理不再被引用的旧照片文件：统一覆盖「移除照片」「替换照片」「移除后重拍」，
       // 避免 USER_DATA_PATH 孤儿文件堆积；仅在记录已成功持久化、且旧照片与最终照片不同时删除。
       // 新增模式 origin 为 null，oldPhoto 为空，不会误删。
       const oldPhoto = this.data.origin ? this.data.origin.photoPath : '';
-      if (ok && oldPhoto && oldPhoto !== base.photoPath) {
+      if (oldPhoto && oldPhoto !== base.photoPath) {
         imageUtil.removePhoto(oldPhoto);
       }
       wx.showToast({ title: this.data.isEdit ? '已保存修改' : '已添加物品', icon: 'success' });
-      setTimeout(() => wx.navigateBack(), 600);
+      this._saveTimer = setTimeout(() => { if (!this._unloaded) wx.navigateBack(); }, 600);
     };
 
     if (this.data.tempPhoto) {
       // 新照片：持久化到 USER_DATA_PATH；旧照片清理统一在 finish 中按 origin 比对处理
-      imageUtil.savePhoto(this.data.tempPhoto).then(saved => {
+      return imageUtil.savePhoto(this.data.tempPhoto).then(saved => {
+        // 复制期间用户离开，不再写入记录；清理本次刚复制的文件。
+        if (this._unloaded) { imageUtil.removePhoto(saved); return; }
+        this._pendingPhoto = saved;
+        // 即使随后记录写入失败，也复用已复制的照片，重试不重复复制。
+        this.setData({ photoPath: saved, tempPhoto: '' });
         finish(saved);
       }).catch(() => {
+        if (this._unloaded) return;
         this.setData({ saving: false });
         wx.showModal({
           title: '照片保存失败',
@@ -481,6 +516,7 @@ Page({
 
   // ====== 删除（编辑模式，二次确认） ======
   onDelete() {
+    if (this.data.saving) return;
     wx.showModal({
       title: '删除物品',
       content: '删除后，这条记录与本地保存的照片都无法恢复。确定删除吗？',
