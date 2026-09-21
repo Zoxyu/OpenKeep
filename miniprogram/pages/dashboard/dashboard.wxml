@@ -106,6 +106,16 @@
     </view>
   </view>
 
+  <view class="household-entry card" hover-class="card-hover" bindtap="goHousehold">
+    <view class="cell">
+      <view class="household-entry-text">
+        <view class="cell-title">家庭事项</view>
+        <view class="cell-sub">缴费续费、保险续期、证件到期</view>
+      </view>
+      <text class="household-entry-arrow">›</text>
+    </view>
+  </view>
+
   <!-- 历史上的今天：柔和日期卡（点击进入 tab 页） -->
   <view wx:if="{{historyPreview}}" class="today-card" hover-class="card-hover" bindtap="goHistory">
     <view class="today-date">
@@ -152,7 +162,7 @@
     <empty-state
       wx:if="{{contentReady && !list.length}}"
       type="box"
-      title="{{hasRecords ? '该状态下暂无物品' : '还没有任何记录'}}"
+      title="{{hasRecords ? '该状态下暂无物品' : '还没有物品记录'}}"
       desc="{{hasRecords ? '换个筛选条件，看看其他物品。' : '点击右下角按钮，添加第一件物品。'}}"
     />
   </view>

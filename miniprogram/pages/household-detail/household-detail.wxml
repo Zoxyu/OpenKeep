@@ -1,0 +1,32 @@
+<view wx:if="{{themeReady}}" class="page-root {{dark ? 'theme-dark' : ''}}">
+  <scroll-view class="page-scroll" scroll-y enhanced show-scrollbar="{{false}}">
+    <view class="hh-body">
+      <view wx:if="{{contentReady && loadError}}" class="card hh-empty">
+        <view class="hh-title">暂时无法读取事项</view>
+        <view class="btn btn-plain hh-add" bindtap="refresh">重新读取</view>
+      </view>
+      <view wx:elif="{{contentReady && missing}}" class="card hh-empty">
+        <view class="hh-title">这条事项已不存在</view>
+        <view class="btn btn-plain hh-add" bindtap="goBack">返回</view>
+      </view>
+      <block wx:elif="{{contentReady && item}}">
+        <view class="hh-heading">{{item.title}}</view>
+        <view class="hh-sub">{{item.typeText}}</view>
+        <view class="hh-status hh-{{item.status.level}} hh-add">{{item.status.label}}</view>
+        <view class="card hh-detail-card">
+          <view class="cell"><view class="cell-title">{{item.type === 'document' ? '到期日期' : '本次处理日期'}}</view><view class="cell-value">{{item.dueDate}}</view></view>
+          <view class="cell"><view class="cell-title">重复方式</view><view class="cell-value">{{item.repeatText}}</view></view>
+          <view wx:if="{{item.followingDate}}" class="cell"><view class="cell-title">下一周期参考</view><view class="cell-value">{{item.followingDate}}</view></view>
+        </view>
+        <view wx:if="{{item.followingDate}}" class="hh-sub">日期不会自动跳过。办理续期后，可在编辑中更新本次处理日期。</view>
+        <view wx:if="{{item.notes}}" class="card hh-note-card">
+          <view class="hh-title">备注</view><view class="hh-note-content">{{item.notes}}</view>
+        </view>
+        <view class="hh-actions">
+          <view class="btn btn-primary {{deleting ? 'btn-disabled' : ''}}" bindtap="goEdit" hover-class="btn-hover">编辑事项</view>
+          <view class="btn btn-danger-ghost {{deleting ? 'btn-disabled' : ''}}" bindtap="onDelete" hover-class="btn-hover">删除事项</view>
+        </view>
+      </block>
+    </view>
+  </scroll-view>
+</view>

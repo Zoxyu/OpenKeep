@@ -1,0 +1,26 @@
+<view wx:if="{{themeReady}}" class="page-root {{dark ? 'theme-dark' : ''}}">
+  <scroll-view class="page-scroll" scroll-y enhanced show-scrollbar="{{false}}">
+    <view class="hh-body">
+      <view class="hh-heading">家庭事项</view>
+      <view class="hh-sub">记下缴费、续期和证件日期，少一份惦记。</view>
+      <view class="btn btn-primary hh-add" hover-class="btn-hover" bindtap="goAdd">＋ 添加事项</view>
+      <view wx:if="{{contentReady && loadError}}" class="card hh-empty">
+        <view class="hh-title">暂时无法读取事项</view>
+        <view class="hh-sub">请重试，已有记录不会被覆盖。</view>
+        <view class="btn btn-plain hh-add" bindtap="refresh">重新读取</view>
+      </view>
+      <block wx:elif="{{contentReady}}">
+        <view wx:if="{{!items.length}}" class="card hh-empty">
+          <view class="hh-title">从一件重要的事开始</view>
+          <view class="hh-sub">宽带续费、保险续期、证件到期，都可以记在这里。</view>
+        </view>
+        <view wx:else class="hh-caption">共 {{items.length}} 件 · 按处理日期排列</view>
+        <view wx:for="{{items}}" wx:key="id" class="card hh-list-card" data-id="{{item.id}}" bindtap="goDetail" hover-class="card-hover">
+          <view class="hh-row"><view class="hh-title hh-grow">{{item.title}}</view><text class="hh-arrow">›</text></view>
+          <view class="hh-sub">{{item.typeText}} · {{item.repeatText}}</view>
+          <view class="hh-row hh-date-row"><text>{{item.dueDate}}</text><text class="hh-status hh-{{item.status.level}}">{{item.status.label}}</text></view>
+        </view>
+      </block>
+    </view>
+  </scroll-view>
+</view>

@@ -6,7 +6,10 @@
     "pages/item-detail/item-detail",
     "pages/calendar-import/calendar-import",
     "pages/history/history",
-    "pages/profile/profile"
+    "pages/profile/profile",
+    "pages/household/household",
+    "pages/household-form/household-form",
+    "pages/household-detail/household-detail"
   ],
   "window": {
     "navigationBarBackgroundColor": "@navBg",

@@ -4,10 +4,13 @@
  * 缓存损坏、字段缺失时一律降级为默认值，保证页面不会白屏。
  */
 const dateUtil = require('./date');
+const householdUtil = require('./household');
+const repeatUtil = require('./repeat');
 
 const VERSION = 1;
 const KEYS = {
   records: 'openkeep_records_v' + VERSION,
+  household: 'openkeep_household_v' + VERSION,
   settings: 'openkeep_settings_v' + VERSION,
   onboarded: 'openkeep_onboarded_v' + VERSION
 };
@@ -163,6 +166,63 @@ function removeRecord(id) {
   return saveRecords(list);
 }
 
+// 家庭事项单独存储，旧物品键、字段与统计语义保持不变。
+// 无合法名称/日期/id 的缓存条目不显示，读取时不生成 id 或写回缓存。
+function normalizeHousehold(raw) {
+  if (!raw || typeof raw !== 'object' || typeof raw.id !== 'string' || !raw.id) return null;
+  const title = typeof raw.title === 'string' ? raw.title.trim().slice(0, 30) : '';
+  const due = dateUtil.parseDate(raw.dueDate);
+  if (!title || !due) return null;
+  return {
+    id: raw.id,
+    title: title,
+    type: Object.prototype.hasOwnProperty.call(householdUtil.TYPES, raw.type) ? raw.type : 'bill',
+    dueDate: dateUtil.formatDate(due),
+    repeatRule: Object.prototype.hasOwnProperty.call(repeatUtil.RULES, raw.repeatRule) ? raw.repeatRule : 'none',
+    notes: typeof raw.notes === 'string' ? raw.notes.trim().slice(0, 100) : '',
+    createdAt: Number.isFinite(raw.createdAt) ? raw.createdAt : 0,
+    updatedAt: Number.isFinite(raw.updatedAt) ? raw.updatedAt : 0
+  };
+}
+
+function readHouseholdRows() {
+  // 读取失败不能按空列表继续写入，以免覆盖已有事项；由页面显示可重试错误。
+  const rows = wx.getStorageSync(KEYS.household);
+  if (rows === '' || rows === null || rows === undefined) return [];
+  if (!Array.isArray(rows)) throw new Error('invalid household storage');
+  return rows;
+}
+
+function loadHousehold() {
+  return readHouseholdRows().map(normalizeHousehold).filter(Boolean);
+}
+
+function getHousehold(id) {
+  return loadHousehold().find(item => item.id === id) || null;
+}
+
+function upsertHousehold(raw, mustExist) {
+  const item = normalizeHousehold(raw);
+  if (!item || Object.keys(householdUtil.validate(raw)).length) return false;
+  try {
+    // 保留其它原始条目（含未知字段），只替换当前事项。
+    const rows = readHouseholdRows().slice();
+    const index = rows.findIndex(row => row && row.id === item.id);
+    if (mustExist && index < 0) return false;
+    if (index < 0) rows.push(item);
+    else rows[index] = item;
+    return safeSet(KEYS.household, rows);
+  } catch (e) { return false; }
+}
+
+function removeHousehold(id) {
+  try {
+    const rows = readHouseholdRows();
+    if (!rows.some(row => row && row.id === id)) return false;
+    return safeSet(KEYS.household, rows.filter(row => !row || row.id !== id));
+  } catch (e) { return false; }
+}
+
 function loadSettings() {
   const raw = safeGet(KEYS.settings, null);
   const s = { warningDays: DEFAULT_SETTINGS.warningDays, theme: DEFAULT_SETTINGS.theme, warrantyBeyond30: DEFAULT_SETTINGS.warrantyBeyond30 };
@@ -201,6 +261,7 @@ function clearAllData() {
     }
   });
   safeRemove(KEYS.records);
+  safeRemove(KEYS.household);
   safeRemove(KEYS.settings);
   safeRemove(KEYS.onboarded);
 }
@@ -213,6 +274,11 @@ module.exports = {
   getRecord,
   upsertRecord,
   removeRecord,
+  normalizeHousehold,
+  loadHousehold,
+  getHousehold,
+  upsertHousehold,
+  removeHousehold,
   loadSettings,
   saveSettings,
   isOnboarded,

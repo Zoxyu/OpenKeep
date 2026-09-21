@@ -1,0 +1,56 @@
+<view wx:if="{{themeReady}}" class="page-root {{dark ? 'theme-dark' : ''}}">
+  <scroll-view class="page-scroll" style="height: calc(100vh - {{kbHeight}}px);" scroll-y enhanced show-scrollbar="{{false}}" scroll-into-view="{{scrollIntoId}}" scroll-with-animation>
+    <view class="hh-body">
+      <view wx:if="{{contentReady && loadError}}" class="card hh-empty">
+        <view class="hh-title">暂时无法读取事项</view>
+        <view class="btn btn-plain hh-add" bindtap="loadForm">重新读取</view>
+      </view>
+      <view wx:elif="{{contentReady && missing}}" class="card hh-empty">
+        <view class="hh-title">这条事项已不存在</view>
+        <view class="btn btn-plain hh-add" bindtap="goBack">返回</view>
+      </view>
+      <block wx:elif="{{contentReady}}">
+        <view class="hh-heading">{{isEdit ? '编辑事项' : '记下一件重要的事'}}</view>
+        <view class="hh-sub">填写名称和日期，即可留在家庭事项中查看。</view>
+        <view class="card hh-form-card">
+          <view class="field" id="hh-type">
+            <view class="field-label">事项类型</view>
+            <view class="hh-choices">
+              <view wx:for="{{typeOptions}}" wx:key="key" class="hh-choice {{type === item.key ? 'hh-choice-on' : ''}}" data-key="{{item.key}}" bindtap="onTypeTap">{{item.label}}</view>
+            </view>
+            <view wx:if="{{errors.type}}" class="err-text">{{errors.type}}</view>
+          </view>
+          <view class="field" id="hh-title">
+            <view class="field-label"><text class="req">*</text>事项名称（最多 30 字）</view>
+            <input class="input-base" value="{{title}}" maxlength="30" placeholder="{{example}}" placeholder-class="ph-text" disabled="{{saving}}" adjust-position="{{false}}" data-field="title" data-target="hh-title" bindinput="onInput" bindfocus="onFieldFocus" bindblur="onFieldBlur" />
+            <view wx:if="{{errors.title}}" class="err-text">{{errors.title}}</view>
+          </view>
+          <view class="field" id="hh-dueDate">
+            <view class="field-label"><text class="req">*</text>{{type === 'document' ? '到期日期' : '本次处理日期'}}</view>
+            <picker mode="date" value="{{dueDate}}" start="1900-01-01" end="2199-12-31" disabled="{{saving}}" bindchange="onDateChange">
+              <view class="input-base hh-picker"><text>{{dueDate}}</text><text class="hh-arrow">›</text></view>
+            </picker>
+            <view wx:if="{{errors.dueDate}}" class="err-text">{{errors.dueDate}}</view>
+          </view>
+          <view class="field" id="hh-repeatRule">
+            <view class="field-label">重复方式</view>
+            <view class="hh-choices">
+              <view wx:for="{{repeatOptions}}" wx:key="key" class="hh-choice {{repeatRule === item.key ? 'hh-choice-on' : ''}}" data-key="{{item.key}}" bindtap="onRepeatTap">{{item.label}}</view>
+            </view>
+            <view wx:if="{{errors.repeatRule}}" class="err-text">{{errors.repeatRule}}</view>
+            <view wx:if="{{followingDate}}" class="hh-sub">下一周期参考：{{followingDate}}。月份没有对应日期时按月末计算。</view>
+          </view>
+          <view class="field" id="hh-notes">
+            <view class="field-label">备注（可选）</view>
+            <textarea class="input-base hh-notes" value="{{notes}}" maxlength="100" placeholder="例如：办理地点、缴费渠道" placeholder-class="ph-text" disabled="{{saving}}" adjust-position="{{false}}" data-field="notes" data-target="hh-notes" bindinput="onInput" bindfocus="onFieldFocus" bindblur="onFieldBlur" />
+            <view class="hh-count">{{notes.length}} / 100</view>
+            <view wx:if="{{errors.notes}}" class="err-text">{{errors.notes}}</view>
+          </view>
+        </view>
+        <view class="hh-actions">
+          <view class="btn btn-primary {{saving ? 'btn-disabled' : ''}}" hover-class="btn-hover" bindtap="onSave">{{saving ? '保存中…' : '保存事项'}}</view>
+        </view>
+      </block>
+    </view>
+  </scroll-view>
+</view>

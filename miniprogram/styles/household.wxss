@@ -1,0 +1,30 @@
+/* 家庭事项三个页面共用，沿用应用主题变量与原生 scroll-view。 */
+.hh-body { padding: 36rpx 40rpx calc(80rpx + env(safe-area-inset-bottom)); }
+.hh-heading { font-size: 42rpx; font-weight: 600; line-height: 1.4; overflow-wrap: break-word; }
+.hh-title { font-size: 30rpx; font-weight: 600; line-height: 1.5; overflow-wrap: break-word; }
+.hh-sub { margin-top: 12rpx; font-size: 25rpx; line-height: 1.7; color: var(--c-sub); overflow-wrap: break-word; }
+.hh-caption { margin: 32rpx 0 16rpx; font-size: 24rpx; color: var(--c-sub); }
+.hh-add { margin-top: 28rpx; }
+.hh-empty { margin-top: 32rpx; padding: 40rpx 32rpx; text-align: center; }
+.hh-list-card { margin-top: 20rpx; padding: 28rpx 30rpx; }
+.hh-row { display: flex; justify-content: space-between; align-items: center; gap: 20rpx; }
+.hh-grow { flex: 1; min-width: 0; }
+.hh-arrow { color: var(--c-sub); font-size: 38rpx; }
+.hh-date-row { flex-wrap: wrap; margin-top: 24rpx; font-size: 26rpx; }
+.hh-status { font-size: 25rpx; color: var(--c-memo); }
+.hh-overdue { color: var(--c-danger); }
+.hh-today, .hh-upcoming { color: var(--c-warn); }
+.hh-form-card { margin-top: 28rpx; overflow: hidden; }
+.hh-choices { display: flex; flex-wrap: wrap; gap: 12rpx; }
+.hh-choice { flex: 1; min-width: 140rpx; min-height: 88rpx; padding: 12rpx; box-sizing: border-box; display: flex; justify-content: center; align-items: center; text-align: center; font-size: 26rpx; border-radius: 16rpx; border: 2rpx solid var(--c-line); background: var(--c-card-2); color: var(--c-sub); }
+.hh-choice-on { background: var(--c-selected-bg); color: var(--c-selected-text); border-color: var(--c-selected-line); }
+.hh-picker { line-height: 88rpx; display: flex; justify-content: space-between; }
+.hh-notes { height: 180rpx; padding: 20rpx 24rpx; line-height: 1.6; }
+.hh-count { text-align: right; margin-top: 10rpx; color: var(--c-sub); font-size: 22rpx; }
+.hh-actions { margin-top: 32rpx; display: flex; flex-direction: column; gap: 20rpx; }
+.hh-detail-card { margin-top: 28rpx; }
+.hh-detail-card .cell { align-items: flex-start; gap: 24rpx; }
+.hh-detail-card .cell-title { flex-shrink: 0; }
+.hh-detail-card .cell-value { text-align: right; overflow-wrap: break-word; min-width: 0; }
+.hh-note-card { margin-top: 24rpx; padding: 28rpx 32rpx; }
+.hh-note-content { white-space: pre-wrap; word-break: break-all; margin-top: 14rpx; font-size: 28rpx; line-height: 1.8; color: var(--c-sub); }

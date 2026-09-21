@@ -218,6 +218,10 @@ Page({
     wx.navigateTo({ url: '/pages/item-form/item-form' });
   },
 
+  goHousehold() {
+    wx.navigateTo({ url: '/pages/household/household' });
+  },
+
   // 跳转「历史上的今天」tab 页
   goHistory() {
     wx.switchTab({ url: '/pages/history/history' });

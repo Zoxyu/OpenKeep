@@ -16,7 +16,7 @@
   <view class="pf-stats card">
     <view class="pf-stat">
       <view class="pf-num">{{stats.total}}</view>
-      <view class="pf-label">总记录</view>
+      <view class="pf-label">物品总数</view>
     </view>
     <view class="pf-stat">
       <view class="pf-num lv-text-expired">{{stats.expired}}</view>

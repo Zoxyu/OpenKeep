@@ -296,3 +296,8 @@
 .onboard-sub { margin-top: 8rpx; font-size: 23rpx; color: var(--c-faint); }
 .onboard-desc { margin: 28rpx 0 36rpx; font-size: 26rpx; color: var(--c-sub); line-height: 1.7; }
 .onboard-btn { width: 100%; margin-top: 18rpx; }
+
+.household-entry { margin: 28rpx 40rpx 0; }
+.household-entry-text { min-width: 0; }
+.household-entry .cell-sub { line-height: 1.6; }
+.household-entry-arrow { margin-left: 20rpx; font-size: 38rpx; color: var(--c-sub); }

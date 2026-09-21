@@ -217,7 +217,20 @@ function demoRecords() {
   ];
 }
 
+// 家庭事项只计算当前日期的处理状态，不自动略过逾期或推进周期。
+function computeHouseholdStatus(item, today) {
+  const due = dateUtil.parseDate(item && item.dueDate);
+  if (!due) return { level: 'unknown', label: '日期待补充', daysLeft: null };
+  const days = dateUtil.diffDays(due, today || dateUtil.todayStart());
+  return {
+    level: days < 0 ? 'overdue' : days === 0 ? 'today' : days <= 7 ? 'upcoming' : 'scheduled',
+    label: days < 0 ? '已超期 ' + (-days) + ' 天' : days === 0 ? '今天需处理' : '还有 ' + days + ' 天',
+    daysLeft: days
+  };
+}
+
 module.exports = {
+  computeHouseholdStatus,
   CATEGORIES,
   SHELF_UNITS,
   categoryOf,
