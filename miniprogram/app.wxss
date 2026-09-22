@@ -50,6 +50,9 @@ page {
   /* 操作与选中态独立于正文色，避免深色模式出现亮白色大块背景。 */
   --c-action-bg: #202421;
   --c-action-text: #F7F7F4;
+  /* 次要按钮通过底色与文字区分，保持无描边风格。 */
+  --c-secondary-bg: #E7EFEA;
+  --c-secondary-text: #315F4B;
   --c-selected-bg: #202421;
   --c-selected-text: #F7F7F4;
   --c-selected-line: #202421;
@@ -82,6 +85,8 @@ page {
   --c-memo-bg: rgba(169, 192, 212, 0.16);
   --c-action-bg: #395B50;
   --c-action-text: #EEF5F1;
+  --c-secondary-bg: #26382F;
+  --c-secondary-text: #C8E2D2;
   --c-selected-bg: #293D35;
   --c-selected-text: #C0DACE;
   --c-selected-line: #526F60;
@@ -105,7 +110,7 @@ page {
 }
 .btn-hover { opacity: 0.85; transform: translateY(1rpx); }
 .btn-primary { background: var(--c-action-bg); color: var(--c-action-text); }
-.btn-plain { background: var(--c-card-2); color: var(--c-text); border: 1rpx solid var(--c-line); }
+.btn-plain { background: var(--c-secondary-bg); color: var(--c-secondary-text); border: none; }
 .btn-safe { background: var(--c-safe); color: #FFFFFF; }
 .btn-danger { background: var(--c-danger); color: #FFFFFF; }
 .btn-danger-ghost { background: var(--c-danger-bg); color: var(--c-danger); }

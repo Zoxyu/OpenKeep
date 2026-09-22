@@ -13,7 +13,7 @@ Page({
   onUnload() { if (this._untheme) this._untheme(); },
   refresh() {
     try {
-      const items = storage.loadHousehold().map(item => Object.assign(household.describe(item), {
+      const items = storage.loadHousehold().filter(item => !item.archived).map(item => Object.assign(household.describe(item), {
         status: record.computeHouseholdStatus(item)
       })).sort((a, b) => a.dueDate.localeCompare(b.dueDate) || a.title.localeCompare(b.title));
       this.setData({ items, loadError: false, contentReady: true });

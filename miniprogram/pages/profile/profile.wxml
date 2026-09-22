@@ -16,7 +16,7 @@
   <view class="pf-stats card">
     <view class="pf-stat">
       <view class="pf-num">{{stats.total}}</view>
-      <view class="pf-label">物品总数</view>
+      <view class="pf-label">在用物品</view>
     </view>
     <view class="pf-stat">
       <view class="pf-num lv-text-expired">{{stats.expired}}</view>
@@ -65,6 +65,7 @@
 
   <!-- 功能入口 -->
   <view class="pf-card card">
+    <view class="cell" hover-class="cell-hover" bindtap="goArchive"><view><view class="cell-title">处理记录与归档</view><view class="cell-sub">查看已处理事项、物品与维护历史</view></view><view class="cell-arrow">›</view></view>
     <view class="cell" hover-class="cell-hover" bindtap="goCalendarImport">
       <view>
         <view class="cell-title">批量导入日历</view>

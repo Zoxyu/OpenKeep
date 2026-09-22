@@ -436,6 +436,15 @@ Page({
     this.setData({ saving: true, errors: {} });
 
     const finish = photoPath => {
+      if (this.data.isEdit) {
+        let latest;
+        try { latest = storage.loadEntriesStrict('record').find(r => r.id === this.data.origin.id); } catch (e) { /* 读失败拒绝保存 */ }
+        if (!latest || latest.archived || JSON.stringify(latest.processingHistory) !== JSON.stringify(this.data.origin.processingHistory)) {
+          this.setData({ saving: false });
+          wx.showModal({ title: '记录已变化', content: '记录已归档、被处理或暂时无法读取。请返回后重新打开，填写内容仍保留在当前页面。', showCancel: false });
+          return;
+        }
+      }
       const now = Date.now();
       const base = this.data.isEdit && this.data.origin
         ? Object.assign({}, this.data.origin)
@@ -519,7 +528,7 @@ Page({
     if (this.data.saving) return;
     wx.showModal({
       title: '删除物品',
-      content: '删除后，这条记录与本地保存的照片都无法恢复。确定删除吗？',
+      content: '删除后，这条记录、处理历史与本地保存的照片都无法恢复。确定删除吗？',
       confirmText: '删除',
       confirmColor: '#C65B55',
       success: r => {

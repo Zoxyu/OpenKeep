@@ -87,7 +87,7 @@ function computeStatus(record, warningDays, today) {
       return {
         dueDate: '', dueTs: Number.MAX_SAFE_INTEGER, daysLeft: Number.MAX_SAFE_INTEGER,
         daysOpened: daysOpened, level: 'warranty', levelText: '保修',
-        label: wLabel, progress: 0
+        label: record.warrantyHandledDate === record.warrantyEnd ? '本期保修提醒已处理' : wLabel, progress: 0
       };
     }
     // 纯备忘（只填存放位置，无保质期无保修）：归入「备忘」状态
@@ -132,7 +132,7 @@ function computeStatus(record, warningDays, today) {
 // 批量给记录附加状态与展示字段（分类文案、占位色）
 function withStatus(records, warningDays) {
   const today = dateUtil.todayStart();
-  return (records || []).map(r => {
+  return (records || []).filter(r => !r.archived).map(r => {
     const cat = categoryOf(r.category);
     return Object.assign({}, r, {
       categoryLabel: cat.label,

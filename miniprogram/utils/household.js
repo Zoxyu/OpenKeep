@@ -22,7 +22,7 @@ function describe(item) {
   return Object.assign({}, item, {
     typeText: (TYPES[item.type] || TYPES.bill).label,
     repeatText: repeat.RULES[item.repeatRule] || repeat.RULES.none,
-    followingDate: repeat.occurrenceDate(item.dueDate, item.repeatRule, 1)
+    followingDate: repeat.followingDate(item)
   });
 }
 

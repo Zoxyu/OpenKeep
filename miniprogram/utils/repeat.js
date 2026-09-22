@@ -12,4 +12,11 @@ function occurrenceDate(anchorDate, rule, index) {
   return date.formatDate(result);
 }
 
-module.exports = { RULES, occurrenceDate };
+function followingDate(item) {
+  const anchor = item.repeatAnchor || item.dueDate;
+  const index = item.repeatIndex || 0;
+  return occurrenceDate(anchor, item.repeatRule, index) === item.dueDate
+    ? occurrenceDate(anchor, item.repeatRule, index + 1)
+    : occurrenceDate(item.dueDate, item.repeatRule, 1);
+}
+module.exports = { RULES, occurrenceDate, followingDate };

@@ -21,7 +21,8 @@
 .hh-picker { line-height: 88rpx; display: flex; justify-content: space-between; }
 .hh-notes { height: 180rpx; padding: 20rpx 24rpx; line-height: 1.6; }
 .hh-count { text-align: right; margin-top: 10rpx; color: var(--c-sub); font-size: 22rpx; }
-.hh-actions { margin-top: 32rpx; display: flex; flex-direction: column; gap: 20rpx; }
+.hh-actions { margin-top: 32rpx; display: flex; flex-direction: column; }
+.hh-actions > .btn + .btn { margin-top: 24rpx; }
 .hh-detail-card { margin-top: 28rpx; }
 .hh-detail-card .cell { align-items: flex-start; gap: 24rpx; }
 .hh-detail-card .cell-title { flex-shrink: 0; }

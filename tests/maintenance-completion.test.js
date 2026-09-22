@@ -92,7 +92,13 @@ test('确认后从实际完成日重算，月末收敛；保留照片、其他�
   assert.equal(h.page.data.completingMaintenance, false);
   assert.equal(h.writes, 1);
   const expected = Object.assign({}, before, { maintenanceLast: '2026-01-31', updatedAt: new Date(2026, 0, 31, 12).getTime() });
-  assert.deepEqual(JSON.parse(JSON.stringify(h.record)), expected);
+  const actual = JSON.parse(JSON.stringify(h.record));
+  assert.equal(actual.processingHistory.length, 1);
+  assert.equal(actual.processingHistory[0].kind, 'maintenance');
+  assert.equal(actual.processingHistory[0].dueDate, '2026-01-01');
+  assert.equal(actual.processingHistory[0].nextDate, '2026-02-28');
+  assert.deepEqual(actual.processingHistory[0].before, { maintenanceLast: '2025-12-01' });
+  assert.deepEqual(Object.assign({}, actual, { processingHistory: [] }), expected);
   assert.equal(h.toasts.at(-1), '已完成维护');
 });
 

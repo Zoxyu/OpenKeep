@@ -9,7 +9,9 @@
     "pages/profile/profile",
     "pages/household/household",
     "pages/household-form/household-form",
-    "pages/household-detail/household-detail"
+    "pages/household-detail/household-detail",
+    "pages/process/process",
+    "pages/archive/archive"
   ],
   "window": {
     "navigationBarBackgroundColor": "@navBg",

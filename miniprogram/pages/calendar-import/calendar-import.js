@@ -105,7 +105,7 @@ Page({
       const warrantyIds = {};
       const warrantyList = recordUtil.sortUrgent(all.filter(it => {
         const w = recordUtil.getWarrantyStatus(it);
-        const ok = w.hasWarranty && w.daysLeft >= 0 && w.daysLeft <= wWindow && !dueIds[it.id];
+        const ok = w.hasWarranty && it.warrantyHandledDate !== it.warrantyEnd && w.daysLeft >= 0 && w.daysLeft <= wWindow && !dueIds[it.id];
         if (ok) warrantyIds[it.id] = true;
         return ok;
       })).map(it => ({ record: it, kind: 'warranty' }));
@@ -175,11 +175,7 @@ Page({
     // 开关切换后：导入开启时已导入记录不可勾选；关闭时恢复可选（保持未勾选）
     const items = this.data.items.map(i => {
       if (!i.record.calendarImported) return i;
-      return {
-        record: i.record,
-        checked: skip ? false : i.checked,
-        disabled: skip
-      };
+      return Object.assign({}, i, { checked: skip ? false : i.checked, disabled: skip });
     });
     this.setData({ skipImported: skip, items });
     this.recount();
@@ -293,12 +289,14 @@ Page({
     calendarUtil.addEvent(evt).then(() => {
       this._results.push({ name: item.record.name, ok: true });
       // 写入成功：更新记录的日历导入状态
-      storage.upsertRecord(Object.assign({}, item.record, {
-        calendarImported: true,
-        calendarImportedAt: Date.now(),
-        calendarReminderDays: reminderDays,
-        updatedAt: Date.now()
-      }));
+      let saved = false;
+      try {
+        saved = storage.updateExisting('record', item.record.id, latest => {
+          if (latest.archived) throw new Error('物品已归档');
+          return Object.assign({}, latest, { calendarImported: true, calendarImportedAt: Date.now(), calendarReminderDays: reminderDays, updatedAt: Date.now() });
+        });
+      } catch (e) { /* 不用导入前快照覆盖新处理记录，也不复活已删除记录 */ }
+      if (!saved) this._results[this._results.length - 1].warning = true;
     }).catch(err => {
       this._results.push({
         name: item.record.name,
@@ -354,6 +352,7 @@ Page({
       resultCancelled: cancelled,
       resultSuccess: ok,
       resultFail: failList.length,
+      markerWarning: results.some(r => r.warning),
       failList: failList
     });
     if (cancelled) {

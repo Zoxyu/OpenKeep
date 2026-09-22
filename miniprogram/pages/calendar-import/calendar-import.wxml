@@ -118,6 +118,7 @@
           </view>
         </scroll-view>
       </view>
+      <view wx:if="{{markerWarning}}" class="result-note">部分提醒已提交，但本地标记未保存或记录已变化；再次导入前请检查手机日历，避免重复。</view>
       <view class="result-note">已添加的提醒请在系统日历中管理，本应用无法删除或修改。重复导入会产生重复提醒。</view>
       <view class="btn btn-primary result-btn" hover-class="btn-hover" bindtap="onCloseResult">完成</view>
     </view>

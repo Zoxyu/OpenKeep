@@ -97,6 +97,8 @@ Page({
     this.setData({ themePref: v });
   },
 
+  goArchive() { wx.navigateTo({ url: '/pages/archive/archive' }); },
+
   goCalendarImport() {
     wx.navigateTo({ url: '/pages/calendar-import/calendar-import' });
   },

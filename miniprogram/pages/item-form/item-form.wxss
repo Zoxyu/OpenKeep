@@ -139,4 +139,4 @@
 .actions {
   padding: 40rpx 40rpx calc(60rpx + env(safe-area-inset-bottom));
 }
-.del-btn { margin-top: 20rpx; }
+.actions > .btn + .btn { margin-top: 24rpx; }

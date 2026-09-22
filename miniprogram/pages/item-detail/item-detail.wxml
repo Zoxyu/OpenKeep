@@ -82,7 +82,7 @@
       </view>
       <view wx:if="{{warranty.hasWarranty}}" class="cell">
         <view class="cell-title">保修状态</view>
-        <view class="cell-value {{warranty.expired ? 'lv-text-expired' : 'lv-text-safe'}}">{{warrantyLeftText}}</view>
+        <view class="cell-value {{warranty.expired ? 'lv-text-expired' : 'lv-text-safe'}}">{{warrantyLeftText}}<view wx:if="{{record.warrantyHandledDate === record.warrantyEnd}}" class="cal-note">本期提醒已处理</view></view>
       </view>
     </view>
 
@@ -104,7 +104,7 @@
         <view class="cell-title">维护状态</view>
         <view class="cell-value {{maintenance.overdue ? 'lv-text-expired' : 'lv-text-safe'}}">{{maintenance.label}}</view>
       </view>
-      <view class="maintenance-actions">
+      <view wx:if="{{!record.archived}}" class="maintenance-actions">
         <view
           class="btn btn-safe {{maintenanceDoneToday || completingMaintenance || writing ? 'btn-disabled' : ''}}"
           hover-class="{{maintenanceDoneToday || completingMaintenance || writing ? 'none' : 'btn-hover'}}"
@@ -122,7 +122,7 @@
     </view>
 
     <!-- 日历提醒（纯备忘无日期不可导入隐藏本栏；但设了维护周期的备忘可用维护日导入） -->
-    <view wx:if="{{status.level !== 'memo' || maintenance.active}}" class="cal-card card">
+    <view wx:if="{{!record.archived && (status.level !== 'memo' || maintenance.active)}}" class="cal-card card">
       <view class="cal-head">
         <view class="cal-title">到期提醒 · 手机日历</view>
         <view wx:if="{{record.calendarImported}}" class="cal-done">已添加提醒</view>
@@ -147,7 +147,10 @@
     </view>
 
     <!-- 操作 -->
-    <view class="actions">
+    <view wx:if="{{record.archived}}" class="cal-card card"><view class="cal-title">此物品已归档</view><view class="btn btn-plain cal-btn" bindtap="goArchive">查看处理记录 / 撤销</view></view>
+    <view class="actions" wx:if="{{!record.archived}}">
+      <view class="btn btn-safe" bindtap="goProcess" hover-class="btn-hover">记录处理结果</view>
+      <view class="btn btn-plain" bindtap="goArchive" hover-class="btn-hover">查看处理记录</view>
       <view class="btn btn-primary" hover-class="btn-hover" bindtap="onEdit">编辑物品</view>
       <view class="btn btn-danger-ghost del-btn" hover-class="btn-hover" bindtap="onDelete">删除这条记录</view>
     </view>

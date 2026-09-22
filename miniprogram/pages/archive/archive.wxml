@@ -1,0 +1,26 @@
+<view wx:if="{{themeReady}}" class="page-root {{dark ? 'theme-dark' : ''}}">
+  <scroll-view class="page-scroll" scroll-y enhanced show-scrollbar="{{false}}">
+    <view class="hh-body">
+      <view class="hh-heading">处理记录与归档</view>
+      <view class="hh-sub">保留每次处理的结果。一次性事项和用完的物品在这里查看；周期事项及维保仍保留下一次安排。</view>
+      <view class="hh-choices hh-add">
+        <view class="hh-choice {{filter === 'all' ? 'hh-choice-on' : ''}}" data-filter="all" bindtap="onFilter">全部</view>
+        <view class="hh-choice {{filter === 'household' ? 'hh-choice-on' : ''}}" data-filter="household" bindtap="onFilter">家庭事项</view>
+        <view class="hh-choice {{filter === 'record' ? 'hh-choice-on' : ''}}" data-filter="record" bindtap="onFilter">物品</view>
+      </view>
+      <view wx:if="{{loadError}}" class="card hh-empty">暂时无法读取处理记录<view class="btn btn-plain hh-add" bindtap="refresh">重新读取</view></view>
+      <block wx:elif="{{contentReady}}">
+        <view wx:if="{{!items.length}}" class="card hh-empty">还没有处理记录</view>
+        <view wx:for="{{items}}" wx:key="key" class="card hh-note-card">
+          <view class="hh-row" data-key="{{item.key}}" bindtap="goDetail" hover-class="card-hover"><view class="hh-title hh-grow">{{item.title}}</view><view class="hh-arrow">›</view></view>
+          <view class="hh-status hh-add">{{item.undone ? '已撤销 · ' : ''}}{{item.label}}</view>
+          <view class="hh-sub">处理日期：{{item.processedDate}}</view>
+          <view wx:if="{{item.dueDate}}" class="hh-sub">本期日期：{{item.dueDate}}</view>
+          <view wx:if="{{item.nextDate}}" class="hh-sub">当时安排的下一期：{{item.nextDate}}</view>
+          <view wx:if="{{item.canUndo}}" class="btn btn-plain hh-add {{undoing ? 'btn-disabled' : ''}}" data-key="{{item.key}}" bindtap="onUndo">撤销本次处理</view>
+        </view>
+        <view wx:if="{{items.length}}" class="hh-sub hh-add">仅支持撤销最近一次且相关日期未被修改的处理。永久删除原记录时，其处理历史也会删除。</view>
+      </block>
+    </view>
+  </scroll-view>
+</view>

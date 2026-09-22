@@ -12,18 +12,27 @@
       <block wx:elif="{{contentReady && item}}">
         <view class="hh-heading">{{item.title}}</view>
         <view class="hh-sub">{{item.typeText}}</view>
-        <view class="hh-status hh-{{item.status.level}} hh-add">{{item.status.label}}</view>
+        <view class="hh-status hh-{{item.archived ? 'archived' : item.status.level}} hh-add">{{item.archived ? '已处理 · 已归档' : item.status.label}}</view>
         <view class="card hh-detail-card">
           <view class="cell"><view class="cell-title">{{item.type === 'document' ? '到期日期' : '本次处理日期'}}</view><view class="cell-value">{{item.dueDate}}</view></view>
           <view class="cell"><view class="cell-title">重复方式</view><view class="cell-value">{{item.repeatText}}</view></view>
           <view wx:if="{{item.followingDate}}" class="cell"><view class="cell-title">下一周期参考</view><view class="cell-value">{{item.followingDate}}</view></view>
         </view>
-        <view wx:if="{{item.followingDate}}" class="hh-sub">日期不会自动跳过。办理续期后，可在编辑中更新本次处理日期。</view>
+        <view wx:if="{{item.followingDate && !item.archived}}" class="hh-sub">点击“标记已处理”记录本期结果，并确认下一期日期。</view>
         <view wx:if="{{item.notes}}" class="card hh-note-card">
           <view class="hh-title">备注</view><view class="hh-note-content">{{item.notes}}</view>
         </view>
+        <view wx:if="{{!item.archived}}" class="card hh-note-card">
+          <view class="hh-title">手机日历提醒</view>
+          <view class="hh-sub">仅添加本期处理日期上午 9:00 的提醒。若该时间已过，顺延至最近的未来上午 9:00。提前提醒时间已过则改为当天提醒。下一期确认后可再次添加。</view>
+          <picker mode="selector" range="{{reminderOptions}}" value="{{reminderIndex}}" disabled="{{writing}}" bindchange="onReminderChange"><view class="hh-picker">{{reminderOptions[reminderIndex]}}<text>›</text></view></picker>
+          <view class="btn btn-plain hh-calendar-add {{writing || deleting ? 'btn-disabled' : ''}}" bindtap="onAddCalendar">{{writing ? '添加中…' : (calendarAdded ? '本期已添加 · 重新添加' : '添加到手机日历')}}</view>
+          <view class="hh-sub">只写入你主动选择的提醒。标记已处理或修改日期不会同步修改手机日历，请在系统日历中管理旧提醒。</view>
+        </view>
         <view class="hh-actions">
-          <view class="btn btn-primary {{deleting ? 'btn-disabled' : ''}}" bindtap="goEdit" hover-class="btn-hover">编辑事项</view>
+          <view wx:if="{{!item.archived}}" class="btn btn-safe {{deleting || writing ? 'btn-disabled' : ''}}" bindtap="goProcess">标记已处理</view>
+          <view class="btn btn-plain" bindtap="goArchive">查看处理记录 / 归档</view>
+          <view wx:if="{{!item.archived}}" class="btn btn-primary {{deleting ? 'btn-disabled' : ''}}" bindtap="goEdit" hover-class="btn-hover">编辑事项</view>
           <view class="btn btn-danger-ghost {{deleting ? 'btn-disabled' : ''}}" bindtap="onDelete" hover-class="btn-hover">删除事项</view>
         </view>
       </block>

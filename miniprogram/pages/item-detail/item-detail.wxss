@@ -73,4 +73,5 @@
 
 /* ====== 操作 ====== */
 .actions { padding: 40rpx 40rpx calc(64rpx + env(safe-area-inset-bottom)); }
-.del-btn { margin-top: 20rpx; }
+/* 所有相邻操作统一留白，不依赖某一个按钮的专用类。 */
+.actions > .btn + .btn { margin-top: 24rpx; }

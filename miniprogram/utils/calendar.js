@@ -105,16 +105,7 @@ function requestAuth() {
  *   3. 显式传入 alarm: true，避免部分机型默认不提醒。
  * 到期日期非法时返回 null，由调用方按失败处理，不影响后续条目。
  */
-function buildEvent(record, status, reminderDays, kind) {
-  // kind='warranty' 用保修结束日；kind='maintenance' 用下次维护日（备忘+维护周期记录）；默认用到期日
-  const isWarranty = kind === 'warranty';
-  const isMaintenance = kind === 'maintenance';
-  const due = dateUtil.parseDate(
-    isWarranty ? record.warrantyEnd
-      : (isMaintenance ? recordUtil.getMaintenanceInfo(record).nextDate : (status && status.dueDate))
-  );
-  if (!due) return null;
-
+function eventTime(due) {
   // 事件开始时间：到期日 09:00；已过期则钳制到最近一个未来的 09:00
   let start = new Date(due.getFullYear(), due.getMonth(), due.getDate(), 9, 0, 0);
   const isExpired = start.getTime() <= Date.now();
@@ -125,6 +116,22 @@ function buildEvent(record, status, reminderDays, kind) {
       ? todayAt9
       : new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1, 9, 0, 0);
   }
+
+  return { start, isExpired };
+}
+
+function buildEvent(record, status, reminderDays, kind) {
+  if (kind === 'household') return buildHouseholdEvent(record, reminderDays);
+  // kind='warranty' 用保修结束日；kind='maintenance' 用下次维护日（备忘+维护周期记录）；默认用到期日
+  const isWarranty = kind === 'warranty';
+  const isMaintenance = kind === 'maintenance';
+  const due = dateUtil.parseDate(
+    isWarranty ? record.warrantyEnd
+      : (isMaintenance ? recordUtil.getMaintenanceInfo(record).nextDate : (status && status.dueDate))
+  );
+  if (!due) return null;
+
+  const { start, isExpired } = eventTime(due);
 
   // 标题：带存放位置时生成「冰箱冷冻室 的 冷冻水饺 快要到期啦」；保修/维护类用对应文案
   const title = isWarranty
@@ -196,7 +203,27 @@ function friendlyError(err) {
   return msg;
 }
 
+function householdKey(item) {
+  return JSON.stringify([item.dueDate, item.title, item.type, item.repeatRule, item.notes]);
+}
+function buildHouseholdEvent(item, reminderDays) {
+  const due = dateUtil.parseDate(item && item.dueDate);
+  if (!due || item.archived) return null;
+  const { start, isExpired } = eventTime(due);
+  const startTime = Math.floor(start.getTime() / 1000);
+  const requestedOffset = Math.max(0, Number(reminderDays) || 0) * 86400;
+  const reminderPassed = (startTime - requestedOffset) * 1000 <= Date.now();
+  return {
+    title: item.title + ' · 家庭事项提醒', startTime, endTime: startTime + 3600,
+    description: '本次处理日期：' + item.dueDate + (isExpired ? '（提醒时间已调整至最近的未来上午 9:00）' : '') +
+      (reminderPassed ? '\n提前提醒时间已过，改为日程开始时提醒。' : '') + '\n仅提醒本期；下期确认后请再次添加。' + (item.notes ? '\n备注：' + item.notes : ''),
+    alarm: true, alarmOffset: reminderPassed ? 0 : requestedOffset
+  };
+}
+
 module.exports = {
+  householdKey,
+  buildHouseholdEvent,
   isSupported,
   getAuthStatus,
   ensureAuth,

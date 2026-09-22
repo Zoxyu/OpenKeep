@@ -50,6 +50,30 @@ function genId() {
   return 'ok_' + Date.now().toString(36) + '_' + Math.random().toString(36).slice(2, 8);
 }
 
+// 处理历史与所属记录同一次写入，避免状态与归档仅一项保存成功。
+function normalizeProcessingHistory(value) {
+  if (!Array.isArray(value)) return [];
+  const kinds = ['household', 'consumed', 'discarded', 'warranty', 'maintenance', 'archive'];
+  const fields = ['archived', 'dueDate', 'repeatAnchor', 'repeatIndex', 'maintenanceLast', 'warrantyHandledDate'];
+  function patch(raw) {
+    const out = {};
+    if (!raw || typeof raw !== 'object') return out;
+    fields.forEach(key => {
+      if (key === 'archived' && typeof raw[key] === 'boolean') out[key] = raw[key];
+      else if (key === 'repeatIndex' && Number.isInteger(raw[key]) && raw[key] >= 0) out[key] = raw[key];
+      else if (key !== 'archived' && key !== 'repeatIndex' && (raw[key] === '' || dateUtil.parseDate(raw[key]))) out[key] = raw[key];
+    });
+    return out;
+  }
+  return value.filter(e => e && typeof e.id === 'string' && kinds.indexOf(e.kind) >= 0 && Number.isFinite(e.processedAt)).map(e => ({
+    id: e.id, kind: e.kind, title: typeof e.title === 'string' ? e.title.slice(0, 30) : '',
+    dueDate: dateUtil.parseDate(e.dueDate) ? e.dueDate : '',
+    nextDate: dateUtil.parseDate(e.nextDate) ? e.nextDate : '',
+    processedAt: e.processedAt, undoneAt: Number.isFinite(e.undoneAt) ? e.undoneAt : null,
+    before: patch(e.before), after: patch(e.after), guard: typeof e.guard === 'string' ? e.guard : ''
+  }));
+}
+
 // 规范化单条记录：补齐缺失字段、纠正非法值；关键字段（名称）缺失时返回 null
 function normalizeRecord(raw) {
   if (!raw || typeof raw !== 'object') return null;
@@ -117,6 +141,9 @@ function normalizeRecord(raw) {
     maintenanceLast: maintenanceLast,
     maintenanceCycle: maintenanceCycle,
     maintenanceCycleDays: maintenanceCycleDays,
+    archived: raw.archived === true,
+    warrantyHandledDate: dateUtil.parseDate(raw.warrantyHandledDate) ? raw.warrantyHandledDate : '',
+    processingHistory: normalizeProcessingHistory(raw.processingHistory),
     createdAt: typeof raw.createdAt === 'number' ? raw.createdAt : now,
     updatedAt: typeof raw.updatedAt === 'number' ? raw.updatedAt : now,
     calendarImported: !!raw.calendarImported,
@@ -179,6 +206,13 @@ function normalizeHousehold(raw) {
     type: Object.prototype.hasOwnProperty.call(householdUtil.TYPES, raw.type) ? raw.type : 'bill',
     dueDate: dateUtil.formatDate(due),
     repeatRule: Object.prototype.hasOwnProperty.call(repeatUtil.RULES, raw.repeatRule) ? raw.repeatRule : 'none',
+    repeatAnchor: dateUtil.parseDate(raw.repeatAnchor) ? raw.repeatAnchor : dateUtil.formatDate(due),
+    repeatIndex: Number.isInteger(raw.repeatIndex) && raw.repeatIndex >= 0 ? raw.repeatIndex : 0,
+    archived: raw.archived === true,
+    processingHistory: normalizeProcessingHistory(raw.processingHistory),
+    calendarImportedFor: typeof raw.calendarImportedFor === 'string' ? raw.calendarImportedFor : '',
+    calendarImportedAt: Number.isFinite(raw.calendarImportedAt) ? raw.calendarImportedAt : null,
+    calendarReminderDays: [0, 1, 2, 3, 5, 7, 14].indexOf(raw.calendarReminderDays) >= 0 ? raw.calendarReminderDays : 1,
     notes: typeof raw.notes === 'string' ? raw.notes.trim().slice(0, 100) : '',
     createdAt: Number.isFinite(raw.createdAt) ? raw.createdAt : 0,
     updatedAt: Number.isFinite(raw.updatedAt) ? raw.updatedAt : 0
@@ -221,6 +255,32 @@ function removeHousehold(id) {
     if (!rows.some(row => row && row.id === id)) return false;
     return safeSet(KEYS.household, rows.filter(row => !row || row.id !== id));
   } catch (e) { return false; }
+}
+
+// 严格读取用于处理、归档与日历写入；失败时不按空缓存覆盖。
+function loadEntriesStrict(source) {
+  if (source !== 'record' && source !== 'household') throw new Error('invalid source');
+  const rows = wx.getStorageSync(source === 'record' ? KEYS.records : KEYS.household);
+  if (rows === '' || rows === null || rows === undefined) return [];
+  if (!Array.isArray(rows)) throw new Error('invalid storage');
+  return rows.map(source === 'record' ? normalizeRecord : normalizeHousehold).filter(Boolean);
+}
+
+function updateExisting(source, id, transform) {
+  if (source !== 'record' && source !== 'household') throw new Error('invalid source');
+  const key = source === 'record' ? KEYS.records : KEYS.household;
+  const raw = wx.getStorageSync(key);
+  if (!Array.isArray(raw)) throw new Error('记录已不存在或无法读取');
+  const rows = raw.slice();
+  const index = rows.findIndex(r => r && r.id === id);
+  if (index < 0) throw new Error('记录已不存在');
+  const normalize = source === 'record' ? normalizeRecord : normalizeHousehold;
+  const current = normalize(rows[index]);
+  if (!current) throw new Error('记录无法读取');
+  const updated = normalize(transform(current));
+  if (!updated || updated.id !== id) throw new Error('记录无效');
+  rows[index] = updated;
+  return safeSet(key, rows);
 }
 
 function loadSettings() {
@@ -268,6 +328,8 @@ function clearAllData() {
 
 module.exports = {
   genId,
+  loadEntriesStrict,
+  updateExisting,
   normalizeRecord,
   loadRecords,
   saveRecords,

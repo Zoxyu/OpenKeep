@@ -9,6 +9,7 @@ const recordUtil = require('../../utils/record');
 const imageUtil = require('../../utils/image');
 const calendarUtil = require('../../utils/calendar');
 const dateUtil = require('../../utils/date');
+const processing = require('../../utils/processing');
 
 const REMINDER_OPTIONS = [
   { v: 0, label: '到期当天提醒' },
@@ -104,6 +105,7 @@ Page({
     }
     const settings = app.globalData.settings || storage.loadSettings();
     const status = recordUtil.computeStatus(r, settings.warningDays);
+    if (r.archived) Object.assign(status, { level: 'memo', levelText: '已归档', label: '已处理 · 已归档' });
     // M1：保修状态走 record.getWarrantyStatus（与到期状态分离）；价格仅做展示格式化
     const warranty = recordUtil.getWarrantyStatus(r);
     let warrantyLeftText = '';
@@ -139,7 +141,10 @@ Page({
     this.setData({ reminderIndex: Number(e.detail.value) });
   },
 
+  goProcess() { wx.navigateTo({ url: '/pages/process/process?source=record&id=' + encodeURIComponent(this.data.id) }); },
+  goArchive() { wx.navigateTo({ url: '/pages/archive/archive' }); },
   onEdit() {
+    if (this.data.record && this.data.record.archived) return;
     wx.navigateTo({ url: '/pages/item-form/item-form?id=' + this.data.id });
   },
 
@@ -147,7 +152,7 @@ Page({
   onCompleteMaintenance() {
     if (this.data.completingMaintenance || this.data.writing) return;
     const record = storage.getRecord(this.data.id);
-    if (!record || !recordUtil.getMaintenanceInfo(record).active) {
+    if (!record || record.archived || !recordUtil.getMaintenanceInfo(record).active) {
       this.refresh();
       return;
     }
@@ -175,9 +180,9 @@ Page({
           wx.showToast({ title: '记录或日期已变化，请重试', icon: 'none' });
           return;
         }
-        const updated = Object.assign({}, latest, { maintenanceLast: today, updatedAt: Date.now() });
-        // 日历标记是历史写入记录，无法据此识别写入种类，不清除以免误导重复导入保修/到期提醒。
-        if (!storage.upsertRecord(updated)) {
+        let saved = false;
+        try { saved = processing.complete('record', latest.id, processing.revision(latest, 'record'), 'maintenance'); } catch (e) { /* 保留原状态，允许重试 */ }
+        if (!saved) {
           wx.showToast({ title: '保存失败，请重试', icon: 'none' });
           return;
         }
@@ -193,7 +198,7 @@ Page({
   onDelete() {
     wx.showModal({
       title: '删除物品',
-      content: '删除后，这条记录与本地保存的照片都无法恢复。确定删除吗？',
+      content: '删除后，这条记录、处理历史与本地保存的照片都无法恢复。确定删除吗？',
       confirmText: '删除',
       confirmColor: '#C65B55',
       success: r => {
@@ -209,7 +214,7 @@ Page({
 
   // ====== 单条日历导入（仅用户主动点击触发） ======
   onAddCalendar() {
-    if (this.data.writing || this.data.completingMaintenance || !this.data.record) return;
+    if (this.data.writing || this.data.completingMaintenance || !this.data.record || this.data.record.archived) return;
 
     // 低版本 / 不支持的设备：降级提示，不影响主功能
     if (!calendarUtil.isSupported()) {
@@ -258,6 +263,7 @@ Page({
   },
 
   writeCalendar() {
+    if (this.data.record && this.data.record.archived) return;
     if (this.data.writing || this.data.completingMaintenance || !this.data.record) return;
     const { record, status, reminderIndex } = this.data;
     const reminderDays = REMINDER_OPTIONS[reminderIndex].v;
@@ -276,15 +282,16 @@ Page({
     }
     this.setData({ writing: true });
     calendarUtil.addEvent(evt).then(() => {
-      const updated = Object.assign({}, record, {
-        calendarImported: true,
-        calendarImportedAt: Date.now(),
-        calendarReminderDays: reminderDays,
-        updatedAt: Date.now()
-      });
-      storage.upsertRecord(updated);
-      this.setData({ record: updated, writing: false });
-      wx.showToast({ title: '已添加提醒', icon: 'success' });
+      let saved = false;
+      try {
+        saved = storage.updateExisting('record', record.id, latest => {
+          if (latest.archived) throw new Error('物品已归档');
+          return Object.assign({}, latest, { calendarImported: true, calendarImportedAt: Date.now(), calendarReminderDays: reminderDays, updatedAt: Date.now() });
+        });
+      } catch (e) { /* 日历已提交，不能覆盖更新后的物品或复活删除记录 */ }
+      this.refresh(); this.setData({ writing: false });
+      if (saved) wx.showToast({ title: '已添加提醒', icon: 'success' });
+      else wx.showModal({ title: '提醒已提交', content: '本地标记未保存或物品已变化。再次添加前请先检查手机日历，避免重复。', showCancel: false });
     }).catch(err => {
       this.setData({ writing: false });
       wx.showModal({

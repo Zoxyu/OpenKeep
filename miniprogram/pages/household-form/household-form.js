@@ -39,11 +39,13 @@ Page({
     try {
       const item = storage.getHousehold(this.data.id);
       if (!item) { this.setData({ missing: true, loadError: false, contentReady: true }); return; }
+      this._loadedHistory = JSON.stringify(item.processingHistory);
+      this._schedule = item;
       this.setData({
         title: item.title, type: item.type, dueDate: item.dueDate,
         repeatRule: item.repeatRule, notes: item.notes,
         example: household.TYPES[item.type].example,
-        followingDate: repeat.occurrenceDate(item.dueDate, item.repeatRule, 1),
+        followingDate: repeat.followingDate(item),
         contentReady: true, loadError: false, missing: false
       });
     } catch (e) { this.setData({ loadError: true, contentReady: true }); }
@@ -62,17 +64,22 @@ Page({
     if (!Object.prototype.hasOwnProperty.call(household.TYPES, type)) return;
     this.setData({ type, example: household.TYPES[type].example });
   },
+  followingDate(dueDate, repeatRule) {
+    const item = this._schedule;
+    return item && item.dueDate === dueDate && item.repeatRule === repeatRule
+      ? repeat.followingDate(item) : repeat.occurrenceDate(dueDate, repeatRule, 1);
+  },
   onDateChange(e) {
     if (this.data.saving) return;
     const dueDate = e.detail.value;
     const errors = Object.assign({}, this.data.errors); delete errors.dueDate;
-    this.setData({ dueDate, errors, followingDate: repeat.occurrenceDate(dueDate, this.data.repeatRule, 1) });
+    this.setData({ dueDate, errors, followingDate: this.followingDate(dueDate, this.data.repeatRule) });
   },
   onRepeatTap(e) {
     if (this.data.saving) return;
     const rule = e.currentTarget.dataset.key;
     if (!Object.prototype.hasOwnProperty.call(repeat.RULES, rule)) return;
-    this.setData({ repeatRule: rule, followingDate: repeat.occurrenceDate(this.data.dueDate, rule, 1) });
+    this.setData({ repeatRule: rule, followingDate: this.followingDate(this.data.dueDate, rule) });
   },
   onFieldFocus(e) {
     if (this._blurTimer) clearTimeout(this._blurTimer);
@@ -94,16 +101,20 @@ Page({
     this.setData({ saving: true, errors: {} });
     try {
       const original = this.data.isEdit ? storage.getHousehold(this.data.id) : null;
-      if (this.data.isEdit && !original) {
+      if (this.data.isEdit && (!original || original.archived)) {
         this.setData({ saving: false, missing: true });
         return;
       }
+      if (original && JSON.stringify(original.processingHistory) !== this._loadedHistory) throw new Error('事项已被处理，请返回重试');
       const now = Date.now();
       const item = Object.assign({}, original || { id: storage.genId(), createdAt: now }, {
         title: this.data.title.trim(), type: this.data.type,
         dueDate: this.data.dueDate, repeatRule: this.data.repeatRule,
         notes: this.data.notes.trim(), updatedAt: now
       });
+      if (!original || original.dueDate !== item.dueDate || original.repeatRule !== item.repeatRule) {
+        item.repeatAnchor = item.dueDate; item.repeatIndex = 0;
+      }
       if (!storage.upsertHousehold(item, this.data.isEdit)) throw new Error('save failed');
       wx.showToast({ title: this.data.isEdit ? '已保存修改' : '已添加事项', icon: 'success' });
       this._saveTimer = setTimeout(() => { if (!this._unloaded) wx.navigateBack(); }, 600);
