@@ -1,55 +1,60 @@
 /* 首页看板样式 */
 
-/* ====== 顶部问候 ====== */
-.hero { padding: 48rpx 40rpx 4rpx; }
-.hero-date { font-size: 26rpx; color: var(--c-sub); letter-spacing: 2rpx; }
-.hero-greet { margin-top: 6rpx; font-size: 26rpx; color: var(--c-sub); }
-.hero-brand { margin-top: 26rpx; font-size: 62rpx; font-weight: 700; letter-spacing: 8rpx; line-height: 1.25; }
-.hero-sub { margin-top: 4rpx; font-size: 23rpx; color: var(--c-faint); letter-spacing: 1rpx; }
+/* 仅看板使用更轻的层次；变量向物品卡继承，不改变其他页面。 */
+.page-root.dashboard-page { --c-shadow: 0 4rpx 18rpx rgba(32, 36, 33, 0.035); }
+.page-root.dashboard-page.theme-dark { --c-shadow: 0 4rpx 18rpx rgba(0, 0, 0, 0.16); }
 
-/* ====== 三色统计卡 ====== */
-.stats { display: flex; flex-wrap: wrap; gap: 20rpx; padding: 36rpx 40rpx 0; }
+/* ====== 顶部问候 ====== */
+.hero { padding: 40rpx 40rpx 32rpx; }
+.hero-date { display: inline-flex; padding: 6rpx 16rpx; border-radius: 12rpx; background: var(--c-card-2); font-size: 23rpx; color: var(--c-sub); }
+.hero-greet { margin-top: 12rpx; font-size: 25rpx; color: var(--c-sub); }
+.hero-brand { margin-top: 16rpx; font-size: 46rpx; font-weight: 600; letter-spacing: 4rpx; line-height: 1.3; }
+.hero-sub { margin-top: 8rpx; font-size: 22rpx; color: var(--c-sub); }
+
+/* ====== 物品概览：与家庭事项使用同一套卡片层级 ====== */
+.stats-panel { margin: 28rpx 40rpx 0; overflow: hidden; }
+.stats-head { padding: 28rpx 28rpx 0; font-size: 31rpx; font-weight: 600; }
+.stats { display: flex; flex-wrap: wrap; gap: 12rpx; padding: 24rpx 28rpx 28rpx; }
 .stat {
-  flex: 1 1 calc(33.33% - 14rpx);
-  min-width: calc(33.33% - 14rpx);
+  flex: 1 1 calc(33.33% - 8rpx);
+  min-width: calc(33.33% - 8rpx);
   box-sizing: border-box;
-  background: var(--c-card);
-  border-radius: 22rpx;
-  border: 1rpx solid var(--c-line);
-  box-shadow: var(--c-shadow);
-  padding: 26rpx 0 22rpx;
+  background: var(--c-card-2);
+  border-radius: 16rpx;
+  padding: 20rpx 8rpx;
   text-align: center;
 }
 .stat-hover { opacity: 0.88; transform: translateY(2rpx); }
-.stat-num { font-size: 48rpx; font-weight: 700; line-height: 1.2; }
-.stat-label { margin-top: 4rpx; font-size: 23rpx; color: var(--c-sub); }
+.stat-num { font-size: 38rpx; font-weight: 600; line-height: 1.3; }
+.stat-label { margin-top: 8rpx; font-size: 23rpx; color: var(--c-sub); }
 
 /* ====== 主提醒卡 ====== */
 .urgent {
-  margin: 32rpx 40rpx 0;
+  margin: 28rpx 40rpx 0;
   background: var(--c-card);
   border-radius: 24rpx;
   border: 1rpx solid var(--c-line);
   box-shadow: var(--c-shadow);
-  padding: 30rpx 32rpx;
+  padding: 28rpx;
 }
-.urgent-head { display: flex; align-items: center; justify-content: space-between; }
-.urgent-tag { font-size: 22rpx; padding: 6rpx 18rpx; border-radius: 999rpx; }
+.urgent-head { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12rpx; }
+.urgent-tag { font-size: 23rpx; padding: 6rpx 16rpx; border-radius: 12rpx; }
 .lv-bg-expired { color: var(--c-danger); background: var(--c-danger-bg); }
 .lv-bg-warning { color: var(--c-warn); background: var(--c-warn-bg); }
 .lv-bg-safe { color: var(--c-safe); background: var(--c-safe-bg); }
-.urgent-more { font-size: 23rpx; color: var(--c-faint); }
-.urgent-name { margin-top: 22rpx; font-size: 38rpx; font-weight: 600; letter-spacing: 1rpx; }
+.urgent-more { font-size: 25rpx; color: var(--c-sub); }
+.urgent-name { margin-top: 24rpx; font-size: 31rpx; font-weight: 600; overflow-wrap: break-word; }
 .urgent-meta { margin-top: 8rpx; font-size: 24rpx; color: var(--c-sub); }
-.urgent-bar { margin-top: 22rpx; height: 10rpx; }
-.urgent-label { margin-top: 18rpx; font-size: 29rpx; font-weight: 600; }
+.urgent-bar { margin-top: 24rpx; height: 8rpx; }
+.urgent-label { margin-top: 16rpx; font-size: 26rpx; font-weight: 500; }
 
 /* ====== 新手引导卡 ====== */
 .guide {
-  margin: 32rpx 40rpx 0;
+  margin: 28rpx 40rpx 0;
   background: var(--c-card);
   border-radius: 24rpx;
-  border: 1rpx dashed var(--c-faint);
+  border: 1rpx solid var(--c-line);
+  box-shadow: var(--c-shadow);
   padding: 48rpx 40rpx;
   display: flex;
   flex-direction: column;
@@ -64,12 +69,12 @@
   box-sizing: border-box;
   margin-bottom: 24rpx;
 }
-.guide-title { font-size: 32rpx; font-weight: 600; }
+.guide-title { font-size: 31rpx; font-weight: 600; }
 .guide-desc { margin-top: 10rpx; font-size: 25rpx; color: var(--c-sub); max-width: 480rpx; }
 .guide-btn {
   margin-top: 30rpx;
   padding: 18rpx 44rpx;
-  border-radius: 999rpx;
+  border-radius: 22rpx;
   background: var(--c-action-bg);
   color: var(--c-action-text);
   font-size: 28rpx;
@@ -84,24 +89,31 @@
   border-radius: 24rpx;
   border: 1rpx solid var(--c-line);
   box-shadow: var(--c-shadow);
-  padding: 28rpx 32rpx;
+  padding: 28rpx;
 }
 .today-date {
   display: flex;
-  align-items: baseline;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
   flex-shrink: 0;
   width: 96rpx;
+  min-height: 112rpx;
+  padding: 12rpx 0;
+  box-sizing: border-box;
+  border-radius: 16rpx;
+  background: var(--c-card-2);
 }
-.today-m { font-size: 28rpx; font-weight: 700; }
+.today-m { font-size: 22rpx; color: var(--c-sub); }
+.today-m::after { content: "月"; margin-left: 2rpx; }
 .today-d {
-  font-size: 56rpx;
-  font-weight: 700;
-  line-height: 1;
-  margin-left: 4rpx;
+  font-size: 38rpx;
+  font-weight: 600;
+  line-height: 1.3;
   color: var(--c-safe);
 }
 .today-body { flex: 1; min-width: 0; margin-left: 24rpx; }
-.today-title { font-size: 28rpx; font-weight: 600; letter-spacing: 1rpx; }
+.today-title { font-size: 31rpx; font-weight: 600; }
 .today-text {
   margin-top: 8rpx;
   font-size: 24rpx;
@@ -113,13 +125,13 @@
   -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
 }
-.today-more { margin-top: 8rpx; font-size: 22rpx; color: var(--c-faint); }
+.today-more { margin-top: 12rpx; font-size: 25rpx; color: var(--c-sub); }
 
 /* ====== 近期保修提醒（M1，轻量） ====== */
-.warranty-card { margin: 28rpx 40rpx 0; padding: 28rpx 32rpx; }
-.warranty-head { display: flex; align-items: baseline; justify-content: space-between; }
-.warranty-title { font-size: 28rpx; font-weight: 600; letter-spacing: 1rpx; }
-.warranty-sub { font-size: 22rpx; color: var(--c-faint); }
+.warranty-card { margin: 28rpx 40rpx 0; padding: 28rpx 28rpx 12rpx; }
+.warranty-head { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 8rpx; padding-bottom: 12rpx; }
+.warranty-title { font-size: 31rpx; font-weight: 600; }
+.warranty-sub { font-size: 23rpx; color: var(--c-sub); }
 .warranty-row {
   display: flex;
   align-items: center;
@@ -132,7 +144,7 @@
   flex: 1;
   min-width: 0;
   margin-right: 16rpx;
-  font-size: 28rpx;
+  font-size: 29rpx;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -144,10 +156,10 @@
   display: flex;
   align-items: baseline;
   justify-content: space-between;
-  padding: 44rpx 40rpx 8rpx;
+  padding: 36rpx 40rpx 16rpx;
 }
-.list-title { font-size: 31rpx; font-weight: 600; letter-spacing: 1rpx; }
-.list-total { font-size: 24rpx; color: var(--c-faint); }
+.list-title { font-size: 31rpx; font-weight: 600; }
+.list-total { font-size: 25rpx; color: var(--c-sub); }
 /* 底部预留悬浮胶囊 tabBar 与添加/搜索按钮的避让空间；
  * 搜索按钮顶边＝296rpx+safe-area+88rpx，故留白必须含 safe-area，
  * 否则 iOS 模拟（safe≈34px）下滚到底时搜索按钮压住最后一张卡片（安卓/华为模拟 safe=0 不复现） */
@@ -163,29 +175,28 @@
   align-items: center;
   height: 96rpx;
   padding: 0 44rpx;
-  border-radius: 999rpx;
+  border-radius: 22rpx;
   background: var(--c-action-bg);
   color: var(--c-action-text);
   font-size: 30rpx;
   font-weight: 500;
-  letter-spacing: 1rpx;
-  box-shadow: 0 14rpx 36rpx rgba(32, 36, 33, 0.24);
+  box-shadow: var(--c-shadow);
   z-index: 50;
 }
 .fab-hover { opacity: 0.85; transform: translateY(2rpx); }
 .fab-plus { font-size: 36rpx; margin-right: 10rpx; }
 
-/* ====== 搜索入口（添加按钮旁的圆形按钮）与搜索框 ====== */
+/* ====== 搜索入口与搜索框：沿用卡片与添加按钮的圆角语言 ====== */
 .fab-search {
   position: fixed;
   right: 40rpx;
   bottom: calc(180rpx + env(safe-area-inset-bottom) + 116rpx);
   width: 88rpx;
   height: 88rpx;
-  border-radius: 50%;
+  border-radius: 22rpx;
   background: var(--c-control-bg);
   border: 1rpx solid var(--c-control-line);
-  box-shadow: 0 14rpx 36rpx rgba(32, 36, 33, 0.18);
+  box-shadow: var(--c-shadow);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -211,7 +222,7 @@
   border-radius: 2rpx;
   transform: rotate(45deg);
 }
-.dash-search-wrap { padding: 24rpx 40rpx 0; }
+.dash-search-wrap { padding: 28rpx 40rpx 0; }
 .dash-search-box {
   display: flex;
   align-items: center;
@@ -219,7 +230,7 @@
   padding: 0 28rpx;
   background: var(--c-card);
   border: 1rpx solid var(--c-line);
-  border-radius: 999rpx;
+  border-radius: 24rpx;
   box-shadow: var(--c-shadow);
 }
 .dash-search-icon {
@@ -243,7 +254,7 @@
   border-radius: 2rpx;
   transform: rotate(45deg);
 }
-.dash-search-input { flex: 1; font-size: 28rpx; height: 88rpx; }
+.dash-search-input { flex: 1; min-width: 0; font-size: 28rpx; height: 88rpx; color: var(--c-text); }
 .dash-search-clear {
   width: 56rpx;
   height: 56rpx;
@@ -297,7 +308,27 @@
 .onboard-desc { margin: 28rpx 0 36rpx; font-size: 26rpx; color: var(--c-sub); line-height: 1.7; }
 .onboard-btn { width: 100%; margin-top: 18rpx; }
 
-.household-entry { margin: 28rpx 40rpx 0; }
-.household-entry-text { min-width: 0; }
-.household-entry .cell-sub { line-height: 1.6; }
-.household-entry-arrow { margin-left: 20rpx; font-size: 38rpx; color: var(--c-sub); }
+.household-panel { margin: 0 40rpx; overflow: hidden; }
+.household-head { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8rpx; padding: 14rpx 28rpx 4rpx; }
+.household-title { font-size: 31rpx; font-weight: 600; }
+.household-link { min-height: 76rpx; display: flex; align-items: center; color: var(--c-sub); font-size: 25rpx; }
+.household-stats { display: flex; padding: 12rpx 20rpx 24rpx; }
+.household-stat { flex: 1; text-align: center; font-size: 23rpx; color: var(--c-sub); }
+.household-num { margin-bottom: 8rpx; font-size: 38rpx; font-weight: 600; line-height: 1.3; color: var(--c-text); }
+.household-num.lv-text-expired { color: var(--c-danger); }
+.household-num.lv-text-warning { color: var(--c-warn); }
+.household-caption { padding: 0 28rpx 16rpx; font-size: 22rpx; color: var(--c-sub); }
+.household-row { padding: 22rpx 28rpx; border-top: 1rpx solid var(--c-line); }
+.household-name { font-size: 29rpx; font-weight: 500; overflow-wrap: break-word; }
+.household-meta { margin-top: 8rpx; font-size: 23rpx; color: var(--c-sub); }
+.household-date-row { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 8rpx 18rpx; margin-top: 16rpx; font-size: 25rpx; color: var(--c-sub); }
+.household-status { color: var(--c-memo); }
+.household-overdue { color: var(--c-danger); }
+.household-today, .household-upcoming { color: var(--c-warn); }
+.household-expand { min-height: 88rpx; display: flex; align-items: center; justify-content: center; font-size: 25rpx; color: var(--c-sub); border-top: 1rpx solid var(--c-line); }
+.household-empty { padding: 12rpx 28rpx 24rpx; line-height: 1.7; font-size: 26rpx; color: var(--c-sub); }
+.household-bottom { padding: 0 28rpx 24rpx; }
+.household-add { margin-top: 12rpx; font-size: 28rpx; letter-spacing: 0; }
+
+.process-link { margin-top: 24rpx; min-height: 88rpx; border-radius: 16rpx; font-size: 25rpx; letter-spacing: 0; }
+.archive-entry { margin: 28rpx 40rpx 0; padding: 24rpx 28rpx; display: flex; justify-content: space-between; font-size: 26rpx; color: var(--c-sub); }

@@ -9,6 +9,7 @@ const recordUtil = require('../../utils/record');
 const imageUtil = require('../../utils/image');
 const dateUtil = require('../../utils/date');
 const historyUtil = require('../../utils/history');
+const summaryUtil = require('../../utils/summary');
 
 Page({
   data: {
@@ -29,6 +30,9 @@ Page({
     hasRecords: false,
     urgent: null,            // 最紧急的一条（优先已过期，其次临期）
     warrantySoon: [],        // M1：近期即将过保的物品（轻量提醒，独立于三色到期统计）
+    householdOverview: { total: 0, overdue: 0, today: 0, upcoming: 0, items: [], preview: [] },
+    householdError: false,
+    householdExpanded: false,
     filter: 'all',
     filterOptions: [],
     list: [],
@@ -94,11 +98,18 @@ Page({
   },
 
   onUnload() {
+    this._unloaded = true;
     if (this._untheme) this._untheme();
   },
 
   // 从本地缓存读取记录，实时计算状态并刷新整个看板
   refresh() {
+    // 事项读取失败单独降级，不阻断物品看板；同批更新避免闪空态或显示旧计数。
+    let householdOverview = summaryUtil.householdOverview([]);
+    let householdError = false;
+    try {
+      householdOverview = summaryUtil.householdOverview(storage.loadHousehold());
+    } catch (e) { householdError = true; }
     // try/catch 兜底：本函数承载 contentReady:true，若计算意外抛异常则 contentReady 永不置真、
     // 内容区整块缺失且不自愈；catch 里置 contentReady 并收起刷新态，保证门开后可自愈。
     try {
@@ -127,7 +138,7 @@ Page({
     const warrantySoon = [];
     items.forEach(it => {
       const w = recordUtil.getWarrantyStatus(it);
-      if (w.hasWarranty && w.daysLeft >= 0 && w.daysLeft <= WARRANTY_WINDOW) {
+      if (w.hasWarranty && it.warrantyHandledDate !== it.warrantyEnd && w.daysLeft >= 0 && w.daysLeft <= WARRANTY_WINDOW) {
         warrantySoon.push({
           id: it.id,
           name: it.name,
@@ -151,6 +162,8 @@ Page({
     this.setData({
       // contentReady 与它守卫的列表数据同批原子翻转：门开帧不显示误导性的 0/0/0、共 0 件
       contentReady: true,
+      householdOverview,
+      householdError,
       // refreshing 并入本批（成功与下面 catch 两条路径都翻回 false），与内容同批原子翻转：
       // 使下拉刷新只发 2 趟 setData、异常时指示器也不卡住不收（与物品页 load() 同模式）。
       refreshing: false,
@@ -173,7 +186,7 @@ Page({
     });
     } catch (e) {
       console.error('[dashboard] refresh failed', e);
-      this.setData({ contentReady: true, refreshing: false, refresherText: '下拉刷新' });
+      this.setData({ contentReady: true, householdOverview, householdError, refreshing: false, refresherText: '下拉刷新' });
     }
   },
 
@@ -206,6 +219,32 @@ Page({
     this.refresh();
   },
 
+  onItemMore(e) {
+    const id = e.detail && e.detail.id;
+    if (!id || this._itemMenuOpen || this._unloaded) return;
+    this._itemMenuOpen = true;
+    wx.showActionSheet({
+      itemList: ['记录处理结果', '编辑物品'],
+      success: res => {
+        if (this._unloaded || (res.tapIndex !== 0 && res.tapIndex !== 1)) return;
+        // 菜单等待期间记录可能被处理或删除，确认后重读，避免跳入过期记录。
+        try {
+          const item = storage.loadEntriesStrict('record').find(record => record.id === id);
+          if (!item || item.archived) {
+            wx.showToast({ title: '物品已归档或不存在', icon: 'none' });
+            this.refresh(); return;
+          }
+          const url = res.tapIndex === 0 ? '/pages/process/process?source=record&id=' : '/pages/item-form/item-form?id=';
+          wx.navigateTo({ url: url + encodeURIComponent(id) });
+        } catch (err) { wx.showToast({ title: '暂时无法读取物品，请重试', icon: 'none' }); }
+      },
+      fail: err => {
+        if (!this._unloaded && !/cancel/i.test(err.errMsg || '')) wx.showToast({ title: '菜单未能打开，请重试', icon: 'none' });
+      },
+      complete: () => { this._itemMenuOpen = false; }
+    });
+  },
+
   onCardTap(e) {
     wx.navigateTo({ url: '/pages/item-detail/item-detail?id=' + e.detail.id });
   },
@@ -220,6 +259,23 @@ Page({
 
   goHousehold() {
     wx.navigateTo({ url: '/pages/household/household' });
+  },
+
+  goHouseholdDetail(e) {
+    wx.navigateTo({ url: '/pages/household-detail/household-detail?id=' + encodeURIComponent(e.currentTarget.dataset.id) });
+  },
+
+  goProcess(e) {
+    const ds = e.currentTarget.dataset;
+    wx.navigateTo({ url: '/pages/process/process?source=' + ds.source + '&id=' + encodeURIComponent(ds.id) });
+  },
+  goArchive() { wx.navigateTo({ url: '/pages/archive/archive' }); },
+  goAddHousehold() {
+    wx.navigateTo({ url: '/pages/household-form/household-form' });
+  },
+
+  onToggleHousehold() {
+    this.setData({ householdExpanded: !this.data.householdExpanded });
   },
 
   // 跳转「历史上的今天」tab 页

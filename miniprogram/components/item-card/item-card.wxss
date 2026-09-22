@@ -94,3 +94,30 @@
   border-radius: 999rpx;
   padding: 2rpx 14rpx;
 }
+
+/* 底色与圆点缩小一档，透明触控区仍不小于 44px。 */
+.has-menu .side { justify-content: space-between; gap: 16rpx; }
+.more-button {
+  position: relative;
+  width: 88rpx;
+  height: 88rpx;
+  min-width: 44px;
+  min-height: 44px;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7rpx;
+}
+.more-button::before {
+  content: "";
+  position: absolute;
+  top: 4rpx;
+  right: 4rpx;
+  bottom: 4rpx;
+  left: 4rpx;
+  border-radius: 18rpx;
+  background: var(--c-secondary-bg);
+}
+.more-dot { position: relative; width: 7rpx; height: 7rpx; min-width: 3.5px; min-height: 3.5px; border-radius: 50%; background: var(--c-secondary-text); }
+.more-button-hover { opacity: 0.75; }

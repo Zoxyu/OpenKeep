@@ -31,6 +31,7 @@ function setup() {
     static now() { return now; }
   }
   const app = {
+    globalData: { settings: { warningDays: 7 } },
     isDark: () => false, syncPageChrome() {},
     onTheme(fn) { themes.add(fn); return () => themes.delete(fn); }
   };
@@ -55,7 +56,7 @@ function setup() {
     const module = { exports: {} };
     modules.set(filename, module);
     const run = vm.runInContext('(function(require,module,exports){\n' + fs.readFileSync(filename, 'utf8') + '\n})', context, { filename });
-    run(relative => load(path.resolve(path.dirname(filename), relative + '.js')), module, module.exports);
+    run(relative => load(path.resolve(path.dirname(filename), relative.endsWith('.js') ? relative : relative + '.js')), module, module.exports);
     return module.exports;
   }
   const storage = load(path.join(root, 'utils/storage.js'));
@@ -252,4 +253,104 @@ test('清空全部本地数据包含家庭事项键', () => {
   h.cache.set('openkeep_onboarded_v1', true);
   h.storage.clearAllData();
   for (const key of [KEY, 'openkeep_records_v1', 'openkeep_settings_v1', 'openkeep_onboarded_v1']) assert.equal(h.cache.has(key), false);
+});
+
+test('看板直接显示已录入的远期事项，事项计数独立于物品统计', () => {
+  const h = setup();
+  h.cache.set('openkeep_onboarded_v1', true);
+  const dashboard = h.page('dashboard');
+  assert.equal(dashboard.data.householdOverview.total, 0);
+  const form = h.page('household-form');
+  form.setData({ title: '护照换证', type: 'document', dueDate: '2027-01-31' });
+  form.onSave();
+  dashboard.onShow();
+  assert.equal(dashboard.data.householdOverview.total, 1);
+  assert.equal(dashboard.data.householdOverview.preview[0].title, '护照换证');
+  assert.equal(dashboard.data.householdOverview.preview[0].status.level, 'scheduled');
+  assert.equal(dashboard.data.total, 0);
+  assert.equal(dashboard.data.hasRecords, false);
+  assert.equal(dashboard.data.contentReady, true);
+});
+
+test('看板按日期列出前三项，可展开全部；超期/今天/未来七天计数互不重复', () => {
+  const h = setup();
+  h.cache.set(KEY, [
+    sample({ id: 'far', dueDate: '2026-02-08' }),
+    sample({ id: 'seven', dueDate: '2026-02-07' }),
+    sample({ id: 'tomorrow', dueDate: '2026-02-01' }),
+    sample({ id: 'today' }),
+    sample({ id: 'old', dueDate: '2026-01-20' })
+  ]);
+  const dashboard = h.page('dashboard');
+  const overview = dashboard.data.householdOverview;
+  assert.equal(overview.total, 5);
+  assert.equal(overview.overdue, 1); assert.equal(overview.today, 1); assert.equal(overview.upcoming, 2);
+  assert.deepEqual(plain(overview.preview.map(item => item.id)), ['old', 'today', 'tomorrow']);
+  assert.deepEqual(plain(overview.items.map(item => item.id)), ['old', 'today', 'tomorrow', 'seven', 'far']);
+  dashboard.onToggleHousehold(); assert.equal(dashboard.data.householdExpanded, true);
+  dashboard.onScrollRefresh(); assert.equal(dashboard.data.householdExpanded, true);
+  dashboard.onToggleHousehold(); assert.equal(dashboard.data.householdExpanded, false);
+  assert.equal(h.writes.length, 0);
+});
+
+test('事项编辑和删除后返回看板立即更新，清空后不残留旧条目', () => {
+  const h = setup();
+  h.cache.set(KEY, [sample()]);
+  const dashboard = h.page('dashboard');
+  const form = h.page('household-form', { id: 'hh-1' });
+  form.setData({ title: '宽带已续期', dueDate: '2026-02-28' }); form.onSave();
+  dashboard.onShow();
+  assert.equal(dashboard.data.householdOverview.preview[0].title, '宽带已续期');
+  assert.equal(dashboard.data.householdOverview.today, 0);
+  h.storage.removeHousehold('hh-1'); dashboard.onShow();
+  assert.equal(dashboard.data.householdOverview.total, 0);
+  assert.equal(dashboard.data.householdOverview.preview.length, 0);
+});
+
+test('事项读取失败不会阻断物品看板，重试恢复；物品筛选不隐藏事项', () => {
+  const h = setup();
+  h.cache.set(KEY, [sample()]);
+  h.cache.set('openkeep_records_v1', [{ id: 'milk', name: '牛奶', category: 'fridge', openedAt: '2026-01-30', shelfLifeValue: 30 }]);
+  const dashboard = h.page('dashboard');
+  h.failRead(); dashboard.onScrollRefresh();
+  assert.equal(dashboard.data.householdError, true);
+  assert.equal(dashboard.data.total, 1);
+  assert.equal(dashboard.data.list[0].name, '牛奶');
+  assert.equal(dashboard.data.stats.safe, 1);
+  assert.equal(dashboard.data.refreshing, false);
+  h.failRead(false);
+  dashboard.setData({ keyword: '不匹配的物品', filter: 'expired' });
+  dashboard.onScrollRefresh();
+  assert.equal(dashboard.data.householdError, false);
+  assert.equal(dashboard.data.householdOverview.total, 1);
+  assert.equal(dashboard.data.list.length, 0);
+  assert.equal(dashboard.data.keyword, '不匹配的物品');
+  assert.equal(dashboard.data.filter, 'expired');
+});
+
+test('看板事项可直达详情、新增和管理页；主题切换正常', () => {
+  const h = setup();
+  const dashboard = h.page('dashboard');
+  dashboard.goHouseholdDetail({ currentTarget: { dataset: { id: '家庭&事项' } } });
+  dashboard.goAddHousehold(); dashboard.goHousehold();
+  assert.deepEqual(h.navigation, [
+    '/pages/household-detail/household-detail?id=' + encodeURIComponent('家庭&事项'),
+    '/pages/household-form/household-form', '/pages/household/household'
+  ]);
+  h.dark(); assert.equal(dashboard.data.dark, true);
+});
+
+test('看板跨天重新计算今天和超期计数，不推进周期或写入缓存', () => {
+  const h = setup();
+  h.cache.set(KEY, [sample({ dueDate: '2026-02-01' })]);
+  const dashboard = h.page('dashboard');
+  assert.equal(dashboard.data.householdOverview.upcoming, 1);
+  h.nextDay(); dashboard.onScrollRefresh();
+  assert.equal(dashboard.data.householdOverview.today, 1);
+  assert.equal(dashboard.data.householdOverview.upcoming, 0);
+  h.nextDay(); dashboard.onShow();
+  assert.equal(dashboard.data.householdOverview.overdue, 1);
+  assert.equal(dashboard.data.householdOverview.today, 0);
+  assert.equal(h.storage.getHousehold('hh-1').dueDate, '2026-02-01');
+  assert.equal(h.writes.length, 0);
 });

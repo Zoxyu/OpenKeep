@@ -7,9 +7,16 @@ Component({
     // withStatus 处理后的记录对象（含 status、categoryLabel 等展示字段）
     item: { type: Object, value: null },
     // 深色模式（用于占位图形内联色切换）
-    dark: { type: Boolean, value: false }
+    dark: { type: Boolean, value: false },
+    // 看板启用快捷菜单，其他列表默认保持原样。
+    showMenu: { type: Boolean, value: false }
   },
   methods: {
+    onMore() {
+      if (this.data.showMenu && this.data.item && this.data.item.id) {
+        this.triggerEvent('more', { id: this.data.item.id });
+      }
+    },
     onTap() {
       if (this.data.item && this.data.item.id) {
         this.triggerEvent('tapitem', { id: this.data.item.id });

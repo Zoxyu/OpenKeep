@@ -1,4 +1,4 @@
-<view wx:if="{{themeReady}}" class="page-root {{dark ? 'theme-dark' : ''}}">
+<view wx:if="{{themeReady}}" class="page-root dashboard-page {{dark ? 'theme-dark' : ''}}">
 
   <!-- 首次启动引导：用户主动选择，不擅自写入演示数据 -->
   <view wx:if="{{showOnboarding}}" class="onboard-mask">
@@ -41,27 +41,61 @@
     <view class="hero-sub">In Time · Keep track of what you open.</view>
   </view>
 
-  <!-- 三色统计卡（contentReady 前不渲染，门开帧不显示误导性的 0/0/0；stats 由 onShow refresh 与 contentReady 同批置真） -->
-  <view wx:if="{{contentReady}}" class="stats">
-    <view class="stat" hover-class="stat-hover" bindtap="onStatTap" data-level="expired">
-      <view class="stat-num lv-text-expired">{{stats.expired}}</view>
-      <view class="stat-label">已过期</view>
+  <!-- 家庭事项直接展示；空态保留录入入口，错误态独立于物品。 -->
+  <view wx:if="{{contentReady}}" class="household-panel card">
+    <view class="household-head">
+      <view class="household-title">家庭事项</view>
+      <view class="household-link" hover-class="card-hover" bindtap="goHousehold">{{householdError ? '管理事项' : '全部 ' + householdOverview.total + ' 件'}} ›</view>
     </view>
-    <view class="stat" hover-class="stat-hover" bindtap="onStatTap" data-level="warning">
-      <view class="stat-num lv-text-warning">{{stats.warning}}</view>
-      <view class="stat-label">临期</view>
+    <view wx:if="{{householdError}}" class="household-empty">
+      <view>暂时无法读取家庭事项，请重试。</view>
+      <view class="btn btn-plain household-add" bindtap="refresh">重新读取</view>
     </view>
-    <view class="stat" hover-class="stat-hover" bindtap="onStatTap" data-level="safe">
-      <view class="stat-num lv-text-safe">{{stats.safe}}</view>
-      <view class="stat-label">安心保存</view>
-    </view>
-    <view wx:if="{{stats.warranty > 0}}" class="stat" hover-class="stat-hover" bindtap="onStatTap" data-level="warranty">
-      <view class="stat-num lv-text-warranty">{{stats.warranty}}</view>
-      <view class="stat-label">保修</view>
-    </view>
-    <view wx:if="{{stats.memo > 0}}" class="stat" hover-class="stat-hover" bindtap="onStatTap" data-level="memo">
-      <view class="stat-num lv-text-memo">{{stats.memo}}</view>
-      <view class="stat-label">备忘</view>
+    <block wx:else>
+      <block wx:if="{{householdOverview.total}}">
+        <view class="household-stats">
+          <view class="household-stat"><view class="household-num lv-text-expired">{{householdOverview.overdue}}</view><view>已超期</view></view>
+          <view class="household-stat"><view class="household-num lv-text-warning">{{householdOverview.today}}</view><view>今天需处理</view></view>
+          <view class="household-stat"><view class="household-num">{{householdOverview.upcoming}}</view><view>未来 7 天</view></view>
+        </view>
+        <view class="household-caption">按处理日期排列 · 超期事项优先</view>
+        <view wx:for="{{householdExpanded ? householdOverview.items : householdOverview.preview}}" wx:key="id" class="household-row" data-id="{{item.id}}" bindtap="goHouseholdDetail" hover-class="card-hover">
+          <view class="household-name">{{item.title}}</view>
+          <view class="household-meta">{{item.typeText}} · {{item.repeatText}}</view>
+          <view class="household-date-row"><text>{{item.dueDate}}</text><text class="household-status household-{{item.status.level}}">{{item.status.label}} ›</text></view>
+          <view class="btn btn-plain process-link" catchtap="goProcess" data-source="household" data-id="{{item.id}}" hover-class="btn-hover">标记已处理</view>
+        </view>
+        <view wx:if="{{householdOverview.total > 3}}" class="household-expand" hover-class="card-hover" bindtap="onToggleHousehold">{{householdExpanded ? '收起事项' : '展开全部 ' + householdOverview.total + ' 件事项'}}</view>
+      </block>
+      <view wx:else class="household-empty">记下缴费续费、保险续期或证件到期，保存后会显示在这里。</view>
+      <view class="household-bottom"><view class="btn btn-plain household-add" hover-class="btn-hover" bindtap="goAddHousehold">＋ 添加事项</view></view>
+    </block>
+  </view>
+
+  <!-- 物品统计不混入事项；仅有事项时不显示整排零值。 -->
+  <view wx:if="{{contentReady && (hasRecords || (!householdOverview.total && !householdError))}}" class="stats-panel card">
+    <view class="stats-head">物品概览</view>
+    <view class="stats">
+      <view class="stat" hover-class="stat-hover" bindtap="onStatTap" data-level="expired">
+        <view class="stat-num lv-text-expired">{{stats.expired}}</view>
+        <view class="stat-label">已过期</view>
+      </view>
+      <view class="stat" hover-class="stat-hover" bindtap="onStatTap" data-level="warning">
+        <view class="stat-num lv-text-warning">{{stats.warning}}</view>
+        <view class="stat-label">临期</view>
+      </view>
+      <view class="stat" hover-class="stat-hover" bindtap="onStatTap" data-level="safe">
+        <view class="stat-num lv-text-safe">{{stats.safe}}</view>
+        <view class="stat-label">安心保存</view>
+      </view>
+      <view wx:if="{{stats.warranty > 0}}" class="stat" hover-class="stat-hover" bindtap="onStatTap" data-level="warranty">
+        <view class="stat-num lv-text-warranty">{{stats.warranty}}</view>
+        <view class="stat-label">保修</view>
+      </view>
+      <view wx:if="{{stats.memo > 0}}" class="stat" hover-class="stat-hover" bindtap="onStatTap" data-level="memo">
+        <view class="stat-num lv-text-memo">{{stats.memo}}</view>
+        <view class="stat-label">备忘</view>
+      </view>
     </view>
   </view>
 
@@ -80,7 +114,7 @@
   </view>
 
   <!-- 无记录时的温和引导 -->
-  <view wx:elif="{{contentReady && !hasRecords && !showOnboarding}}" class="guide" hover-class="card-hover" bindtap="goAdd">
+  <view wx:elif="{{contentReady && !hasRecords && !householdOverview.total && !householdError && !showOnboarding}}" class="guide" hover-class="card-hover" bindtap="goAdd">
     <view class="guide-circle"></view>
     <view class="guide-title">从第一件物品开始</view>
     <view class="guide-desc">拍下或录入开始使用的物品，到期的事交给看板替你记着。</view>
@@ -106,16 +140,6 @@
     </view>
   </view>
 
-  <view class="household-entry card" hover-class="card-hover" bindtap="goHousehold">
-    <view class="cell">
-      <view class="household-entry-text">
-        <view class="cell-title">家庭事项</view>
-        <view class="cell-sub">缴费续费、保险续期、证件到期</view>
-      </view>
-      <text class="household-entry-arrow">›</text>
-    </view>
-  </view>
-
   <!-- 历史上的今天：柔和日期卡（点击进入 tab 页） -->
   <view wx:if="{{historyPreview}}" class="today-card" hover-class="card-hover" bindtap="goHistory">
     <view class="today-date">
@@ -129,7 +153,7 @@
     </view>
   </view>
 
-  <!-- 关键词搜索框（点 fab 旁圆形搜索按钮展开） -->
+  <!-- 关键词搜索框（点击悬浮搜索按钮展开） -->
   <view wx:if="{{searchOpen}}" class="dash-search-wrap">
     <view class="dash-search-box">
       <view class="dash-search-icon"></view>
@@ -146,6 +170,8 @@
     </view>
   </view>
 
+  <view wx:if="{{contentReady}}" class="archive-entry card" bindtap="goArchive" hover-class="card-hover"><text>处理记录与归档</text><text>查看 ›</text></view>
+
   <!-- 列表区（list-head 与 filter-bar 均由 contentReady 守卫，门开帧不显示「共 0 件」与空筛选栏） -->
   <view wx:if="{{contentReady}}" class="list-head">
     <view class="list-title">物品看板</view>
@@ -157,7 +183,7 @@
   <!-- 列表外层容器同样由 contentReady 守卫：避免中间帧渲染一个空容器（padding 造成）加剧 pop-in 布局跳动 -->
   <view wx:if="{{contentReady}}" class="list">
     <block wx:for="{{list}}" wx:key="id">
-      <item-card item="{{item}}" dark="{{dark}}" bind:tapitem="onCardTap" />
+      <item-card item="{{item}}" dark="{{dark}}" show-menu="{{true}}" bind:tapitem="onCardTap" bind:more="onItemMore" />
     </block>
     <empty-state
       wx:if="{{contentReady && !list.length}}"
@@ -174,7 +200,7 @@
     <text class="fab-text">添加物品</text>
   </view>
 
-  <!-- 搜索入口（添加按钮旁的圆形按钮） -->
+  <!-- 搜索入口（添加按钮上方） -->
   <view class="fab-search" hover-class="fab-hover" bindtap="onToggleSearch">
     <view class="fab-search-icon"></view>
   </view>
