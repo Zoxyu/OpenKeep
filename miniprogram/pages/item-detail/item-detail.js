@@ -43,6 +43,12 @@ Page({
     maintenanceDoneToday: false,
     completingMaintenance: false,
     missing: false,
+    loadError: false,
+    deleting: false,
+    calendarEntries: [],
+    calendarIndex: 0,
+    calendarEntry: null,
+    calendarBusy: false,
     reminderOptions: REMINDER_OPTIONS.map(r => r.label),
     reminderIndex: 1,
     calSupported: true,
@@ -93,14 +99,19 @@ Page({
   },
 
   onUnload() {
+    this._unloaded = true;
+    if (this._deleteTimer) clearTimeout(this._deleteTimer);
     if (this._untheme) this._untheme();
   },
 
   // 每次展示都重新读取并实时计算状态（编辑返回后数据保持最新）
   refresh() {
-    const r = storage.getRecord(this.data.id);
+    if (this._unloaded) return;
+    let r;
+    try { r = storage.loadEntriesStrict('record').find(it => it.id === this.data.id); }
+    catch (e) { this.setData({ loadError: true, missing: false, record: null }); return; }
     if (!r) {
-      this.setData({ missing: true, record: null });
+      this.setData({ loadError: false, missing: true, record: null });
       return;
     }
     const settings = app.globalData.settings || storage.loadSettings();
@@ -118,12 +129,20 @@ Page({
       ? '' : '¥' + Number(r.purchasePrice).toFixed(2);
     // M1 第二批次：维护信息（与到期/保修正交；未设置时 active=false，详情页不显示维护卡）
     const maintenance = recordUtil.getMaintenanceInfo(r);
+    const entries = recordUtil.calendarEntries(r).map(entry => Object.assign({}, entry, {
+      imported: entry.imported || !!(this._submittedKeys && this._submittedKeys[entry.key])
+    }));
+    const previousKind = this.data.calendarEntry && this.data.calendarEntry.kind;
+    const calendarIndex = Math.max(0, entries.findIndex(e => e.kind === previousKind));
+    const calendarEntry = entries[calendarIndex] || null;
     let idx = 1;
     for (let i = 0; i < REMINDER_OPTIONS.length; i++) {
-      if (REMINDER_OPTIONS[i].v === r.calendarReminderDays) { idx = i; break; }
+      if (REMINDER_OPTIONS[i].v === (calendarEntry ? calendarEntry.reminderDays : r.calendarReminderDays)) { idx = i; break; }
     }
     this.setData({
       record: r,
+      missing: false, loadError: false,
+      calendarEntries: entries, calendarIndex, calendarEntry,
       status,
       cat: recordUtil.categoryOf(r.category),
       shelfLifeText: recordUtil.shelfLifeText(r),
@@ -138,19 +157,32 @@ Page({
   },
 
   onReminderChange(e) {
+    if (this.data.calendarBusy || this.data.writing) return;
     this.setData({ reminderIndex: Number(e.detail.value) });
   },
 
-  goProcess() { wx.navigateTo({ url: '/pages/process/process?source=record&id=' + encodeURIComponent(this.data.id) }); },
+  onCalendarKindChange(e) {
+    if (this.data.calendarBusy || this.data.writing) return;
+    const index = Number(e.detail.value), entry = this.data.calendarEntries[index];
+    if (!entry) return;
+    const reminderIndex = REMINDER_OPTIONS.findIndex(o => o.v === entry.reminderDays);
+    this.setData({ calendarIndex: index, calendarEntry: entry, reminderIndex: reminderIndex < 0 ? 1 : reminderIndex });
+  },
+
+  goProcess() {
+    if (this.data.deleting || this.data.calendarBusy || this.data.writing) return;
+    wx.navigateTo({ url: '/pages/process/process?source=record&id=' + encodeURIComponent(this.data.id) });
+  },
   goArchive() { wx.navigateTo({ url: '/pages/archive/archive' }); },
   onEdit() {
+    if (this.data.deleting || this.data.calendarBusy || this.data.writing) return;
     if (this.data.record && this.data.record.archived) return;
     wx.navigateTo({ url: '/pages/item-form/item-form?id=' + this.data.id });
   },
 
   // 完成维护：以本次实际维护日为新起点，不累加旧的计划日期，也不自动写日历。
   onCompleteMaintenance() {
-    if (this.data.completingMaintenance || this.data.writing) return;
+    if (this._unloaded || this.data.deleting || this.data.calendarBusy || this.data.completingMaintenance || this.data.writing) return;
     const record = storage.getRecord(this.data.id);
     if (!record || record.archived || !recordUtil.getMaintenanceInfo(record).active) {
       this.refresh();
@@ -194,111 +226,105 @@ Page({
     });
   },
 
-  // 删除：二次确认 + 同步删除本地照片文件
+  // 先成功删除最新记录，再清理照片；异常时保留页面与重试入口。
   onDelete() {
-    wx.showModal({
+    if (this._unloaded || this.data.deleting || this.data.writing || this.data.calendarBusy || this.data.completingMaintenance || !this.data.record) return;
+    this.setData({ deleting: true });
+    const id = this.data.id;
+    let deleted = false;
+    const unlock = () => { if (!this._unloaded && !deleted) this.setData({ deleting: false }); };
+    try { wx.showModal({
       title: '删除物品',
       content: '删除后，这条记录、处理历史与本地保存的照片都无法恢复。确定删除吗？',
-      confirmText: '删除',
-      confirmColor: '#C65B55',
-      success: r => {
-        if (!r.confirm) return;
-        const rec = this.data.record;
-        storage.removeRecord(rec.id);
-        if (rec.photoPath) imageUtil.removePhoto(rec.photoPath);
-        wx.showToast({ title: '已删除', icon: 'none' });
-        setTimeout(() => wx.navigateBack(), 600);
-      }
-    });
-  },
-
-  // ====== 单条日历导入（仅用户主动点击触发） ======
-  onAddCalendar() {
-    if (this.data.writing || this.data.completingMaintenance || !this.data.record || this.data.record.archived) return;
-
-    // 低版本 / 不支持的设备：降级提示，不影响主功能
-    if (!calendarUtil.isSupported()) {
-      wx.showModal({
-        title: '暂不支持写入日历',
-        content: '当前微信版本或设备不支持添加系统日历事件。物品看板功能不受影响。',
-        showCancel: false
-      });
-      return;
-    }
-
-    const doWrite = () => {
-      calendarUtil.requestAuth().then(res => {
-        if (!res.granted) return;
-        if (!res.fresh) {
-          // 之前已授权：直接写入
-          this.writeCalendar();
-          return;
+      confirmText: '删除', confirmColor: '#C65B55',
+      success: res => {
+        if (this._unloaded) return;
+        if (!res.confirm) { unlock(); return; }
+        try {
+          const latest = storage.loadEntriesStrict('record').find(r => r.id === id);
+          if (!latest) throw new Error('记录不存在');
+          if (!storage.removeRecord(id)) throw new Error('删除失败');
+          deleted = true;
+          if (latest.photoPath) imageUtil.removePhoto(latest.photoPath);
+          wx.showToast({ title: '已删除', icon: 'none' });
+          this._deleteTimer = setTimeout(() => { if (!this._unloaded) wx.navigateBack(); }, 600);
+        } catch (e) {
+          unlock();
+          wx.showToast({ title: '删除失败，请重试', icon: 'none' });
         }
-        // 首次授权：权限同步存在延迟，紧接着的写入可能被系统吞掉
-        // （甚至误报成功），改为弹确认框由用户点击重新发起
-        wx.showModal({
-          title: '日历权限已开启',
-          content: '请再次点击，添加这条到期提醒（到期日上午 9:00）。',
-          confirmText: '添加提醒',
-          cancelText: '取消',
-          success: r => {
-            if (r.confirm) this.writeCalendar();
-          }
-        });
-      });
-    };
-
-    // 已导入过：重新导入前明确提示可能产生重复日程
-    if (this.data.record.calendarImported) {
-      wx.showModal({
-        title: '重新添加',
-        content: '这条记录已添加过提醒。再次添加会在系统日历中产生重复提醒，确定继续吗？',
-        confirmText: '继续添加',
-        cancelText: '取消',
-        success: r => { if (r.confirm) doWrite(); }
-      });
-      return;
+      },
+      fail: () => { unlock(); if (!this._unloaded) wx.showToast({ title: '暂时无法确认，请重试', icon: 'none' }); },
+      complete: unlock
+    }); } catch (e) {
+      unlock();
+      if (!this._unloaded) wx.showToast({ title: '暂时无法确认，请重试', icon: 'none' });
     }
-    doWrite();
   },
 
-  writeCalendar() {
-    if (this.data.record && this.data.record.archived) return;
-    if (this.data.writing || this.data.completingMaintenance || !this.data.record) return;
-    const { record, status, reminderIndex } = this.data;
-    const reminderDays = REMINDER_OPTIONS[reminderIndex].v;
-    const evt = calendarUtil.buildEvent(
-      Object.assign({}, record, { categoryLabel: this.data.cat.label }),
-      status,
-      reminderDays,
-      // 单条导入日期依据链：保修状态用保修日；无到期日但设了维护周期用下次维护日；其余用到期日
-      status.level === 'warranty' ? 'warranty'
-        : (!status.dueDate && this.data.maintenance && this.data.maintenance.active ? 'maintenance' : undefined)
-    );
-    // 到期日期非法时 buildEvent 返回 null，提前拦截避免崩溃
-    if (!evt) {
-      wx.showToast({ title: '到期日期无效，无法创建日程', icon: 'none' });
+  // 对已知回执与旧版未知标记均先确认；授权期间锁定所选类别和提前量。
+  onAddCalendar() {
+    if (this._unloaded || this.data.writing || this.data.calendarBusy || this.data.deleting || this.data.completingMaintenance || !this.data.calendarEntry) return;
+    if (!calendarUtil.isSupported()) {
+      wx.showModal({ title: '暂不支持写入日历', content: '当前微信版本或设备不支持添加系统日历事件。物品看板功能不受影响。', showCancel: false });
+      return;
+    }
+    const entry = this.data.calendarEntry;
+    const reminderDays = REMINDER_OPTIONS[this.data.reminderIndex].v;
+    this.setData({ calendarBusy: true });
+    const confirm = options => new Promise(resolve => wx.showModal(Object.assign({}, options, {
+      success: r => resolve(!!r.confirm), fail: () => resolve(false)
+    })));
+    const duplicate = entry.imported || entry.legacyUnknown;
+    return (duplicate ? confirm({ title: entry.legacyUnknown && !entry.imported ? '旧提醒待核对' : '重新添加',
+      content: entry.legacyUnknown && !entry.imported
+        ? '旧版本没有记录提醒类别和日期，请先核对手机日历。继续添加可能产生重复提醒。'
+        : '本期这类提醒已添加过，再次添加会产生重复提醒。确定继续吗？',
+      confirmText: '继续添加', cancelText: '取消' }) : Promise.resolve(true))
+      .then(ok => ok && !this._unloaded ? calendarUtil.requestAuth() : { granted: false })
+      .then(res => {
+        if (!res.granted || this._unloaded) return false;
+        if (!res.fresh) return true;
+        return confirm({ title: '日历权限已开启', content: '请再次点击，添加所选类别的本期提醒。', confirmText: '添加提醒', cancelText: '取消' });
+      })
+      .then(ok => { if (ok && !this._unloaded) return this.writeCalendar(entry, reminderDays); })
+      .catch(() => { if (!this._unloaded) wx.showToast({ title: '暂时无法添加，请重试', icon: 'none' }); })
+      .then(() => { if (!this._unloaded) this.setData({ calendarBusy: false }); });
+  },
+
+  writeCalendar(entry, reminderDays) {
+    if (this._unloaded || this.data.writing || this.data.deleting || this.data.completingMaintenance) return;
+    entry = entry || this.data.calendarEntry;
+    if (!entry) return;
+    if (reminderDays === undefined) reminderDays = REMINDER_OPTIONS[this.data.reminderIndex].v;
+    let record, evt;
+    try {
+      record = storage.loadEntriesStrict('record').find(r => r.id === this.data.id);
+      const current = calendarUtil.currentItemEntry(record, entry);
+      if (!current || (current.imported && !entry.imported)) throw new Error('提醒已变化');
+      evt = calendarUtil.buildEvent(Object.assign({}, record, { categoryLabel: recordUtil.categoryOf(record.category).label }),
+        recordUtil.computeStatus(record, 7), reminderDays, entry.kind);
+      if (!evt) throw new Error('日期无效');
+    } catch (e) {
+      this.refresh();
+      wx.showToast({ title: '读取失败或提醒已变化，请重试', icon: 'none' });
       return;
     }
     this.setData({ writing: true });
-    calendarUtil.addEvent(evt).then(() => {
+    return calendarUtil.addEvent(evt).then(() => {
+      this._submittedKeys = this._submittedKeys || {};
+      this._submittedKeys[entry.key] = true;
       let saved = false;
       try {
-        saved = storage.updateExisting('record', record.id, latest => {
-          if (latest.archived) throw new Error('物品已归档');
-          return Object.assign({}, latest, { calendarImported: true, calendarImportedAt: Date.now(), calendarReminderDays: reminderDays, updatedAt: Date.now() });
-        });
-      } catch (e) { /* 日历已提交，不能覆盖更新后的物品或复活删除记录 */ }
+        saved = storage.updateExisting('record', record.id, latest => calendarUtil.markItemImported(latest, entry, reminderDays));
+      } catch (e) { /* 外部写入已成功，不能把旧期回执写到新期或复活已删除物品。 */ }
+      if (this._unloaded) return;
       this.refresh(); this.setData({ writing: false });
       if (saved) wx.showToast({ title: '已添加提醒', icon: 'success' });
       else wx.showModal({ title: '提醒已提交', content: '本地标记未保存或物品已变化。再次添加前请先检查手机日历，避免重复。', showCancel: false });
-    }).catch(err => {
+    }, err => {
+      if (this._unloaded) return;
       this.setData({ writing: false });
-      wx.showModal({
-        title: '写入失败',
-        content: '日历事件未能写入：' + calendarUtil.friendlyError(err) + '。物品记录不受影响，可稍后重试。',
-        showCancel: false
-      });
+      wx.showModal({ title: '写入失败', content: '日历事件未能写入：' + calendarUtil.friendlyError(err) + '。物品记录不受影响，可稍后重试。', showCancel: false });
     });
   },
 

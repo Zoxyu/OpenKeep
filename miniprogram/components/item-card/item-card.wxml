@@ -35,6 +35,6 @@
     <view wx:if="{{showMenu}}" class="more-button" catchtap="onMore" hover-class="more-button-hover" hover-stop-propagation="{{true}}" aria-role="button" aria-label="{{item.name}}，更多操作">
       <view class="more-dot"></view><view class="more-dot"></view><view class="more-dot"></view>
     </view>
-    <view wx:if="{{item.calendarImported}}" class="cal-tag">已入日历</view>
+      <view wx:if="{{item.calendarLabel}}" class="cal-tag">{{item.calendarLabel}}</view>
   </view>
 </view>

@@ -314,7 +314,10 @@ Page({
 
   // 首次启动引导：写入示例数据（相对今天生成，保证红黄绿都有）
   onUseDemo() {
-    storage.saveRecords(recordUtil.demoRecords());
+    if (!storage.saveRecords(recordUtil.demoRecords())) {
+      wx.showToast({ title: '载入失败，请重试', icon: 'none' });
+      return;
+    }
     storage.setOnboarded();
     this.refresh();
     wx.showToast({ title: '已载入示例数据', icon: 'none' });

@@ -5,6 +5,7 @@
  */
 const dateUtil = require('./date');
 const maintenanceUtil = require('./maintenance');
+const calendarState = require('./calendar-state');
 
 // 分类定义：文案 + 占位图形色值（浅色 / 深色模式分别给出一套）
 // refOpenedDays：该分类「开封后可保存天数」的保守参考值（宁少勿多，提醒更安全）
@@ -134,7 +135,10 @@ function withStatus(records, warningDays) {
   const today = dateUtil.todayStart();
   return (records || []).filter(r => !r.archived).map(r => {
     const cat = categoryOf(r.category);
+    const reminders = calendarEntries(r, warningDays, today);
+    const importedCount = reminders.filter(e => e.imported).length;
     return Object.assign({}, r, {
+      calendarLabel: importedCount ? (importedCount === reminders.length ? '本期已入日历' : '部分已入日历') : '',
       categoryLabel: cat.label,
       categoryChar: cat.char,
       tone: cat.tone,
@@ -146,6 +150,26 @@ function withStatus(records, warningDays) {
       maintenance: maintenanceUtil.getMaintenanceInfo(r, today)
     });
   });
+}
+
+// 当前可添加的每一种提醒。保修已处理只抑制本期，维保日期按原周期派生。
+function calendarEntries(record, warningDays, today) {
+  if (!record || record.archived) return [];
+  const status = computeStatus(record, warningDays || 7, today);
+  const warranty = getWarrantyStatus(record, today);
+  const maintenance = maintenanceUtil.getMaintenanceInfo(record, today);
+  const entries = [];
+  function add(kind, label, dueDate, daysLeft) {
+    entries.push(Object.assign({ key: JSON.stringify([record.id, kind, dueDate]), kind, label, dueDate, daysLeft,
+      optionLabel: label + ' · ' + dueDate }, calendarState.state(record, kind, dueDate)));
+  }
+  if (status.dueDate) add('due', '保质期', status.dueDate, status.daysLeft);
+  const handled = dateUtil.parseDate(record.warrantyHandledDate);
+  if (warranty.hasWarranty && (!handled || dateUtil.formatDate(handled) !== warranty.endDate)) {
+    add('warranty', '保修', warranty.endDate, warranty.daysLeft);
+  }
+  if (maintenance.active) add('maintenance', '维保', maintenance.nextDate, maintenance.daysLeft);
+  return entries;
 }
 
 // 首页排序：已过期优先，其次临期，最后按到期日由近到远
@@ -230,6 +254,7 @@ function computeHouseholdStatus(item, today) {
 }
 
 module.exports = {
+  calendarEntries,
   computeHouseholdStatus,
   CATEGORIES,
   SHELF_UNITS,

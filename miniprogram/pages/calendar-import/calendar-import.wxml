@@ -8,8 +8,9 @@
   <view wx:if="{{!supported}}" class="warn-banner">当前微信版本或设备不支持写入系统日历。你仍可正常使用物品看板。</view>
 
   <view class="intro">
-    <view class="intro-title">选择要提醒的物品</view>
+    <view class="intro-title">选择物品提醒</view>
     <view class="intro-desc">已过期与未来 90 天内到期的物品、保修即将到期的物品、以及维护即将到期的物品（30 天内，含超期）会显示在这里。导入后，将在对应日期上午 9:00 添加提醒。</view>
+    <view class="intro-desc">同一物品的保质期、保修、维保分别选择。旧版提醒未记录类别和日期，标为“待核对”，请检查手机日历后再勾选。</view>
   </view>
 
   <!-- 选项区 -->
@@ -17,25 +18,25 @@
     <view class="cell">
       <view>
         <view class="cell-title">统一提醒时间</view>
-        <view class="cell-sub">对所有选中物品生效</view>
+        <view class="cell-sub">对所有选中提醒生效</view>
       </view>
-      <picker class="opt-picker" mode="selector" range="{{reminderOptions}}" value="{{reminderIndex}}" bindchange="onReminderChange">
+      <picker class="opt-picker" mode="selector" range="{{reminderOptions}}" value="{{reminderIndex}}" disabled="{{importing || confirming}}" bindchange="onReminderChange">
         <view class="cell-value">{{reminderOptions[reminderIndex]}} <text class="picker-arrow">›</text></view>
       </picker>
     </view>
     <view class="cell">
       <view>
-        <view class="cell-title">跳过已添加记录</view>
+        <view class="cell-title">跳过本期已添加提醒</view>
         <view class="cell-sub">避免产生重复提醒</view>
       </view>
-      <switch checked="{{skipImported}}" color="#3E8F72" disabled="{{importing}}" bindchange="onSkipChange" />
+      <switch checked="{{skipImported}}" color="#3E8F72" disabled="{{importing || confirming}}" bindchange="onSkipChange" />
     </view>
     <view class="cell">
       <view>
         <view class="cell-title">纳入超过 30 天的保修</view>
         <view class="cell-sub">默认只提醒 30 天内到期的保修</view>
       </view>
-      <switch checked="{{warrantyBeyond30}}" color="#3E8F72" disabled="{{importing}}" bindchange="onWarrantyBeyondChange" />
+      <switch checked="{{warrantyBeyond30}}" color="#3E8F72" disabled="{{importing || confirming}}" bindchange="onWarrantyBeyondChange" />
     </view>
     <view class="cell">
       <view class="cell-title">全选可选记录</view>
@@ -50,7 +51,7 @@
   <view wx:if="{{hasCandidates}}" class="ci-list">
     <view
       wx:for="{{items}}"
-      wx:key="record.id"
+      wx:key="key"
       class="ci-item {{item.disabled ? 'ci-disabled' : ''}}"
       data-index="{{index}}"
       hover-class="{{item.disabled || importing ? '' : 'ci-hover'}}"
@@ -61,16 +62,21 @@
       </view>
       <view class="ci-body">
         <view class="ci-name">{{item.record.name}}</view>
-        <view class="ci-meta">{{item.record.categoryLabel}} · {{item.kind === 'warranty' ? '保修至 ' + item.record.warrantyEnd : (item.kind === 'maintenance' ? '维护至 ' + item.record.maintenance.nextDate : '到期 ' + item.record.status.dueDate)}}</view>
+        <view class="ci-meta">{{item.label}} · {{item.dueDate}}</view>
       </view>
       <view class="ci-right">
-        <status-badge level="{{item.record.status.level}}" text="{{item.record.status.levelText}}" size="small" />
-        <view wx:if="{{item.record.calendarImported}}" class="ci-imported">已添加</view>
-        <view wx:else class="ci-left lv-text-{{item.record.status.level}}">{{item.record.status.label}}</view>
+        <status-badge level="{{item.level}}" text="{{item.levelText}}" size="small" />
+        <view wx:if="{{item.imported}}" class="ci-imported">本期已添加</view>
+        <view wx:elif="{{item.legacyUnknown}}" class="ci-imported">旧提醒待核对</view>
+        <view wx:else class="ci-left lv-text-{{item.level}}">{{item.remainingText}}</view>
       </view>
     </view>
   </view>
   <!-- 空状态：contentReady 前不渲染，避免中间帧（候选列表尚未由 onShow buildList 填入）闪「暂无需要提醒的物品」 -->
+  <view wx:elif="{{loadError}}" class="opt-card card">
+    <view class="cell"><view class="cell-title">暂时无法读取物品，请重试。</view></view>
+    <view class="btn btn-plain" bindtap="buildList">重新读取</view>
+  </view>
   <empty-state
     wx:elif="{{contentReady}}"
     type="calendar"
@@ -85,10 +91,10 @@
     <block wx:if="{{!importing}}">
       <view class="bb-count">已选 {{checkedCount}} 条</view>
       <view
-        class="btn btn-primary bb-btn {{checkedCount === 0 || !supported ? 'btn-disabled' : ''}}"
+        class="btn btn-primary bb-btn {{checkedCount === 0 || !supported || confirming ? 'btn-disabled' : ''}}"
         hover-class="btn-hover"
         bindtap="onImport"
-      >导入 {{checkedCount}} 条到手机日历</view>
+      >{{confirming ? '确认中…' : '导入 ' + checkedCount + ' 条到手机日历'}}</view>
     </block>
     <block wx:else>
       <view class="bb-progress">

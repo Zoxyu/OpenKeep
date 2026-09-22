@@ -4,7 +4,12 @@
   <scroll-view class="page-scroll" scroll-y enhanced show-scrollbar="{{false}}">
 
   <!-- 记录不存在（已被删除等边界情况） -->
-  <view wx:if="{{missing}}" class="missing">
+  <view wx:if="{{loadError}}" class="missing">
+    <view class="missing-title">暂时无法读取物品</view>
+    <view class="missing-desc">记录未被修改，请重试。</view>
+    <view class="btn btn-primary missing-btn" hover-class="btn-hover" bindtap="refresh">重新读取</view>
+  </view>
+  <view wx:elif="{{missing}}" class="missing">
     <view class="missing-title">记录不存在</view>
     <view class="missing-desc">这条物品可能已被删除。</view>
     <view class="btn btn-primary missing-btn" hover-class="btn-hover" bindtap="goBack">返回</view>
@@ -122,26 +127,30 @@
     </view>
 
     <!-- 日历提醒（纯备忘无日期不可导入隐藏本栏；但设了维护周期的备忘可用维护日导入） -->
-    <view wx:if="{{!record.archived && (status.level !== 'memo' || maintenance.active)}}" class="cal-card card">
+    <view wx:if="{{calendarEntry}}" class="cal-card card">
       <view class="cal-head">
         <view class="cal-title">到期提醒 · 手机日历</view>
-        <view wx:if="{{record.calendarImported}}" class="cal-done">已添加提醒</view>
+        <view wx:if="{{calendarEntry.imported}}" class="cal-done">本期已添加</view>
       </view>
       <view wx:if="{{!calSupported}}" class="cal-note">当前微信版本或设备不支持写入系统日历，物品管理功能不受影响。</view>
       <block wx:else>
-        <view class="cal-desc">将在{{status.level === 'warranty' ? '保修结束日' : (status.dueDate ? '到期日' : '下次维护日')}}上午 9:00 添加提醒，并按所选时间提前通知。</view>
-        <picker mode="selector" range="{{reminderOptions}}" value="{{reminderIndex}}" bindchange="onReminderChange">
+        <picker wx:if="{{calendarEntries.length > 1}}" mode="selector" range="{{calendarEntries}}" range-key="optionLabel" value="{{calendarIndex}}" disabled="{{calendarBusy || writing}}" bindchange="onCalendarKindChange">
+          <view class="cal-picker"><text>{{calendarEntry.optionLabel}}</text><text class="picker-arrow">›</text></view>
+        </picker>
+        <view class="cal-desc">{{calendarEntry.label}}提醒 · {{calendarEntry.dueDate}} 上午 9:00，可选择提前通知时间。已过期的日期会调整为最近的未来上午 9:00。</view>
+        <view wx:if="{{calendarEntry.legacyUnknown && !calendarEntry.imported}}" class="cal-note">旧提醒待核对：旧版本未记录类别和日期，添加前请先检查手机日历。</view>
+        <picker mode="selector" range="{{reminderOptions}}" value="{{reminderIndex}}" disabled="{{calendarBusy || writing}}" bindchange="onReminderChange">
           <view class="cal-picker">
             <text>{{reminderOptions[reminderIndex]}}</text>
             <text class="picker-arrow">›</text>
           </view>
         </picker>
         <view
-          class="btn {{record.calendarImported ? 'btn-plain' : 'btn-safe'}} {{writing ? 'btn-disabled' : ''}} cal-btn"
+          class="btn {{calendarEntry.imported ? 'btn-plain' : 'btn-safe'}} {{calendarBusy || writing || deleting ? 'btn-disabled' : ''}} cal-btn"
           hover-class="btn-hover"
           bindtap="onAddCalendar"
-        >{{writing ? '添加中…' : (record.calendarImported ? '重新添加' : '添加到手机日历')}}</view>
-        <view wx:if="{{record.calendarImported}}" class="cal-note">重新添加可能产生重复提醒。微信不提供日程事件 ID，已添加的提醒请在系统日历中管理，本应用无法删除或修改。</view>
+        >{{writing ? '添加中…' : (calendarBusy ? '确认中…' : (calendarEntry.imported ? '重新添加本期提醒' : '添加到手机日历'))}}</view>
+        <view wx:if="{{calendarEntry.imported}}" class="cal-note">重新添加可能产生重复提醒。已添加的提醒请在系统日历中管理，本应用无法删除或修改。</view>
         <view wx:else class="cal-note">只写入你主动选择的提醒，不会读取你的已有日程。</view>
       </block>
     </view>
@@ -152,7 +161,7 @@
       <view class="btn btn-safe" bindtap="goProcess" hover-class="btn-hover">记录处理结果</view>
       <view class="btn btn-plain" bindtap="goArchive" hover-class="btn-hover">查看处理记录</view>
       <view class="btn btn-primary" hover-class="btn-hover" bindtap="onEdit">编辑物品</view>
-      <view class="btn btn-danger-ghost del-btn" hover-class="btn-hover" bindtap="onDelete">删除这条记录</view>
+      <view class="btn btn-danger-ghost del-btn {{deleting ? 'btn-disabled' : ''}}" hover-class="btn-hover" bindtap="onDelete">{{deleting ? '删除中…' : '删除这条记录'}}</view>
     </view>
   </block>
 

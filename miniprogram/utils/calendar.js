@@ -5,6 +5,7 @@
  */
 const dateUtil = require('./date');
 const recordUtil = require('./record');
+const calendarState = require('./calendar-state');
 
 const SCOPE = 'scope.addPhoneCalendar';
 
@@ -158,13 +159,16 @@ function buildEvent(record, status, reminderDays, kind) {
   if (record.notes) lines.push('备注：' + record.notes);
 
   const startTimeSec = Math.floor(start.getTime() / 1000);
+  const requestedOffset = Math.max(0, Number(reminderDays) || 0) * 86400;
+  const reminderPassed = (startTimeSec - requestedOffset) * 1000 <= Date.now();
+  if (reminderPassed) lines.push('提前提醒时间已过，改为日程开始时提醒。');
   return {
     title: title,
     startTime: startTimeSec,
     endTime: startTimeSec + 3600, // 结束时间：开始后 1 小时，规避零时长事件
     description: lines.join('\n'),
     alarm: true,
-    alarmOffset: Math.max(0, Number(reminderDays) || 0) * 86400
+    alarmOffset: reminderPassed ? 0 : requestedOffset
   };
 }
 
@@ -206,6 +210,15 @@ function friendlyError(err) {
 function householdKey(item) {
   return JSON.stringify([item.dueDate, item.title, item.type, item.repeatRule, item.notes]);
 }
+
+// 写入前与回调后均核对当前期次；禁止旧回调标记新一期或已处理/归档的提醒。
+function currentItemEntry(record, entry) {
+  return recordUtil.calendarEntries(record).find(e => e.key === entry.key) || null;
+}
+function markItemImported(record, entry, reminderDays) {
+  if (!currentItemEntry(record, entry)) throw new Error('物品或提醒日期已变化');
+  return calendarState.mark(record, entry, reminderDays);
+}
 function buildHouseholdEvent(item, reminderDays) {
   const due = dateUtil.parseDate(item && item.dueDate);
   if (!due || item.archived) return null;
@@ -222,6 +235,8 @@ function buildHouseholdEvent(item, reminderDays) {
 }
 
 module.exports = {
+  currentItemEntry,
+  markItemImported,
   householdKey,
   buildHouseholdEvent,
   isSupported,

@@ -47,8 +47,10 @@ Page({
     // 与 items/hasCandidates 同批置真，绝不在 onLoad 提前置真。
     contentReady: false,
     supported: true,
-    items: [],               // [{ record, checked, disabled }]
+    items: [],               // 每条为独立的物品＋类别＋日期提醒，附带 checked / disabled
     hasCandidates: false,
+    loadError: false,
+    confirming: false,
     checkedCount: 0,
     skipImported: true,
     // M1：保修提醒窗口开关（>30 天保修也纳入候选），读自 settings
@@ -80,10 +82,12 @@ Page({
   onShow() {
     // onShow 只管原生 chrome（每页一份的标题栏 / 窗口背景），不再负责 DOM 主题纠正
     app.syncPageChrome(this);
-    this.buildList();
+    if (!this.data.importing && !this.data.confirming) this.buildList();
   },
 
   onUnload() {
+    this._unloaded = true;
+    if (this._stepTimer) clearTimeout(this._stepTimer);
     if (this._untheme) this._untheme();
     this._cancelled = true; // 离开页面时终止未完成的导入循环
   },
@@ -94,43 +98,31 @@ Page({
     // 候选列表整块缺失且不自愈；catch 里置 contentReady 保证门开后可自愈（本页无 loading 字段）。
     try {
       const settings = app.globalData.settings || storage.loadSettings();
-      const all = recordUtil.withStatus(storage.loadRecords(), settings.warningDays);
-      // 物品到期候选：已过期 + 未来 90 天内到期
-      const dueCandidates = all.filter(it => it.status.daysLeft <= 90);
-      // 保修到期候选（M1）：有保修日且未过保；窗口默认 30 天，warrantyBeyond30 开启后不限上限
+      const all = recordUtil.withStatus(storage.loadEntriesStrict('record'), settings.warningDays);
       const wWindow = settings.warrantyBeyond30 ? Infinity : 30;
-      const dueIds = {};
-      dueCandidates.forEach(it => { dueIds[it.id] = true; });
-      const dueList = recordUtil.sortUrgent(dueCandidates).map(it => ({ record: it, kind: 'due' }));
-      const warrantyIds = {};
-      const warrantyList = recordUtil.sortUrgent(all.filter(it => {
-        const w = recordUtil.getWarrantyStatus(it);
-        const ok = w.hasWarranty && it.warrantyHandledDate !== it.warrantyEnd && w.daysLeft >= 0 && w.daysLeft <= wWindow && !dueIds[it.id];
-        if (ok) warrantyIds[it.id] = true;
-        return ok;
-      })).map(it => ({ record: it, kind: 'warranty' }));
-      // 维护候选（M1 第二批次）：设了维护周期且下次维护在 30 天内（含超期）；
-      // 与 due/warranty 候选去重，同一条记录不重复出现
-      const maintenanceList = recordUtil.sortUrgent(all.filter(it => {
-        if (dueIds[it.id] || warrantyIds[it.id]) return false;
-        const m = it.maintenance;
-        return !!m && m.active && m.daysLeft <= 30;
-      })).map(it => ({ record: it, kind: 'maintenance' }));
-      const candidates = dueList.concat(warrantyList, maintenanceList);
-      const skip = this.data.skipImported;
-      const items = candidates.map(c => ({
-        record: c.record,
-        kind: c.kind,
-        // 已过期物品与超期维护默认不勾选（需手动勾选才导入）；其余未导入记录默认勾选
-        checked: !c.record.calendarImported && !(
-          (c.kind === 'due' && c.record.status.level === 'expired') ||
-          (c.kind === 'maintenance' && c.record.maintenance.daysLeft < 0)
-        ),
-        disabled: skip && c.record.calendarImported
+      const candidates = [];
+      all.forEach(record => recordUtil.calendarEntries(record).forEach(entry => {
+        const inWindow = entry.kind === 'due' ? entry.daysLeft <= 90
+          : entry.kind === 'warranty' ? entry.daysLeft >= 0 && entry.daysLeft <= wWindow
+            : entry.daysLeft <= 30;
+        if (inWindow) candidates.push(Object.assign({ record }, entry));
       }));
+      candidates.sort((a, b) => a.dueDate.localeCompare(b.dueDate) || a.record.name.localeCompare(b.record.name) || a.kind.localeCompare(b.kind));
+      const items = candidates.map(entry => {
+        const imported = entry.imported || !!(this._submittedKeys && this._submittedKeys[entry.key]);
+        const expiredText = entry.kind === 'warranty' ? '已过保' : entry.kind === 'maintenance' ? '已超期' : '已过期';
+        return Object.assign({}, entry, {
+          imported,
+          checked: !imported && !entry.legacyUnknown && entry.daysLeft >= 0,
+          disabled: this.data.skipImported && imported,
+          level: entry.daysLeft < 0 ? 'expired' : entry.daysLeft <= 7 ? 'warning' : 'safe',
+          levelText: entry.daysLeft < 0 ? expiredText : entry.daysLeft === 0 ? '今天到期' : '未到期',
+          remainingText: entry.daysLeft < 0 ? expiredText + ' ' + (-entry.daysLeft) + ' 天' : '还剩 ' + entry.daysLeft + ' 天'
+        });
+      });
       this.setData({
         // contentReady 与它守卫的候选列表同批原子翻转
-        contentReady: true,
+        contentReady: true, loadError: false,
         items,
         hasCandidates: items.length > 0,
         checkedCount: items.filter(i => i.checked).length,
@@ -138,7 +130,7 @@ Page({
       });
     } catch (e) {
       console.error('[calendar-import] buildList failed', e);
-      this.setData({ contentReady: true });
+      this.setData({ contentReady: true, loadError: true, items: [], hasCandidates: false, checkedCount: 0 });
     }
   },
 
@@ -146,14 +138,14 @@ Page({
   onToggle(e) {
     const idx = e.currentTarget.dataset.index;
     const item = this.data.items[idx];
-    if (!item || item.disabled || this.data.importing) return;
+    if (!item || item.disabled || this.data.importing || this.data.confirming) return;
     const key = 'items[' + idx + '].checked';
     this.setData({ [key]: !item.checked });
     this.recount();
   },
 
   onToggleAll() {
-    if (this.data.importing) return;
+    if (this._unloaded || this.data.importing || this.data.confirming) return;
     const items = this.data.items;
     // 存在未勾选的可选记录时全部勾选，否则全部取消。
     // 注意：必须映射为新的记录对象，不能把元素替换成布尔值，
@@ -171,10 +163,11 @@ Page({
   },
 
   onSkipChange(e) {
+    if (this.data.importing || this.data.confirming) return;
     const skip = e.detail.value;
     // 开关切换后：导入开启时已导入记录不可勾选；关闭时恢复可选（保持未勾选）
     const items = this.data.items.map(i => {
-      if (!i.record.calendarImported) return i;
+      if (!i.imported) return i;
       return Object.assign({}, i, { checked: skip ? false : i.checked, disabled: skip });
     });
     this.setData({ skipImported: skip, items });
@@ -182,11 +175,13 @@ Page({
   },
 
   onReminderChange(e) {
+    if (this.data.importing || this.data.confirming) return;
     this.setData({ reminderIndex: Number(e.detail.value) });
   },
 
   // M1：保修提醒窗口开关（>30 天保修也纳入候选与看板卡）；持久化到 settings 并重建候选
   onWarrantyBeyondChange(e) {
+    if (this.data.importing || this.data.confirming) return;
     const on = !!e.detail.value;
     const settings = app.globalData.settings || storage.loadSettings();
     settings.warrantyBeyond30 = on;
@@ -198,7 +193,7 @@ Page({
 
   // ====== 导入流程 ======
   onImport() {
-    if (this.data.importing) return;
+    if (this._unloaded || this.data.importing || this.data.confirming) return;
 
     if (!this.data.supported) {
       wx.showModal({
@@ -211,52 +206,44 @@ Page({
 
     const selected = this.data.items.filter(i => i.checked);
     if (!selected.length) {
-      wx.showToast({ title: '请先勾选要导入的物品', icon: 'none' });
+      wx.showToast({ title: '请先勾选要导入的提醒', icon: 'none' });
       return;
     }
 
-    wx.showModal({
+    this.setData({ confirming: true });
+    const confirm = options => new Promise(resolve => wx.showModal(Object.assign({}, options, {
+      success: r => resolve(!!r.confirm), fail: () => resolve(false)
+    })));
+    const duplicate = selected.some(i => i.imported || i.legacyUnknown);
+    return confirm({
       title: '导入到手机日历',
-      content: '将为选中的 ' + selected.length + ' 件物品添加到期提醒（到期日上午 9:00）。提醒只写入、不读取你的已有日程；已添加的提醒请在系统日历中管理，本应用无法删除或修改。',
-      confirmText: '开始导入',
-      cancelText: '取消',
-      success: r => {
-        if (!r.confirm) return;
-        // 仅在用户明确确认后申请权限
-        calendarUtil.requestAuth().then(res => {
-          if (!res.granted) return;
-          if (!res.fresh) {
-            // 之前已授权：手势链完整，直接开始
-            this.startImport(selected);
-            return;
-          }
-          // 首次授权：权限同步存在延迟，紧接着的第一条写入可能被系统
-          // 吞掉（甚至误报成功，导致第一条被标为已导入但实际未写入），
-          // 改为弹确认框由用户点击重新发起，确保第一条真正写入
-          wx.showModal({
-            title: '日历权限已开启',
-            content: '请再次点击，为选中的 ' + selected.length + ' 件物品添加到期提醒（到期日上午 9:00）。',
-            confirmText: '开始添加',
-            cancelText: '取消',
-            success: r2 => {
-              if (r2.confirm) this.startImport(selected);
-            }
-          });
-        });
-      }
-    });
+      content: '将添加 ' + selected.length + ' 条提醒，同一物品的不同类别分别写入。' +
+        (duplicate ? '所选包含已添加或旧版待核对的提醒，请先检查手机日历，继续可能产生重复。' : '') +
+        '提醒只写入、不读取，已添加的日程请在手机日历中管理。',
+      confirmText: '开始导入', cancelText: '取消'
+    }).then(ok => ok && !this._unloaded ? calendarUtil.requestAuth() : { granted: false })
+      .then(res => {
+        if (!res.granted || this._unloaded) return false;
+        if (!res.fresh) return true;
+        return confirm({ title: '日历权限已开启', content: '请再次点击，添加选中的 ' + selected.length + ' 条提醒。', confirmText: '开始添加', cancelText: '取消' });
+      }).then(ok => {
+        if (this._unloaded) return;
+        this.setData({ confirming: false });
+        if (ok) this.startImport(selected);
+      }).catch(() => {
+        if (this._unloaded) return;
+        this.setData({ confirming: false });
+        wx.showToast({ title: '暂时无法导入，请重试', icon: 'none' });
+      });
   },
 
   startImport(selected) {
+    if (this._unloaded || this.data.importing || !selected.length) return;
     this._cancelled = false;
     this._results = [];
     const reminderDays = REMINDER_OPTIONS[this.data.reminderIndex].v;
-    this.setData({
-      importing: true,
-      showResult: false,
-      progressText: '正在导入 0 / ' + selected.length,
-      progressPct: 0
-    });
+    this.setData({ importing: true, confirming: false, showResult: false,
+      progressText: '正在导入 0 / ' + selected.length, progressPct: 0 });
     this.runStep(selected, 0, reminderDays);
   },
 
@@ -264,19 +251,23 @@ Page({
   // 安卓端每次调用会调起系统日历写入流程，上一条尚未落盘就发起下一条会失败
   // （表现为「选 N 条只成功第一条」），因此每条完成后固定间隔 STEP_INTERVAL 再继续。
   runStep(list, idx, reminderDays) {
+    if (this._unloaded) return;
     if (this._cancelled) { this.finishImport(true); return; }
     if (idx >= list.length) { this.finishImport(false); return; }
 
     const item = list[idx];
-    const evt = calendarUtil.buildEvent(item.record, item.record.status, reminderDays, item.kind);
-
-    // 到期日期非法等构造失败：记为失败，不阻断后续条目
+    let evt, reason = '';
+    try {
+      const latest = storage.loadEntriesStrict('record').find(r => r.id === item.record.id);
+      const current = calendarUtil.currentItemEntry(latest, item);
+      if (!current) throw new Error('物品或提醒日期已变化，请重新选择');
+      if (current.imported && !item.imported) throw new Error('本期提醒刚刚已添加，请核对手机日历');
+      evt = calendarUtil.buildEvent(Object.assign({}, latest, { categoryLabel: recordUtil.categoryOf(latest.category).label }),
+        recordUtil.computeStatus(latest, 7), reminderDays, item.kind);
+      if (!evt) throw new Error('到期日期无效，无法创建日程');
+    } catch (e) { reason = e.message || '读取失败，请重试'; }
     if (!evt) {
-      this._results.push({
-        name: item.record.name,
-        ok: false,
-        reason: '到期日期无效，无法创建日程'
-      });
+      this._results.push({ name: item.record.name + ' · ' + item.label, ok: false, reason });
       this.runStep(list, idx + 1, reminderDays);
       return;
     }
@@ -287,23 +278,23 @@ Page({
     });
 
     calendarUtil.addEvent(evt).then(() => {
-      this._results.push({ name: item.record.name, ok: true });
+      this._results.push({ name: item.record.name + ' · ' + item.label, ok: true });
+      this._submittedKeys = this._submittedKeys || {};
+      this._submittedKeys[item.key] = true;
       // 写入成功：更新记录的日历导入状态
       let saved = false;
       try {
-        saved = storage.updateExisting('record', item.record.id, latest => {
-          if (latest.archived) throw new Error('物品已归档');
-          return Object.assign({}, latest, { calendarImported: true, calendarImportedAt: Date.now(), calendarReminderDays: reminderDays, updatedAt: Date.now() });
-        });
+        saved = storage.updateExisting('record', item.record.id, latest => calendarUtil.markItemImported(latest, item, reminderDays));
       } catch (e) { /* 不用导入前快照覆盖新处理记录，也不复活已删除记录 */ }
       if (!saved) this._results[this._results.length - 1].warning = true;
     }).catch(err => {
       this._results.push({
-        name: item.record.name,
+        name: item.record.name + ' · ' + item.label,
         ok: false,
         reason: calendarUtil.friendlyError(err)
       });
     }).then(() => {
+      if (this._unloaded) return;
       // 完成进度同步刷新后再继续下一条
       this.setData({ progressPct: Math.round((idx + 1) / list.length * 100) });
       if (this._cancelled) { this.finishImport(true); return; }
@@ -312,10 +303,11 @@ Page({
       if (IS_ANDROID && idx + 1 < list.length) {
         wx.showModal({
           title: '已写入 ' + (idx + 1) + ' / ' + list.length,
-          content: '下一条：「' + list[idx + 1].record.name + '」。安卓系统每次写入日历需点击确认。',
+          content: '下一条：「' + list[idx + 1].record.name + ' · ' + list[idx + 1].label + ' · ' + list[idx + 1].dueDate + '」。安卓系统每次写入日历需点击确认。',
           confirmText: '继续写入',
           cancelText: '停止',
           success: r => {
+            if (this._unloaded) return;
             if (this._cancelled) { this.finishImport(true); return; }
             if (r.confirm) {
               this.runStep(list, idx + 1, reminderDays);
@@ -323,13 +315,14 @@ Page({
               this._cancelled = true;
               this.finishImport(true);
             }
-          }
+          },
+          fail: () => { this._cancelled = true; this.finishImport(true); }
         });
         return;
       }
 
       // iOS / 开发者工具：间隔后自动串行下一条，给系统日历留出落盘时间
-      setTimeout(() => {
+      this._stepTimer = setTimeout(() => {
         this.runStep(list, idx + 1, reminderDays);
       }, STEP_INTERVAL);
     });
@@ -342,6 +335,7 @@ Page({
   },
 
   finishImport(cancelled) {
+    if (this._unloaded) return;
     const results = this._results || [];
     const ok = results.filter(r => r.ok).length;
     const failList = results.filter(r => !r.ok);

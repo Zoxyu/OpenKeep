@@ -1,11 +1,12 @@
 /**
  * 本地存储工具：带数据版本号的键名 + 完整容错。
  * 所有数据仅保存在 wx.setStorage / wx.getStorage 本地缓存中，不使用云开发。
- * 缓存损坏、字段缺失时一律降级为默认值，保证页面不会白屏。
+ * 展示读取可容错；写入前严格读取，失败时保留原缓存。
  */
 const dateUtil = require('./date');
 const householdUtil = require('./household');
 const repeatUtil = require('./repeat');
+const calendarState = require('./calendar-state');
 
 const VERSION = 1;
 const KEYS = {
@@ -147,6 +148,8 @@ function normalizeRecord(raw) {
     createdAt: typeof raw.createdAt === 'number' ? raw.createdAt : now,
     updatedAt: typeof raw.updatedAt === 'number' ? raw.updatedAt : now,
     calendarImported: !!raw.calendarImported,
+    calendarEntries: calendarState.normalize(raw.calendarEntries),
+    calendarLegacyUnknown: calendarState.legacyUnknown(raw),
     calendarImportedAt: typeof raw.calendarImportedAt === 'number' ? raw.calendarImportedAt : null,
     calendarReminderDays: [0, 1, 2, 3, 5, 7, 14].indexOf(raw.calendarReminderDays) > -1 ? raw.calendarReminderDays : 1
   };
@@ -158,8 +161,20 @@ function loadRecords() {
   return raw.map(normalizeRecord).filter(Boolean);
 }
 
+// 写入必须读取原始数组，不能用展示层的空数组兜底覆盖损坏或暂时无法读取的数据。
+function readRecordRows() {
+  const rows = wx.getStorageSync(KEYS.records);
+  if (rows === '' || rows === undefined) return [];
+  if (!Array.isArray(rows)) throw new Error('invalid record storage');
+  return rows;
+}
+
 function saveRecords(list) {
-  return safeSet(KEYS.records, Array.isArray(list) ? list : []);
+  if (!Array.isArray(list)) return false;
+  try {
+    readRecordRows();
+    return safeSet(KEYS.records, list);
+  } catch (e) { return false; }
 }
 
 function getRecord(id) {
@@ -172,25 +187,27 @@ function getRecord(id) {
 }
 
 // 新增或更新一条记录（按 id 匹配）
-function upsertRecord(record) {
+function upsertRecord(record, mustExist) {
   const normalized = normalizeRecord(record);
   if (!normalized) return false;
-  const list = loadRecords();
-  let found = false;
-  for (let i = 0; i < list.length; i++) {
-    if (list[i].id === normalized.id) {
-      list[i] = normalized;
-      found = true;
-      break;
-    }
-  }
-  if (!found) list.push(normalized);
-  return saveRecords(list);
+  try {
+    // 只修改目标行，其余原始行（包括未知字段和不能展示的条目）原样保留。
+    const rows = readRecordRows().slice();
+    const index = rows.findIndex(row => row && row.id === normalized.id);
+    if (mustExist && index < 0) return false;
+    if (index < 0) rows.push(normalized);
+    else rows[index] = Object.assign({}, rows[index], normalized);
+    return safeSet(KEYS.records, rows);
+  } catch (e) { return false; }
 }
 
 function removeRecord(id) {
-  const list = loadRecords().filter(r => r.id !== id);
-  return saveRecords(list);
+  if (typeof id !== 'string' || !id) return false;
+  try {
+    const rows = readRecordRows();
+    if (!rows.some(row => row && row.id === id)) return false;
+    return safeSet(KEYS.records, rows.filter(row => !row || row.id !== id));
+  } catch (e) { return false; }
 }
 
 // 家庭事项单独存储，旧物品键、字段与统计语义保持不变。

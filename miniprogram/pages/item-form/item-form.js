@@ -170,7 +170,7 @@ Page({
   },
 
   onPhotoTap() {
-    if (this.data.saving) return;
+    if (this.data.saving || this._deleteOpen) return;
     const hasPhoto = !!(this.data.photoPath || this.data.tempPhoto);
     const items = ['拍照', '从相册选择'];
     if (hasPhoto) items.push('移除照片');
@@ -189,7 +189,7 @@ Page({
   },
 
   choosePhoto(source) {
-    if (this.data.saving) return;
+    if (this.data.saving || this._deleteOpen) return;
     wx.chooseMedia({
       count: 1,
       mediaType: ['image'],
@@ -426,7 +426,7 @@ Page({
 
   // ====== 保存 ======
   onSave() {
-    if (this._unloaded || this.data.saving) return;
+    if (this._unloaded || this.data.saving || this._deleteOpen) return;
     const errors = this.validate();
     if (Object.keys(errors).length) {
       this.showValidationErrors(errors);
@@ -436,8 +436,8 @@ Page({
     this.setData({ saving: true, errors: {} });
 
     const finish = photoPath => {
+      let latest;
       if (this.data.isEdit) {
-        let latest;
         try { latest = storage.loadEntriesStrict('record').find(r => r.id === this.data.origin.id); } catch (e) { /* 读失败拒绝保存 */ }
         if (!latest || latest.archived || JSON.stringify(latest.processingHistory) !== JSON.stringify(this.data.origin.processingHistory)) {
           this.setData({ saving: false });
@@ -447,7 +447,7 @@ Page({
       }
       const now = Date.now();
       const base = this.data.isEdit && this.data.origin
-        ? Object.assign({}, this.data.origin)
+        ? Object.assign({}, latest)
         : {
           id: storage.genId(),
           createdAt: now,
@@ -477,7 +477,7 @@ Page({
       base.updatedAt = now;
 
       let ok = false;
-      try { ok = storage.upsertRecord(base); } catch (e) { /* 写入异常按保存失败处理 */ }
+      try { ok = storage.upsertRecord(base, this.data.isEdit); } catch (e) { /* 写入异常按保存失败处理 */ }
       if (!ok) {
         this.setData({ saving: false });
         wx.showModal({
@@ -490,9 +490,9 @@ Page({
       // 写入成功后，新照片归记录所有，退出页面时不再当作草稿清理。
       this._pendingPhoto = '';
       // 编辑模式下清理不再被引用的旧照片文件：统一覆盖「移除照片」「替换照片」「移除后重拍」，
-      // 避免 USER_DATA_PATH 孤儿文件堆积；仅在记录已成功持久化、且旧照片与最终照片不同时删除。
-      // 新增模式 origin 为 null，oldPhoto 为空，不会误删。
-      const oldPhoto = this.data.origin ? this.data.origin.photoPath : '';
+      // 避免 USER_DATA_PATH 孤儿文件堆积；仅在记录已成功持久化、且最新旧照片与最终照片不同时删除。
+      // 新增模式没有 latest，oldPhoto 为空，不会误删。
+      const oldPhoto = latest ? latest.photoPath : '';
       if (oldPhoto && oldPhoto !== base.photoPath) {
         imageUtil.removePhoto(oldPhoto);
       }
@@ -525,20 +525,44 @@ Page({
 
   // ====== 删除（编辑模式，二次确认） ======
   onDelete() {
-    if (this.data.saving) return;
-    wx.showModal({
-      title: '删除物品',
-      content: '删除后，这条记录、处理历史与本地保存的照片都无法恢复。确定删除吗？',
-      confirmText: '删除',
-      confirmColor: '#C65B55',
-      success: r => {
-        if (!r.confirm) return;
-        const rec = this.data.origin;
-        storage.removeRecord(rec.id);
-        if (rec.photoPath) imageUtil.removePhoto(rec.photoPath);
-        wx.showToast({ title: '已删除', icon: 'none' });
-        setTimeout(() => wx.navigateBack(), 600);
-      }
-    });
+    if (this._unloaded || this.data.saving || this._deleteOpen || !this.data.origin) return;
+    this._deleteOpen = true;
+    try {
+      wx.showModal({
+        title: '删除物品',
+        content: '删除后，这条记录、处理历史与本地保存的照片都无法恢复。确定删除吗？',
+        confirmText: '删除',
+        confirmColor: '#C65B55',
+        success: r => {
+          if (!r.confirm || this._unloaded) return;
+          this.setData({ saving: true });
+          let rec;
+          let deleted = false;
+          try {
+            rec = storage.loadEntriesStrict('record').find(item => item.id === this.data.origin.id);
+            deleted = !!rec && storage.removeRecord(rec.id);
+          } catch (e) { /* 读取或删除失败时保留记录与照片 */ }
+          if (!deleted) {
+            this.setData({ saving: false });
+            wx.showModal({
+              title: '删除失败',
+              content: '记录可能已变化或暂时无法读取、保存，照片未删除。请重试，或返回后重新打开。',
+              showCancel: false
+            });
+            return;
+          }
+          if (rec.photoPath) imageUtil.removePhoto(rec.photoPath);
+          wx.showToast({ title: '已删除', icon: 'none' });
+          this._saveTimer = setTimeout(() => { if (!this._unloaded) wx.navigateBack(); }, 600);
+        },
+        fail: () => {
+          if (!this._unloaded) wx.showToast({ title: '暂时无法删除，请重试', icon: 'none' });
+        },
+        complete: () => { this._deleteOpen = false; }
+      });
+    } catch (e) {
+      this._deleteOpen = false;
+      wx.showToast({ title: '暂时无法删除，请重试', icon: 'none' });
+    }
   }
 });
