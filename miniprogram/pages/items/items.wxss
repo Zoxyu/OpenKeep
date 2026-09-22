@@ -1,3 +1,5 @@
+@import "../../styles/floating-actions.wxss";
+
 /* 物品页样式 */
 
 /* ====== 搜索框 ====== */
@@ -9,7 +11,7 @@
   padding: 0 28rpx;
   background: var(--c-card);
   border: 1rpx solid var(--c-line);
-  border-radius: 999rpx;
+  border-radius: var(--radius-card);
   box-shadow: var(--c-shadow);
 }
 /* CSS 绘制的放大镜 */
@@ -62,7 +64,7 @@
   justify-content: center;
   min-height: 68rpx;
   margin-bottom: 14rpx;
-  border-radius: 16rpx;
+  border-radius: var(--radius-control);
   background: var(--c-card-2);
   color: var(--c-sub);
   font-size: 25rpx;
@@ -81,7 +83,7 @@
 .fp-grid-4 .fp-cell:nth-child(3n) { margin-right: 16rpx; }
 .fp-grid-4 .fp-cell:nth-child(4n) { margin-right: 0; }
 
-/* 选中态：浅色墨色、深色灰绿色填充 */
+/* 选中态：浅色浅灰绿底/深绿字，深色沿用灰绿色填充。 */
 .fp-cell-on {
   background: var(--c-selected-bg);
   color: var(--c-selected-text);
@@ -105,25 +107,3 @@
 /* 底部再预留悬浮胶囊 tabBar 高度（含 safe-area）：极矮屏下空态 CTA 仍可滚动到遮挡区之上 */
 .empty-action { display: flex; justify-content: center; padding: 0 96rpx calc(160rpx + env(safe-area-inset-bottom)); }
 .empty-btn { width: 100%; }
-
-/* ====== 悬浮添加按钮（有记录时显示；空态用流内 CTA，不重复） ====== */
-.fab {
-  position: fixed;
-  right: 40rpx;
-  /* 抬升至悬浮胶囊 tabBar 之上（含 safe-area，与看板 fab 同一避让基准） */
-  bottom: calc(180rpx + env(safe-area-inset-bottom));
-  display: flex;
-  align-items: center;
-  height: 96rpx;
-  padding: 0 44rpx;
-  border-radius: 999rpx;
-  background: var(--c-action-bg);
-  color: var(--c-action-text);
-  font-size: 30rpx;
-  font-weight: 500;
-  letter-spacing: 1rpx;
-  box-shadow: 0 14rpx 36rpx rgba(32, 36, 33, 0.24);
-  z-index: 50;
-}
-.fab-hover { opacity: 0.85; transform: translateY(2rpx); }
-.fab-plus { font-size: 36rpx; margin-right: 10rpx; }

@@ -1,0 +1,21 @@
+/* 看板与物品页共用：同一个添加入口保持相同形状、尺寸、字距与层次。 */
+.fab {
+  position: fixed;
+  right: 40rpx;
+  /* 沿用现有 tabBar 和安全区避让基准。 */
+  bottom: calc(180rpx + env(safe-area-inset-bottom));
+  display: flex;
+  align-items: center;
+  height: 96rpx;
+  padding: 0 44rpx;
+  border-radius: var(--radius-action);
+  background: var(--c-action-bg);
+  color: var(--c-action-text);
+  font-size: 30rpx;
+  font-weight: 500;
+  letter-spacing: 1rpx;
+  box-shadow: var(--c-floating-shadow);
+  z-index: 50;
+}
+.fab-hover { opacity: 0.85; transform: translateY(2rpx); }
+.fab-plus { font-size: 36rpx; margin-right: 10rpx; }

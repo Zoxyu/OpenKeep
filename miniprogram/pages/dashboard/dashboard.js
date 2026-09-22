@@ -1,6 +1,6 @@
 /**
  * 首页 · 看板
- * 打开即看：问候语、三色统计、主提醒卡、快捷筛选、物品卡片列表。
+ * 打开即看：统一待处理提醒、三色统计、快捷筛选、物品卡片列表。
  * 状态每次 onShow 实时重算，绝不读取写死的旧状态；下拉刷新仅本地重算。
  */
 const app = getApp();
@@ -28,11 +28,15 @@ Page({
     todayText: '',
     stats: { expired: 0, warning: 0, safe: 0 },
     hasRecords: false,
-    urgent: null,            // 最紧急的一条（优先已过期，其次临期）
-    warrantySoon: [],        // M1：近期即将过保的物品（轻量提醒，独立于三色到期统计）
     householdOverview: { total: 0, overdue: 0, today: 0, upcoming: 0, items: [], preview: [] },
     householdError: false,
-    householdExpanded: false,
+    recordError: false,
+    reminders: summaryUtil.reminderOverview([], []),
+    reminderGroup: '',
+    reminderItems: [],
+    reminderCount: 0,
+    reminderExpanded: false,
+    laterExpanded: false,
     filter: 'all',
     filterOptions: [],
     list: [],
@@ -104,50 +108,30 @@ Page({
 
   // 从本地缓存读取记录，实时计算状态并刷新整个看板
   refresh() {
-    // 事项读取失败单独降级，不阻断物品看板；同批更新避免闪空态或显示旧计数。
-    let householdOverview = summaryUtil.householdOverview([]);
-    let householdError = false;
     try {
-      householdOverview = summaryUtil.householdOverview(storage.loadHousehold());
-    } catch (e) { householdError = true; }
-    // try/catch 兜底：本函数承载 contentReady:true，若计算意外抛异常则 contentReady 永不置真、
-    // 内容区整块缺失且不自愈；catch 里置 contentReady 并收起刷新态，保证门开后可自愈。
-    try {
+    // 两个来源分别读取；失败明确提示且清除该来源旧展示，另一来源仍可使用。
+    const today = dateUtil.todayStart();
     const settings = app.globalData.settings || storage.loadSettings();
-    const records = storage.loadRecords();
-    const items = recordUtil.sortUrgent(recordUtil.withStatus(records, settings.warningDays));
-
-    // 照片文件可能已被清理 / 路径失效，逐条校验后再展示
-    items.forEach(it => {
-      it.photoOk = !!it.photoPath && imageUtil.isPhotoValid(it.photoPath);
-    });
+    let households = [], records = [], items = [];
+    let householdError = false;
+    let recordError = false;
+    let householdOverview = summaryUtil.householdOverview([], today);
+    try {
+      households = storage.loadEntriesStrict('household');
+      householdOverview = summaryUtil.householdOverview(households, today);
+    } catch (e) { households = []; householdError = true; }
+    try {
+      records = storage.loadEntriesStrict('record');
+      items = recordUtil.sortUrgent(recordUtil.withStatus(records, settings.warningDays));
+      items.forEach(it => { it.photoOk = !!it.photoPath && imageUtil.isPhotoValid(it.photoPath); });
+    } catch (e) { records = []; items = []; recordError = true; }
 
     const stats = { expired: 0, warning: 0, safe: 0, warranty: 0, memo: 0 };
     items.forEach(it => { stats[it.status.level] += 1; });
-
-    // 主提醒卡：第一条 expired/warning 记录；备忘（无到期日）不作为紧急提醒；没有则展示新手引导
-    let urgentItem = null;
-    for (let i = 0; i < items.length; i++) {
-      if (items[i].status.level === 'expired' || items[i].status.level === 'warning') { urgentItem = items[i]; break; }
-    }
-
-    // M1：近期保修提醒（轻量，独立于三色到期统计，不改变其含义）；
-    // 仅统计已设置保修、且将在 30 天内到期（含今天）的物品，按剩余天数升序。
-    // 保修提醒窗口：默认 30 天；settings.warrantyBeyond30 开启后超过 30 天的保修也纳入
-    const WARRANTY_WINDOW = settings.warrantyBeyond30 ? Infinity : 30;
-    const warrantySoon = [];
-    items.forEach(it => {
-      const w = recordUtil.getWarrantyStatus(it);
-      if (w.hasWarranty && it.warrantyHandledDate !== it.warrantyEnd && w.daysLeft >= 0 && w.daysLeft <= WARRANTY_WINDOW) {
-        warrantySoon.push({
-          id: it.id,
-          name: it.name,
-          daysLeft: w.daysLeft,
-          warrantyText: w.daysLeft === 0 ? '今天过保' : '还有 ' + w.daysLeft + ' 天'
-        });
-      }
-    });
-    warrantySoon.sort((a, b) => a.daysLeft - b.daysLeft);
+    const reminders = summaryUtil.reminderOverview(records, households, settings, today);
+    const selected = reminders.groups.find(group => group.key === this.data.reminderGroup && group.count);
+    const group = selected || reminders.groups.find(group => group.count) || reminders.groups[1];
+    const reminderExpanded = group.key === this.data.reminderGroup && this.data.reminderExpanded;
 
     const filter = this.data.filter;
     const kw = this.data.keyword.trim().toLowerCase();
@@ -164,14 +148,18 @@ Page({
       contentReady: true,
       householdOverview,
       householdError,
-      // refreshing 并入本批（成功与下面 catch 两条路径都翻回 false），与内容同批原子翻转：
-      // 使下拉刷新只发 2 趟 setData、异常时指示器也不卡住不收（与物品页 load() 同模式）。
+      recordError,
+      reminders,
+      reminderGroup: group.key,
+      reminderItems: reminderExpanded ? group.items : group.preview,
+      reminderCount: group.count,
+      reminderExpanded,
+      todayText: (today.getMonth() + 1) + ' 月 ' + today.getDate() + ' 日 · ' + dateUtil.weekdayCN(today),
+      // 读取失败也在本批收起指示器，与内容同批更新，避免闪现旧提醒或误报空缓存。
       refreshing: false,
       refresherText: '下拉刷新',
       showOnboarding: !storage.isOnboarded(),
       stats,
-      urgent: urgentItem,
-      warrantySoon,
       list,
       hasRecords: items.length > 0,
       total: items.length,
@@ -186,8 +174,43 @@ Page({
     });
     } catch (e) {
       console.error('[dashboard] refresh failed', e);
-      this.setData({ contentReady: true, householdOverview, householdError, refreshing: false, refresherText: '下拉刷新' });
+      this.setData({
+        contentReady: true, recordError: true, householdError: true,
+        reminders: summaryUtil.reminderOverview([], []), householdOverview: summaryUtil.householdOverview([]),
+        reminderItems: [], reminderCount: 0, reminderExpanded: false,
+        stats: { expired: 0, warning: 0, safe: 0, warranty: 0, memo: 0 },
+        list: [], total: 0, hasRecords: false, filterOptions: [],
+        refreshing: false, refresherText: '下拉刷新'
+      });
     }
+  },
+
+  onReminderGroup(e) {
+    const group = this.data.reminders.groups.find(g => g.key === e.currentTarget.dataset.key);
+    if (!group) return;
+    this.setData({ reminderGroup: group.key, reminderCount: group.count, reminderItems: group.preview, reminderExpanded: false });
+  },
+  onToggleReminders() {
+    const group = this.data.reminders.groups.find(g => g.key === this.data.reminderGroup);
+    if (!group) return;
+    const expanded = !this.data.reminderExpanded;
+    this.setData({ reminderExpanded: expanded, reminderItems: expanded ? group.items : group.preview });
+  },
+  onToggleLater() { this.setData({ laterExpanded: !this.data.laterExpanded }); },
+
+  findReminder(key) {
+    const overview = this.data.reminders;
+    return overview.groups.concat(overview.later).reduce((items, group) => items.concat(group.items), []).find(item => item.key === key);
+  },
+  onReminderTap(e) {
+    const item = this.findReminder(e.currentTarget.dataset.key);
+    if (!item) return;
+    const page = item.source === 'household' ? 'household-detail' : 'item-detail';
+    wx.navigateTo({ url: '/pages/' + page + '/' + page + '?id=' + encodeURIComponent(item.id) });
+  },
+  onReminderMore(e) {
+    const item = this.findReminder(e.currentTarget.dataset.key);
+    if (item) this.openItemMenu(item.source, item.id, item);
   },
 
   onFilterChange(e) {
@@ -220,23 +243,33 @@ Page({
   },
 
   onItemMore(e) {
-    const id = e.detail && e.detail.id;
+    this.openItemMenu('record', e.detail && e.detail.id);
+  },
+
+  openItemMenu(source, id, reminder) {
     if (!id || this._itemMenuOpen || this._unloaded) return;
     this._itemMenuOpen = true;
     wx.showActionSheet({
-      itemList: ['记录处理结果', '编辑物品'],
+      itemList: [source === 'household' ? '标记已处理' : '记录处理结果', source === 'household' ? '编辑事项' : '编辑物品'],
       success: res => {
         if (this._unloaded || (res.tapIndex !== 0 && res.tapIndex !== 1)) return;
         // 菜单等待期间记录可能被处理或删除，确认后重读，避免跳入过期记录。
         try {
-          const item = storage.loadEntriesStrict('record').find(record => record.id === id);
+          const item = storage.loadEntriesStrict(source).find(record => record.id === id);
           if (!item || item.archived) {
-            wx.showToast({ title: '物品已归档或不存在', icon: 'none' });
+            wx.showToast({ title: '记录已归档或不存在', icon: 'none' });
             this.refresh(); return;
           }
-          const url = res.tapIndex === 0 ? '/pages/process/process?source=record&id=' : '/pages/item-form/item-form?id=';
-          wx.navigateTo({ url: url + encodeURIComponent(id) });
-        } catch (err) { wx.showToast({ title: '暂时无法读取物品，请重试', icon: 'none' }); }
+          if (res.tapIndex === 0 && reminder) {
+            const overview = summaryUtil.reminderOverview(source === 'record' ? [item] : [], source === 'household' ? [item] : [], app.globalData.settings);
+            const exists = overview.groups.concat(overview.later).some(group => group.items.some(entry => entry.key === reminder.key));
+            if (!exists) { wx.showToast({ title: '提醒已变化，请重新查看', icon: 'none' }); this.refresh(); return; }
+          }
+          const page = source === 'household' ? 'household-form' : 'item-form';
+          const url = res.tapIndex === 0 ? '/pages/process/process?source=' + source + '&id=' : '/pages/' + page + '/' + page + '?id=';
+          const target = reminder && res.tapIndex === 0 ? '&kind=' + reminder.kind + '&dueDate=' + reminder.dueDate : '';
+          wx.navigateTo({ url: url + encodeURIComponent(id) + target });
+        } catch (err) { wx.showToast({ title: '暂时无法读取记录，请重试', icon: 'none' }); }
       },
       fail: err => {
         if (!this._unloaded && !/cancel/i.test(err.errMsg || '')) wx.showToast({ title: '菜单未能打开，请重试', icon: 'none' });
@@ -272,10 +305,6 @@ Page({
   goArchive() { wx.navigateTo({ url: '/pages/archive/archive' }); },
   goAddHousehold() {
     wx.navigateTo({ url: '/pages/household-form/household-form' });
-  },
-
-  onToggleHousehold() {
-    this.setData({ householdExpanded: !this.data.householdExpanded });
   },
 
   // 跳转「历史上的今天」tab 页

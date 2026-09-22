@@ -1,4 +1,4 @@
-/* 快捷筛选条：胶囊选项自动换行分行（避免横滑，保证一屏可见） */
+/* 快捷筛选条：圆角选项自动换行（避免横滑，保证一屏可见）。 */
 .filter-bar {
   display: flex;
   flex-wrap: wrap;
@@ -13,7 +13,7 @@
   min-width: calc(33.33% - 12rpx);
   min-height: 68rpx;
   padding: 0 20rpx;
-  border-radius: 999rpx;
+  border-radius: var(--radius-control);
   background: var(--c-card);
   border: 1rpx solid var(--c-line);
   color: var(--c-sub);
@@ -27,3 +27,4 @@
   font-weight: 500;
 }
 .fb-count { margin-left: 10rpx; font-size: 22rpx; opacity: 0.7; }
+.fb-chip-on .fb-count { opacity: 1; }

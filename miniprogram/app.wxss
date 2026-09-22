@@ -29,6 +29,10 @@ page {
 
 /* ====== 页面根容器：承载主题变量 ====== */
 .page-root {
+  /* 同类控件共用圆角：操作按钮 / 筛选项 / 卡片与搜索框。 */
+  --radius-action: 22rpx;
+  --radius-control: 16rpx;
+  --radius-card: 24rpx;
   --c-bg: #F7F7F4;
   --c-card: #FFFFFF;
   --c-card-2: #F1F2EE;
@@ -44,6 +48,7 @@ page {
   --c-danger-bg: rgba(198, 91, 85, 0.10);
   --c-hover: rgba(32, 36, 33, 0.04);
   --c-shadow: 0 8rpx 28rpx rgba(32, 36, 33, 0.06);
+  --c-floating-shadow: 0 10rpx 28rpx rgba(32, 36, 33, 0.14);
   /* 备忘状态（M1 备忘模式）：莫兰迪浅蓝，独立于红黄绿到期语义 */
   --c-memo: #7C93A8;
   --c-memo-bg: rgba(124, 147, 168, 0.12);
@@ -53,12 +58,12 @@ page {
   /* 次要按钮通过底色与文字区分，保持无描边风格。 */
   --c-secondary-bg: #E7EFEA;
   --c-secondary-text: #315F4B;
-  --c-selected-bg: #202421;
-  --c-selected-text: #F7F7F4;
-  --c-selected-line: #202421;
-  --c-control-bg: #FFFFFF;
-  --c-control-text: #858C86;
-  --c-control-line: rgba(32, 36, 33, 0.08);
+  --c-selected-bg: #DFEBE3;
+  --c-selected-text: #315F4B;
+  --c-selected-line: #DFEBE3;
+  --c-control-bg: #E7EFEA;
+  --c-control-text: #315F4B;
+  --c-control-line: #E7EFEA;
   min-height: 100vh;
   background: var(--c-bg);
   color: var(--c-text);
@@ -81,6 +86,7 @@ page {
   --c-danger-bg: rgba(224, 138, 130, 0.14);
   --c-hover: rgba(255, 255, 255, 0.06);
   --c-shadow: 0 8rpx 28rpx rgba(0, 0, 0, 0.35);
+  --c-floating-shadow: 0 10rpx 28rpx rgba(0, 0, 0, 0.35);
   --c-memo: #A9C0D4;
   --c-memo-bg: rgba(169, 192, 212, 0.16);
   --c-action-bg: #395B50;
@@ -102,7 +108,7 @@ page {
   justify-content: center;
   min-height: 92rpx;
   padding: 0 40rpx;
-  border-radius: 22rpx;
+  border-radius: var(--radius-action);
   font-size: 30rpx;
   font-weight: 500;
   letter-spacing: 1rpx;
@@ -156,7 +162,7 @@ page {
 /* ====== 通用卡片与分区 ====== */
 .card {
   background: var(--c-card);
-  border-radius: 24rpx;
+  border-radius: var(--radius-card);
   border: 1rpx solid var(--c-line);
   box-shadow: var(--c-shadow);
 }
@@ -189,14 +195,14 @@ page {
 .err-text { margin-top: 10rpx; font-size: 24rpx; color: var(--c-danger); }
 .hint-text { margin-top: 10rpx; font-size: 24rpx; color: var(--c-safe); }
 
-/* ====== 通用 chip（筛选胶囊） ====== */
+/* ====== 通用 chip（圆角筛选项） ====== */
 .chip {
   display: inline-flex;
   align-items: center;
   min-height: 64rpx;
   padding: 0 28rpx;
   margin-right: 16rpx;
-  border-radius: 999rpx;
+  border-radius: var(--radius-control);
   background: var(--c-card);
   border: 1rpx solid var(--c-line);
   color: var(--c-sub);
@@ -210,6 +216,7 @@ page {
   font-weight: 500;
 }
 .chip-count { margin-left: 8rpx; font-size: 22rpx; opacity: 0.7; }
+.chip-on .chip-count { opacity: 1; }
 
 /* ====== 语义状态文字色 ====== */
 .lv-text-expired { color: var(--c-danger); }

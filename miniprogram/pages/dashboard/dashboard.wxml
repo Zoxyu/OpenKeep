@@ -1,3 +1,17 @@
+<template name="reminder-row">
+  <view class="reminder-row" data-key="{{entry.key}}" bindtap="onReminderTap" hover-class="card-hover">
+    <view class="reminder-body">
+      <view class="reminder-type">{{entry.typeText}}</view>
+      <view class="reminder-name">{{entry.title}}</view>
+      <view class="reminder-date">{{entry.dueDate}}</view>
+      <view class="reminder-status reminder-{{entry.period}}">{{entry.label}}</view>
+    </view>
+    <view class="reminder-more" data-key="{{entry.key}}" catchtap="onReminderMore" hover-class="reminder-more-hover" hover-stop-propagation="{{true}}" role="button" aria-label="{{entry.title + '，' + entry.typeText + '，更多操作'}}">
+      <view class="reminder-dot"></view><view class="reminder-dot"></view><view class="reminder-dot"></view>
+    </view>
+  </view>
+</template>
+
 <view wx:if="{{themeReady}}" class="page-root dashboard-page {{dark ? 'theme-dark' : ''}}">
 
   <!-- 首次启动引导：用户主动选择，不擅自写入演示数据 -->
@@ -41,39 +55,36 @@
     <view class="hero-sub">In Time · Keep track of what you open.</view>
   </view>
 
-  <!-- 家庭事项直接展示；空态保留录入入口，错误态独立于物品。 -->
-  <view wx:if="{{contentReady}}" class="household-panel card">
-    <view class="household-head">
-      <view class="household-title">家庭事项</view>
-      <view class="household-link" hover-class="card-hover" bindtap="goHousehold">{{householdError ? '管理事项' : '全部 ' + householdOverview.total + ' 件'}} ›</view>
+  <!-- 按提醒日期统一汇总；不同类别保留各自语义和处理入口。 -->
+  <view wx:if="{{contentReady}}" class="reminder-panel card">
+    <view class="reminder-head">
+      <view class="reminder-title">近期需处理</view>
+      <view class="reminder-link" hover-class="card-hover" bindtap="goHousehold">管理事项 ›</view>
     </view>
-    <view wx:if="{{householdError}}" class="household-empty">
-      <view>暂时无法读取家庭事项，请重试。</view>
-      <view class="btn btn-plain household-add" bindtap="refresh">重新读取</view>
+    <view class="reminder-intro">物品与家庭事项一起看</view>
+    <view wx:if="{{recordError || householdError}}" class="reminder-error">
+      <view>{{recordError && householdError ? '物品和家庭事项暂时无法读取。' : recordError ? '物品暂时无法读取，当前仅展示家庭事项。' : '家庭事项暂时无法读取，当前仅展示物品。'}}</view>
+      <view class="reminder-link" bindtap="refresh" hover-class="card-hover">重新读取 ›</view>
     </view>
-    <block wx:else>
-      <block wx:if="{{householdOverview.total}}">
-        <view class="household-stats">
-          <view class="household-stat"><view class="household-num lv-text-expired">{{householdOverview.overdue}}</view><view>已超期</view></view>
-          <view class="household-stat"><view class="household-num lv-text-warning">{{householdOverview.today}}</view><view>今天需处理</view></view>
-          <view class="household-stat"><view class="household-num">{{householdOverview.upcoming}}</view><view>未来 7 天</view></view>
-        </view>
-        <view class="household-caption">按处理日期排列 · 超期事项优先</view>
-        <view wx:for="{{householdExpanded ? householdOverview.items : householdOverview.preview}}" wx:key="id" class="household-row" data-id="{{item.id}}" bindtap="goHouseholdDetail" hover-class="card-hover">
-          <view class="household-name">{{item.title}}</view>
-          <view class="household-meta">{{item.typeText}} · {{item.repeatText}}</view>
-          <view class="household-date-row"><text>{{item.dueDate}}</text><text class="household-status household-{{item.status.level}}">{{item.status.label}} ›</text></view>
-          <view class="btn btn-plain process-link" catchtap="goProcess" data-source="household" data-id="{{item.id}}" hover-class="btn-hover">标记已处理</view>
-        </view>
-        <view wx:if="{{householdOverview.total > 3}}" class="household-expand" hover-class="card-hover" bindtap="onToggleHousehold">{{householdExpanded ? '收起事项' : '展开全部 ' + householdOverview.total + ' 件事项'}}</view>
-      </block>
-      <view wx:else class="household-empty">记下缴费续费、保险续期或证件到期，保存后会显示在这里。</view>
-      <view class="household-bottom"><view class="btn btn-plain household-add" hover-class="btn-hover" bindtap="goAddHousehold">＋ 添加事项</view></view>
+    <view class="reminder-tabs">
+      <view wx:for="{{reminders.groups}}" wx:key="key" class="reminder-tab {{reminderGroup === item.key ? 'reminder-tab-active' : ''}}" data-key="{{item.key}}" bindtap="onReminderGroup" hover-class="card-hover" role="button" aria-label="{{item.label + '，' + item.count + ' 条提醒'}}">
+        <view class="reminder-num reminder-{{item.key}}">{{item.count}}</view><view>{{item.label}}</view>
+      </view>
+    </view>
+    <view class="reminder-caption">按日期排列 · 同一物品的不同日期分别提醒</view>
+    <block wx:for="{{reminderItems}}" wx:key="key"><template is="reminder-row" data="{{entry: item}}" /></block>
+    <view wx:if="{{!reminderCount}}" class="reminder-empty">{{recordError || householdError ? '当前可读取的数据中，暂无这段时间的提醒。' : reminderGroup === 'overdue' ? '没有超期提醒。' : reminderGroup === 'today' ? '今天暂无需要处理的提醒。' : '未来 7 天暂无到期提醒。'}}</view>
+    <view wx:if="{{reminderCount > 3}}" class="reminder-expand" hover-class="card-hover" bindtap="onToggleReminders">{{reminderExpanded ? '收起提醒' : '展开全部 ' + reminderCount + ' 条提醒'}}</view>
+    <block wx:if="{{reminders.later.count}}">
+      <view class="reminder-later-head"><text>后续安排</text><text class="reminder-later-count">{{reminders.later.count}} 条</text></view>
+      <block wx:for="{{laterExpanded ? reminders.later.items : reminders.later.preview}}" wx:key="key"><template is="reminder-row" data="{{entry: item}}" /></block>
+      <view wx:if="{{reminders.later.count > 3}}" class="reminder-expand" hover-class="card-hover" bindtap="onToggleLater">{{laterExpanded ? '收起安排' : '展开全部 ' + reminders.later.count + ' 条安排'}}</view>
     </block>
+    <view class="reminder-bottom"><view class="btn btn-plain reminder-add" hover-class="btn-hover" bindtap="goAddHousehold">＋ 添加家庭事项</view></view>
   </view>
 
   <!-- 物品统计不混入事项；仅有事项时不显示整排零值。 -->
-  <view wx:if="{{contentReady && (hasRecords || (!householdOverview.total && !householdError))}}" class="stats-panel card">
+  <view wx:if="{{contentReady && !recordError && (hasRecords || (!householdOverview.total && !householdError))}}" class="stats-panel card">
     <view class="stats-head">物品概览</view>
     <view class="stats">
       <view class="stat" hover-class="stat-hover" bindtap="onStatTap" data-level="expired">
@@ -99,45 +110,12 @@
     </view>
   </view>
 
-  <!-- 主提醒卡：最紧急的一件 -->
-  <view wx:if="{{urgent}}" class="urgent" hover-class="card-hover" bindtap="goDetail" data-id="{{urgent.id}}">
-    <view class="urgent-head">
-      <view class="urgent-tag lv-bg-{{urgent.status.level}}">{{urgent.status.level === 'expired' ? '需要尽快处理' : '临期提醒'}}</view>
-      <view class="urgent-more">查看详情 ›</view>
-    </view>
-    <view class="urgent-name">{{urgent.name}}</view>
-    <view class="urgent-meta">{{urgent.categoryLabel}} · 到期 {{urgent.status.dueDate}}</view>
-    <view class="bar urgent-bar">
-      <view class="bar-inner lv-{{urgent.status.level}}" style="width:{{urgent.status.progress}}%;"></view>
-    </view>
-    <view class="urgent-label lv-text-{{urgent.status.level}}">{{urgent.status.label}}</view>
-  </view>
-
   <!-- 无记录时的温和引导 -->
-  <view wx:elif="{{contentReady && !hasRecords && !householdOverview.total && !householdError && !showOnboarding}}" class="guide" hover-class="card-hover" bindtap="goAdd">
+  <view wx:if="{{contentReady && !hasRecords && !recordError && !householdOverview.total && !householdError && !showOnboarding}}" class="guide" hover-class="card-hover" bindtap="goAdd">
     <view class="guide-circle"></view>
     <view class="guide-title">从第一件物品开始</view>
     <view class="guide-desc">拍下或录入开始使用的物品，到期的事交给看板替你记着。</view>
     <view class="guide-btn">＋ 添加第一件物品</view>
-  </view>
-
-  <!-- 近期保修提醒（M1，轻量；独立于三色到期统计，不改变其含义） -->
-  <view wx:if="{{warrantySoon.length}}" class="warranty-card card">
-    <view class="warranty-head">
-      <view class="warranty-title">近期保修</view>
-      <view class="warranty-sub">{{warrantySoon.length}} 件即将过保</view>
-    </view>
-    <view
-      wx:for="{{warrantySoon}}"
-      wx:key="id"
-      class="warranty-row"
-      hover-class="card-hover"
-      bindtap="goDetail"
-      data-id="{{item.id}}"
-    >
-      <view class="warranty-name">{{item.name}}</view>
-      <view class="warranty-days">{{item.warrantyText}}</view>
-    </view>
   </view>
 
   <!-- 历史上的今天：柔和日期卡（点击进入 tab 页） -->
@@ -175,10 +153,10 @@
   <!-- 列表区（list-head 与 filter-bar 均由 contentReady 守卫，门开帧不显示「共 0 件」与空筛选栏） -->
   <view wx:if="{{contentReady}}" class="list-head">
     <view class="list-title">物品看板</view>
-    <view class="list-total">共 {{total}} 件</view>
+    <view class="list-total">{{recordError ? '暂时无法读取' : '共 ' + total + ' 件'}}</view>
   </view>
 
-  <filter-bar wx:if="{{contentReady}}" options="{{filterOptions}}" active="{{filter}}" bind:change="onFilterChange" />
+  <filter-bar wx:if="{{contentReady && !recordError}}" options="{{filterOptions}}" active="{{filter}}" bind:change="onFilterChange" />
 
   <!-- 列表外层容器同样由 contentReady 守卫：避免中间帧渲染一个空容器（padding 造成）加剧 pop-in 布局跳动 -->
   <view wx:if="{{contentReady}}" class="list">
@@ -188,8 +166,8 @@
     <empty-state
       wx:if="{{contentReady && !list.length}}"
       type="box"
-      title="{{hasRecords ? '该状态下暂无物品' : '还没有物品记录'}}"
-      desc="{{hasRecords ? '换个筛选条件，看看其他物品。' : '点击右下角按钮，添加第一件物品。'}}"
+      title="{{recordError ? '物品暂时无法读取' : hasRecords ? '该状态下暂无物品' : '还没有物品记录'}}"
+      desc="{{recordError ? '请下拉刷新重试。' : hasRecords ? '换个筛选条件，看看其他物品。' : '点击右下角按钮，添加第一件物品。'}}"
     />
   </view>
   </scroll-view>

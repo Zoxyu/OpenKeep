@@ -272,7 +272,7 @@ test('看板直接显示已录入的远期事项，事项计数独立于物品�
   assert.equal(dashboard.data.contentReady, true);
 });
 
-test('看板按日期列出前三项，可展开全部；超期/今天/未来七天计数互不重复', () => {
+test('看板统一分组计数互不重复，远期事项可在后续安排展开', () => {
   const h = setup();
   h.cache.set(KEY, [
     sample({ id: 'far', dueDate: '2026-02-08' }),
@@ -287,9 +287,11 @@ test('看板按日期列出前三项，可展开全部；超期/今天/未来七
   assert.equal(overview.overdue, 1); assert.equal(overview.today, 1); assert.equal(overview.upcoming, 2);
   assert.deepEqual(plain(overview.preview.map(item => item.id)), ['old', 'today', 'tomorrow']);
   assert.deepEqual(plain(overview.items.map(item => item.id)), ['old', 'today', 'tomorrow', 'seven', 'far']);
-  dashboard.onToggleHousehold(); assert.equal(dashboard.data.householdExpanded, true);
-  dashboard.onScrollRefresh(); assert.equal(dashboard.data.householdExpanded, true);
-  dashboard.onToggleHousehold(); assert.equal(dashboard.data.householdExpanded, false);
+  assert.deepEqual(plain(dashboard.data.reminders.groups.map(group => group.count)), [1, 1, 2]);
+  assert.equal(dashboard.data.reminders.later.preview[0].id, 'far');
+  dashboard.onToggleLater(); assert.equal(dashboard.data.laterExpanded, true);
+  dashboard.onScrollRefresh(); assert.equal(dashboard.data.laterExpanded, true);
+  dashboard.onToggleLater(); assert.equal(dashboard.data.laterExpanded, false);
   assert.equal(h.writes.length, 0);
 });
 

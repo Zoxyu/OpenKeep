@@ -50,6 +50,7 @@ function setup() {
   };
 }
 const flush = async () => { for(let n=0;n<12;n++) await Promise.resolve(); };
+const remindersOf = p => p.data.reminders.groups.flatMap(group => group.items).concat(p.data.reminders.later.items);
 
 test('一次性事项原子归档、退出统计；撤销恢复，处理记录保留',()=>{
  const h=setup();h.hh({repeatRule:'none'});const before=h.writes.length;
@@ -98,12 +99,12 @@ test('保质期整件归档后保留照片与数据，退出物品/看板/日历
 });
 test('保修只处理当前提醒，维保记录历史并推进；互不归档整件物品',()=>{
  const h=setup();h.rec({warrantyEnd:'2026-02-02',maintenanceLast:'2025-12-31',maintenanceCycle:'monthly'});
- h.finish('record','rec','warranty');let v=h.storage.getRecord('rec');assert.equal(v.archived,false);assert.equal(v.warrantyHandledDate,'2026-02-02');assert.equal(h.page('dashboard').data.warrantySoon.length,0);
+ h.finish('record','rec','warranty');let v=h.storage.getRecord('rec');assert.equal(v.archived,false);assert.equal(v.warrantyHandledDate,'2026-02-02');assert.equal(remindersOf(h.page('dashboard')).filter(item=>item.kind==='warranty').length,0);
  h.finish('record','rec','maintenance');v=h.storage.getRecord('rec');assert.equal(v.archived,false);assert.equal(v.maintenanceLast,'2026-01-31');assert.equal(v.processingHistory[1].nextDate,'2026-02-28');
  assert.equal(v.processingHistory.length,2);assert.equal(h.page('dashboard').data.total,1);assert.throws(()=>h.finish('record','rec','maintenance'));
  assert.throws(()=>h.processing.undo('record','rec',v.processingHistory[0].id));
  h.processing.undo('record','rec',v.processingHistory[1].id);h.processing.undo('record','rec',v.processingHistory[0].id);
- assert.equal(h.page('dashboard').data.warrantySoon.length,1);
+ assert.equal(remindersOf(h.page('dashboard')).filter(item=>item.kind==='warranty').length,1);
 });
 test('归档撤销失败保留原状态；业务日期变更后拒绝撤销，普通备注保留',()=>{
  const h=setup();h.hh();h.finish('household','hh','household','2026-02-28');let v=h.storage.getHousehold('hh');const id=v.processingHistory[0].id;
@@ -217,4 +218,123 @@ test('物品卡片菜单只发出 more 事件，主体仍发出 tapitem，其他
  definition.methods.onMore.call(card);assert.deepEqual(events,[{name:'more',id:'rec'}]);
  definition.methods.onTap.call(card);assert.deepEqual(events.at(-1),{name:'tapitem',id:'rec'});
  card.data.showMenu=false;definition.methods.onMore.call(card);assert.equal(events.length,2);
+});
+
+test('统一提醒默认展示最早非空分组，可切组和展开，物品搜索不影响提醒',()=>{
+ const h=setup();h.rec({openedDays:29,warrantyEnd:'2026-01-31',maintenanceLast:'2026-01-30',maintenanceCycle:'custom',maintenanceCycleDays:2});
+ for(let n=0;n<5;n++)h.hh({id:'h'+n,dueDate:'2026-02-01'});
+ const p=h.page('dashboard'),before=h.writes.length;
+ assert.equal(p.data.reminderGroup,'overdue');assert.equal(p.data.reminderItems[0].kind,'due');
+ assert.deepEqual(plain(p.data.reminders.groups.map(g=>g.count)),[1,1,6]);
+ assert.equal(p.data.total,1);assert.equal(p.data.stats.expired,1);
+ p.onReminderGroup({currentTarget:{dataset:{key:'upcoming'}}});assert.equal(p.data.reminderItems.length,3);
+ p.onToggleReminders();assert.equal(p.data.reminderItems.length,6);
+ p.onSearchInput({detail:{value:'不匹配'}});p.onFilterChange({detail:{key:'safe'}});
+ assert.equal(p.data.list.length,0);assert.equal(p.data.reminderItems.length,6);assert.equal(p.data.reminderGroup,'upcoming');
+ p.onToggleReminders();assert.equal(p.data.reminderItems.length,3);
+ p.onReminderGroup({currentTarget:{dataset:{key:'today'}}});assert.equal(p.data.reminderItems[0].kind,'warranty');
+ assert.equal(p.data.reminderExpanded,false);assert.equal(h.writes.length,before);
+ h.dark();assert.equal(p.data.dark,true);
+});
+
+test('两类来源同 ID 的提醒和更多菜单分别进入正确详情、处理与编辑页',()=>{
+ const h=setup(),id='同名&记录';h.hh({id});h.rec({id,openedDays:30,warrantyEnd:'2026-01-31',maintenanceLast:'2025-12-31',maintenanceCycle:'monthly'});
+ const p=h.page('dashboard');
+ for(const entry of remindersOf(p)){
+  const e={currentTarget:{dataset:{key:entry.key}}},page=entry.source==='household'?'household-detail':'item-detail';
+  const form=entry.source==='household'?'household-form':'item-form';
+  p.onReminderTap(e);assert.equal(h.navigation.at(-1),'/pages/'+page+'/'+page+'?id='+encodeURIComponent(id));
+  p.onReminderMore(e);p.onReminderMore(e);const sheet=h.actionSheets.at(-1),count=h.actionSheets.length;
+  sheet.success({tapIndex:0});sheet.complete();assert.equal(h.actionSheets.length,count);
+  assert.equal(h.navigation.at(-1),'/pages/process/process?source='+entry.source+'&id='+encodeURIComponent(id)+'&kind='+entry.kind+'&dueDate='+entry.dueDate);
+  p.onReminderMore(e);h.actionSheets.at(-1).success({tapIndex:1});h.actionSheets.at(-1).complete();
+  assert.equal(h.navigation.at(-1),'/pages/'+form+'/'+form+'?id='+encodeURIComponent(id));
+ }
+ const before=h.navigation.length;p.onReminderMore({currentTarget:{dataset:{key:remindersOf(p)[0].key}}});
+ h.actionSheets.at(-1).fail({errMsg:'cancel'});h.actionSheets.at(-1).complete();assert.equal(h.navigation.length,before);
+});
+
+test('从混合物品的某类提醒进入仅提供对应处理，保修和维保不会误归档物品',()=>{
+ for(const kind of ['due','warranty','maintenance']){
+  const h=setup();h.rec({openedDays:30,warrantyEnd:'2026-01-31',maintenanceLast:'2025-12-31',maintenanceCycle:'monthly'});
+  const p=h.page('process',{source:'record',id:'rec',kind,dueDate:'2026-01-31'});
+  assert.deepEqual(plain(p.data.options.map(o=>o.key)),kind==='due'?['consumed','discarded']:[kind]);
+  assert.equal(p.data.kind,kind==='due'?'consumed':kind);
+  p.onKind({currentTarget:{dataset:{kind:kind==='due'?'maintenance':'consumed'}}});
+  assert.equal(p.data.kind,kind==='due'?'consumed':kind);
+  p.onSave();const record=h.storage.getRecord('rec');assert.equal(record.archived,kind==='due');
+  assert.equal(record.processingHistory[0].kind,kind==='due'?'consumed':kind);
+ }
+});
+
+test('提醒期间日期修改、周期续期、保修已处理后菜单不能处理旧提醒',()=>{
+ for(const action of ['date','repeat','warranty']){
+  const h=setup();h.hh();h.rec({openedDays:30,warrantyEnd:'2026-01-31'});const p=h.page('dashboard');
+  const entry=remindersOf(p).find(item=>action==='warranty'?item.kind==='warranty':item.source==='household');
+  p.onReminderMore({currentTarget:{dataset:{key:entry.key}}});
+  if(action==='date')h.storage.upsertHousehold({...h.storage.getHousehold('hh'),dueDate:'2026-02-01'},true);
+  if(action==='repeat')h.finish('household','hh','household','2026-02-28');
+  if(action==='warranty')h.finish('record','rec','warranty');
+  h.actionSheets[0].success({tapIndex:0});h.actionSheets[0].complete();
+  assert.equal(h.navigation.length,0);assert.equal(h.toasts.at(-1),'提醒已变化，请重新查看');
+  assert.ok(!remindersOf(p).some(item=>item.key===entry.key));
+ }
+});
+
+test('处理页拒绝失效类别与旧日期，不回退到另一类操作；每天维保当天不可重复',()=>{
+ for(const kind of ['warranty','maintenance','unknown','due']){
+  const h=setup();h.rec({openedDays:30,warrantyEnd:'2026-01-31',maintenanceLast:'2026-01-31',maintenanceCycle:'custom',maintenanceCycleDays:1});
+  if(kind==='warranty')h.finish('record','rec','warranty');
+  const p=h.page('process',{source:'record',id:'rec',kind,dueDate:kind==='due'?'2026-02-01':kind==='maintenance'?'2026-02-01':'2026-01-31'});
+  const before=h.writes.length;assert.equal(p.data.options.length,0);assert.equal(p.data.kind,'');p.onSave();assert.equal(h.writes.length,before);
+  assert.equal(h.storage.getRecord('rec').archived,false);
+  if(kind==='maintenance')assert.match(p.data.unavailableText,/今天已记录维护/);
+ }
+ const h=setup();h.hh();h.finish('household','hh','household','2026-02-28');
+ const old=h.page('process',{source:'household',id:'hh',kind:'household',dueDate:'2026-01-31'});
+ assert.equal(old.data.options.length,0);old.onSave();assert.equal(h.storage.getHousehold('hh').processingHistory.length,1);
+});
+
+test('处理及撤销后刷新统一提醒，周期下一期仍超期时不自动跳过',()=>{
+ const h=setup();h.hh({dueDate:'2025-11-30'});h.rec({openedDays:30,warrantyEnd:'2026-01-31',maintenanceLast:'2025-12-31',maintenanceCycle:'monthly'});
+ const p=h.page('dashboard');assert.equal(p.data.reminders.total,4);
+ h.finish('record','rec','warranty');p.onShow();assert.equal(p.data.reminders.total,3);
+ assert.deepEqual(plain(remindersOf(p).filter(i=>i.source==='record').map(i=>i.kind).sort()),['due','maintenance']);
+ const event=h.storage.getRecord('rec').processingHistory[0];h.processing.undo('record','rec',event.id);p.onShow();assert.equal(p.data.reminders.total,4);
+ h.finish('household','hh','household','2025-12-30');p.onShow();
+ assert.equal(p.data.reminders.groups[0].items[0].dueDate,'2025-12-30');
+ h.finish('record','rec','consumed');p.onShow();assert.equal(p.data.reminders.total,1);assert.equal(p.data.total,0);
+});
+
+test('统一提醒两来源读取分别降级，清除失败来源旧数据，重试恢复且不写缓存',()=>{
+ for(const key of [RR,HH]){
+  const h=setup();h.hh();h.rec({openedDays:30});const p=h.page('dashboard'),before=h.writes.length;
+  h.failRead(key);p.onScrollRefresh();
+  assert.equal(p.data.recordError,key===RR);assert.equal(p.data.householdError,key===HH);
+  assert.equal(p.data.reminders.total,1);assert.ok(remindersOf(p).every(i=>i.source===(key===RR?'household':'record')));
+  if(key===RR)assert.equal(p.data.list.length,0);
+  assert.equal(p.data.refreshing,false);assert.equal(p.data.contentReady,true);
+  const reopened=h.page('dashboard');assert.equal(reopened.data.reminders.total,1);
+  h.failRead('');p.onShow();assert.equal(p.data.reminders.total,2);assert.equal(p.data.recordError,false);assert.equal(p.data.householdError,false);
+  assert.equal(h.writes.length,before);
+ }
+ const h=setup();h.cache.set(RR,{});h.cache.set(HH,{});const p=h.page('dashboard');
+ assert.equal(p.data.recordError,true);assert.equal(p.data.householdError,true);assert.equal(p.data.reminders.total,0);assert.equal(h.writes.length,0);
+});
+
+test('统一提醒跨天重算全部类别和页首日期，读取不推进事项或维保周期',()=>{
+ const h=setup();h.hh({dueDate:'2026-02-01'});h.rec({openedDays:31,warrantyEnd:'2026-02-01',maintenanceLast:'2026-01-01',maintenanceCycle:'monthly'});
+ const p=h.page('dashboard'),before=h.writes.length;assert.equal(p.data.reminders.groups[2].count,4);
+ h.nextDay();p.onShow();assert.equal(p.data.reminders.groups[1].count,4);assert.match(p.data.todayText,/2 月 1 日/);
+ h.nextDay();p.onScrollRefresh();assert.equal(p.data.reminders.groups[0].count,4);
+ assert.equal(h.storage.getHousehold('hh').dueDate,'2026-02-01');assert.equal(h.storage.getRecord('rec').maintenanceLast,'2026-01-01');assert.equal(h.writes.length,before);
+});
+
+test('旧保修日期未补零时按规范日期进入处理，仍按原日期标记当前提醒',()=>{
+ const h=setup();h.rec({openedDays:30,warrantyEnd:'2026-2-1'});const p=h.page('dashboard');
+ const entry=remindersOf(p).find(item=>item.kind==='warranty');assert.equal(entry.dueDate,'2026-02-01');
+ const process=h.page('process',{source:'record',id:'rec',kind:entry.kind,dueDate:entry.dueDate});
+ assert.equal(process.data.kind,'warranty');process.onSave();
+ assert.equal(h.storage.getRecord('rec').warrantyHandledDate,'2026-2-1');assert.equal(h.storage.getRecord('rec').archived,false);
+ p.onShow();assert.ok(remindersOf(p).every(item=>item.kind!=='warranty'));
 });
