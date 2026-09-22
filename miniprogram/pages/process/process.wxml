@@ -5,7 +5,7 @@
       <view wx:if="{{loadError}}" class="card hh-empty"><view>暂时无法读取记录</view><view class="btn btn-plain hh-add" bindtap="refresh">重新读取</view></view>
       <block wx:elif="{{contentReady}}">
         <view class="hh-sub">{{title}}</view>
-        <view wx:if="{{!options.length}}" class="card hh-empty">该记录已处理、已归档或不存在。<view class="btn btn-plain hh-add" bindtap="goArchive">查看处理记录</view></view>
+        <view wx:if="{{!options.length}}" class="card hh-empty">{{unavailableText}}<view class="btn btn-plain hh-add" bindtap="goArchive">查看处理记录</view></view>
         <block wx:else>
           <view class="card hh-note-card">
             <view class="hh-title">处理方式</view>

@@ -5,8 +5,11 @@ const date = require('../../utils/date');
 
 Page({
   data: { dark: app.isDark(), themeReady: false, contentReady: false, source: '', id: '', item: null,
-    options: [], kind: '', nextDate: '', needsNext: false, resultText: '', saving: false, error: '', loadError: false },
+    options: [], kind: '', nextDate: '', needsNext: false, resultText: '', saving: false, error: '', loadError: false,
+    unavailableText: '该记录已处理、已归档或不存在。' },
   onLoad(query) {
+    this._targetKind = query.kind || '';
+    this._targetDueDate = query.dueDate || '';
     this.setData({ dark: app.isDark(), themeReady: true, source: query.source, id: query.id });
     this._untheme = app.onTheme(dark => this.setData({ dark }));
     this.refresh();
@@ -16,10 +19,28 @@ Page({
   refresh() {
     try {
       const item = processing.get(this.data.source, this.data.id);
-      const options = processing.options(item, this.data.source);
+      let options = processing.options(item, this.data.source);
+      if (this._targetKind) {
+        // 从某条提醒进入时只处理该类别；提醒失效不能退回“已用完”等另一种操作。
+        const kinds = this._targetKind === 'due' ? ['consumed', 'discarded'] : [this._targetKind];
+        options = options.filter(option => kinds.indexOf(option.key) > -1);
+        let dueDate = '';
+        if (item) {
+          if (this._targetKind === 'household' && this.data.source === 'household') dueDate = item.dueDate;
+          if (this.data.source === 'record') {
+            if (this._targetKind === 'due') dueDate = record.computeStatus(item, 7).dueDate;
+            if (this._targetKind === 'warranty') dueDate = record.getWarrantyStatus(item).endDate;
+            if (this._targetKind === 'maintenance') dueDate = record.getMaintenanceInfo(item).nextDate;
+          }
+        }
+        if (!dueDate || (this._targetDueDate && dueDate !== this._targetDueDate)) options = [];
+      }
       this._expected = item ? processing.revision(item, this.data.source) : '';
       this._today = date.todayStr();
       this.setData({ item, options, kind: options.length ? options[0].key : '',
+        unavailableText: this._targetKind === 'maintenance' && item && item.maintenanceLast === this._today
+          ? '今天已记录维护，下次维护请到时再处理。'
+          : this._targetKind ? '这条提醒已变化或当前不可处理，请返回看板查看最新安排。' : '该记录已处理、已归档或不存在。',
         title: item ? item.title || item.name : '', nextDate: item && this.data.source === 'household' ? processing.followingDate(item) : '',
         contentReady: true, loadError: false, error: '' });
       this.describeResult();
