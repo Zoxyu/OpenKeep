@@ -1,3 +1,14 @@
+<!-- 已创建的 Tab 随 dark 同步页面底色及原生栏；不等待下次 onShow 才改色。 -->
+<page-meta wx:if="{{themeReady}}"
+  page-style="background-color: {{dark ? '#141619' : '#F7F7F4'}}; color: {{dark ? '#E8EAE6' : '#202421'}};"
+  root-background-color="{{dark ? '#141619' : '#F7F7F4'}}"
+  background-color="{{dark ? '#141619' : '#F7F7F4'}}"
+  background-color-top="{{dark ? '#141619' : '#F7F7F4'}}"
+  background-color-bottom="{{dark ? '#141619' : '#F7F7F4'}}">
+  <navigation-bar background-color="{{dark ? '#141619' : '#F7F7F4'}}"
+    front-color="{{dark ? '#ffffff' : '#000000'}}" color-animation-duration="{{0}}" />
+</page-meta>
+
 <view wx:if="{{themeReady}}" class="page-root {{dark ? 'theme-dark' : ''}}">
 
   <!-- 主体内容：scroll-view 承担纵向滚动（页面已 disableScroll，锁死 iOS 双向拖拽） -->

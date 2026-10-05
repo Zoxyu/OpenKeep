@@ -4,6 +4,7 @@
  * 包含下拉刷新、空状态、无搜索结果状态。
  */
 const app = getApp();
+const themeTrace = require('../../utils/theme-trace');
 const storage = require('../../utils/storage');
 const recordUtil = require('../../utils/record');
 const imageUtil = require('../../utils/image');
@@ -51,6 +52,7 @@ Page({
   },
 
   onLoad() {
+    themeTrace.attach(this, 'items');
     // 开门 setData：onLoad 第一条 setData、无条件执行（其前只允许纯非抛异常计算）。themeReady 尽早翻起缩短系统色空帧；
     // categoryOptions 由 Object.keys(...).map 纯计算（不读存储、不抛异常），一并写入
     // 使门开瞬间筛选面板即完整；contentReady 交由 onShow load() 与列表数据原子置真。
@@ -59,6 +61,7 @@ Page({
       cats.push({ key: k, label: recordUtil.CATEGORIES[k].label });
     });
     this.setData({ dark: app.isDark(), themeReady: true, categoryOptions: cats });
+    app.syncPageChrome(this);
 
     // 通道 B · 运行时主题变化：只负责已存在实例的后续变化；同值不 setData（不碰 themeReady/contentReady）
     this._untheme = app.onTheme(dark => {
@@ -75,6 +78,7 @@ Page({
   },
 
   onShow() {
+    themeTrace.lifecycle(this, 'show');
     // onShow 只管原生 chrome（每页一份的标题栏 / 窗口背景），不再负责 DOM 主题纠正
     app.syncPageChrome(this);
     this.syncTabBar(1);
@@ -88,7 +92,10 @@ Page({
     }
   },
 
+  onHide() { themeTrace.lifecycle(this, 'hide'); },
+
   onUnload() {
+    themeTrace.lifecycle(this, 'detach');
     if (this._untheme) this._untheme();
   },
 

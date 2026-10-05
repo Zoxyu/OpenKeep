@@ -3,6 +3,7 @@
  * 临期阈值、主题切换、数据统计、批量导入入口、本地数据说明、清空全部数据。
  */
 const app = getApp();
+const themeTrace = require('../../utils/theme-trace');
 const storage = require('../../utils/storage');
 const recordUtil = require('../../utils/record');
 
@@ -34,11 +35,13 @@ Page({
   },
 
   onLoad() {
+    themeTrace.attach(this, 'profile');
     // 开门 setData（profile 特例：本页 onLoad 无业务计算——设置/统计在 onShow 刷新）。
     // 必须无条件写入 themeReady（不能用 dark 比对守卫），否则「启动后未改主题」时
     // 条件为假 → 不 setData → themeReady 永远 false → wxml 根节点 wx:if 挡住整页 → 白屏。
     // 本页无 contentReady 死字段：wxml 从未读取，stats 默认 0（等同空账户）无空状态误导。
     this.setData({ dark: app.isDark(), themeReady: true });
+    app.syncPageChrome(this);
     // 通道 B · 运行时主题变化：只负责已存在实例的后续变化；同值不 setData（不碰 themeReady）
     this._untheme = app.onTheme(d => {
       if (this.data.dark !== d) this.setData({ dark: d });
@@ -46,6 +49,7 @@ Page({
   },
 
   onShow() {
+    themeTrace.lifecycle(this, 'show');
     const settings = app.globalData.settings || storage.loadSettings();
     // onShow 只管原生 chrome（每页一份的标题栏 / 窗口背景），不再负责 DOM 主题纠正
     app.syncPageChrome(this);
@@ -64,7 +68,10 @@ Page({
     }
   },
 
+  onHide() { themeTrace.lifecycle(this, 'hide'); },
+
   onUnload() {
+    themeTrace.lifecycle(this, 'detach');
     if (this._untheme) this._untheme();
   },
 
@@ -93,7 +100,6 @@ Page({
     // setThemePref 内部已经 applyChrome + notifyTheme，而 notifyTheme 会驱动本页的
     // onTheme 监听把 dark 写到位，因此这里只需写 themePref，不再重复设置同一个 dark
     app.setThemePref(v);
-    this._chromeDark = app.isDark();  // 本页（当前可见页）chrome 已应用，免下次 onShow 重复调用
     this.setData({ themePref: v });
   },
 
@@ -134,7 +140,6 @@ Page({
             app.globalData.settings = storage.loadSettings();
             app.resolveTheme(app.globalData.settings.theme);
             app.applyChrome();
-            this._chromeDark = app.isDark();  // 本页 chrome 已应用，免下次 onShow 重复调用
             // notifyTheme 会驱动本页 onTheme 监听更新 dark，这里不再重复写入同一个值
             app.notifyTheme();
             this.setData({

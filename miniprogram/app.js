@@ -25,6 +25,7 @@
  * 任何新代码都不得再引入第五个主题判断来源。
  */
 const storage = require('./utils/storage');
+const themeTrace = require('./utils/theme-trace');
 
 App({
   globalData: {
@@ -71,6 +72,11 @@ App({
     return this.globalData.effectiveTheme === 'dark';
   },
 
+  // 真机调试控制台手动开启；不保存、不上传、不影响产品界面。
+  startThemeTrace() { return themeTrace.start(() => this.isDark()); },
+  readThemeTrace() { return themeTrace.read(); },
+  stopThemeTrace() { return themeTrace.stop(); },
+
   // 设置页更新主题偏好
   setThemePref(pref) {
     const s = this.globalData.settings || storage.loadSettings();
@@ -102,23 +108,22 @@ App({
     };
   },
 
-  // 页面在 onShow 调用：只负责原生 chrome（标题栏 / 窗口背景），不负责 DOM 主题。
+  // Tab 页在 onLoad 提前调用，所有页面在 onShow 兜底：只负责原生 chrome，不负责 DOM 主题。
   // DOM 主题走通道 A（onLoad 初始化）与通道 B（onTheme 变化），onShow 不参与，
   // 避免「页面显示以后再纠正」造成肉眼可见的旧主题残留。
   //
   // 导航栏 / 窗口背景是「每页一份」的运行时覆盖，所以「已应用的主题」必须记在页面实例上
   // （page._chromeDark），不能记在 app 上，否则新页面会被误判为已应用而漏设。
-  // 同一主题下每个实例只调一次，因此单纯切 Tab 不会重复发原生调用。
+  // 同一主题的成功或进行中请求不重复发送；失败不缓存，之后展示可重试。
   syncPageChrome(page) {
     const dark = this.isDark();
-    if (page._chromeDark !== dark) {
-      page._chromeDark = dark;
-      this.applyChrome();
-    }
+    if (page._chromeDark === dark || (page._chromeRequest && page._chromeRequest.dark === dark)) return;
+    this.applyChrome(page);
   },
 
   notifyTheme() {
     const dark = this.isDark();
+    themeTrace.themeChanged();
     this.themeListeners.forEach(cb => cb(dark));
   },
 
@@ -132,22 +137,47 @@ App({
   // 因此这里无条件按 effectiveTheme 写入，保证四个层面同源：
   //   page 内容 / 原生标题栏 / 原生窗口背景 / 自定义 tabBar
   // 调用频率由 syncPageChrome 的 page._chromeDark 守卫控制，不在本函数内再做主题偏好判断。
-  applyChrome() {
+  applyChrome(page) {
     const dark = this.isDark();
     const bg = dark ? '#141619' : '#F7F7F4';
-    wx.setNavigationBarColor({
-      frontColor: dark ? '#ffffff' : '#000000',
-      backgroundColor: bg,
-      fail: () => {}
-    });
+    // 手动切换、系统事件与页面初始化共用此处，避免只改原生色却留下旧缓存。
+    // 启动时页面栈可能为空：仍可尝试设置，但不能记成某个未来页面已完成。
+    if (!page && typeof getCurrentPages === 'function') {
+      const pages = getCurrentPages();
+      page = pages[pages.length - 1];
+    }
+    const request = { dark, remaining: wx.setBackgroundColor ? 2 : 1, failed: false };
+    if (page) {
+      page._chromeRequest = request;
+      delete page._chromeDark;
+    }
+    const settled = ok => {
+      if (!page || page._chromeRequest !== request) return;
+      request.failed = request.failed || !ok;
+      request.remaining--;
+      if (request.remaining > 0) return;
+      page._chromeRequest = null;
+      // 两个 API 都成功才缓存；失败下次展示会重试，旧请求不能确认新主题。
+      if (!request.failed && this.isDark() === dark) page._chromeDark = dark;
+    };
+    try {
+      wx.setNavigationBarColor({
+        frontColor: dark ? '#ffffff' : '#000000',
+        backgroundColor: bg,
+        animation: { duration: 0, timingFunc: 'linear' },
+        success: () => settled(true),
+        fail: () => settled(false)
+      });
+    } catch (e) { settled(false); }
     // 同步原生窗口背景：避免深色模式下页面切换 / 下拉回弹时露出浅色底（白闪）
     if (wx.setBackgroundColor) {
-      wx.setBackgroundColor({
+      try { wx.setBackgroundColor({
         backgroundColor: bg,
         backgroundColorTop: bg,
         backgroundColorBottom: bg,
-        fail: () => {}
-      });
+        success: () => settled(true),
+        fail: () => settled(false)
+      }); } catch (e) { settled(false); }
     }
     // 说明：本项目使用自定义 tabBar（app.json custom:true），原生 wx.setTabBarStyle
     // 对自定义 tabBar 无效，且每次 onShow 调用可能触发底部原生重绘闪烁，故移除。

@@ -4,6 +4,7 @@
  * 保证在任何情况下（断网、接口失效、未配置 key）都有内容可看。
  */
 const app = getApp();
+const themeTrace = require('../../utils/theme-trace');
 const historyUtil = require('../../utils/history');
 const dateUtil = require('../../utils/date');
 
@@ -41,6 +42,7 @@ Page({
   },
 
   onLoad() {
+    themeTrace.attach(this, 'history');
     // 开门 setData：onLoad 第一条 setData、无条件执行（其前只允许纯非抛异常计算）。themeReady 尽早翻起缩短系统色空帧；
     // month/day/dateText 均为纯日期计算（不读存储、不抛异常），一并写入使门开瞬间
     // 日期头卡即完整；contentReady 交由 onShow load() 的 .then 与 events 原子置真。
@@ -53,6 +55,7 @@ Page({
       dateText: (now.getMonth() + 1) + ' 月 ' + now.getDate() + ' 日 · ' + dateUtil.weekdayCN(now)
     });
 
+    app.syncPageChrome(this);
     // 通道 B · 运行时主题变化：只负责已存在实例的后续变化；同值不 setData（不碰 themeReady/contentReady）
     this._untheme = app.onTheme(dark => {
       if (this.data.dark !== dark) this.setData({ dark });
@@ -68,13 +71,17 @@ Page({
   },
 
   onShow() {
+    themeTrace.lifecycle(this, 'show');
     // onShow 只管原生 chrome（每页一份的标题栏 / 窗口背景），不再负责 DOM 主题纠正
     app.syncPageChrome(this);
     this.syncTabBar(2);
     this.load(false);
   },
 
+  onHide() { themeTrace.lifecycle(this, 'hide'); },
+
   onUnload() {
+    themeTrace.lifecycle(this, 'detach');
     if (this._untheme) this._untheme();
   },
 

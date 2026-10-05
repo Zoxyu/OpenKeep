@@ -4,6 +4,7 @@
  * 状态每次 onShow 实时重算，绝不读取写死的旧状态；下拉刷新仅本地重算。
  */
 const app = getApp();
+const themeTrace = require('../../utils/theme-trace');
 const storage = require('../../utils/storage');
 const recordUtil = require('../../utils/record');
 const imageUtil = require('../../utils/image');
@@ -53,6 +54,7 @@ Page({
   },
 
   onLoad() {
+    themeTrace.attach(this, 'dashboard');
     // 开门 setData：onLoad 第一条 setData、无条件执行（其前只允许纯非抛异常计算）。themeReady 尽早翻起打开门控，缩短
     // 「手动锁定主题≠系统」时新建页首帧的系统色空帧；todayText（纯日期计算）与 historyPreview
     // （getLocalPreview 查已缓存模块、纯且廉价、内部 try/catch 保证不抛异常）一并写入，使门开瞬间即为完整正确主题的
@@ -71,6 +73,7 @@ Page({
       }
     });
 
+    app.syncPageChrome(this);
     // 通道 B · 运行时主题变化：只负责已存在实例的后续变化；同值不 setData（不碰 themeReady/contentReady）
     this._untheme = app.onTheme(dark => {
       if (this.data.dark !== dark) this.setData({ dark });
@@ -88,6 +91,7 @@ Page({
   },
 
   onShow() {
+    themeTrace.lifecycle(this, 'show');
     // onShow 只管原生 chrome（每页一份的标题栏 / 窗口背景），不再负责 DOM 主题纠正
     app.syncPageChrome(this);
     this.syncTabBar(0);
@@ -101,7 +105,10 @@ Page({
     }
   },
 
+  onHide() { themeTrace.lifecycle(this, 'hide'); },
+
   onUnload() {
+    themeTrace.lifecycle(this, 'detach');
     this._unloaded = true;
     if (this._untheme) this._untheme();
   },
@@ -309,7 +316,12 @@ Page({
 
   // 跳转「历史上的今天」tab 页
   goHistory() {
-    wx.switchTab({ url: '/pages/history/history' });
+    const url = '/pages/history/history';
+    themeTrace.navigation(url);
+    wx.switchTab({ url,
+      success: () => themeTrace.navigation(url, 'switch-success'),
+      fail: () => themeTrace.navigation(url, 'switch-fail')
+    });
   },
 
   // 首次启动引导：写入示例数据（相对今天生成，保证红黄绿都有）
